@@ -83,7 +83,7 @@ docker build -f infra/images/app/Dockerfile --target worker -t kairn-worker .
 docker build -f infra/images/app/Dockerfile --target edge -t kairn-edge .
 ```
 
-The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the server and worker. The server also requires `BETTER_AUTH_SECRET` and an HTTPS origin in `BETTER_AUTH_URL`. Set the edge's `KAIRN_API_UPSTREAM` when its upstream DNS name differs from `server:3000`. The edge serves the static web build on `:8080` by default. Production host configuration and backup policy are part of the deployment milestone.
+The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the server and worker. The server also requires `BETTER_AUTH_SECRET` and an HTTPS origin in `BETTER_AUTH_URL`. For the pinned Linux release, deployment and recovery commands, see the [deployment runbook](docs/deployment-and-recovery.md).
 
 ## Web reader and browser tests
 

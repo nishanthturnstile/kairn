@@ -2,9 +2,13 @@ FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b
 
 FROM base AS build
 WORKDIR /build
+ENV COREPACK_HOME=/opt/corepack
 RUN corepack enable pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile
+
+FROM build AS ops
+USER node
 
 FROM build AS server-build
 RUN pnpm exec vp run --filter '@kairn/server...' build \

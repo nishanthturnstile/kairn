@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import {
   openDatabase,
   openJobQueue,
@@ -39,6 +40,8 @@ try {
     });
   }
   await registerIdentityRestrictions(boss, db, journal);
+  if (process.env.KAIRN_WORKER_READY_FILE)
+    await writeFile(process.env.KAIRN_WORKER_READY_FILE, "");
   console.log("Kairn worker is listening for jobs.");
   await shutdown.promise;
 } finally {

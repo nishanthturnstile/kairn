@@ -6,4 +6,5 @@ RUN apt-get update \
        postgresql-17-postgis-3-scripts=3.7.0+dfsg-1.pgdg12+2 \
        postgresql-17-pgvector=0.8.7-1.pgdg12+2 \
        pgbackrest=2.60.1-1.pgdg12+1 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && install -d -o postgres -g postgres -m 0750 /var/lib/pgbackrest

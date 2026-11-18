@@ -1,0 +1,54 @@
+name: Foundation CI
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      MIGRATION_DATABASE_URL: postgresql://kairn_migrator:local-migrator-only@127.0.0.1:55432/kairn
+      PGBOSS_DATABASE_URL: postgresql://kairn_migrator:local-migrator-only@127.0.0.1:55432/kairn
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .node-version
+      - name: Frozen dependency install
+        run: |
+          corepack enable pnpm
+          pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm api:check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:web
+      - name: Integration services
+        run: docker compose -f infra/compose/dev.yml up -d --wait db storage mail
+      - run: pnpm db:migrate
+      - run: pnpm db:queue
+      - run: pnpm test:integration
+      - run: pnpm test:identity:recovery
+      - name: Remove integration services
+        if: always()
+        run: docker compose -f infra/compose/dev.yml down -v
+
+  release-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Native Linux release images
+        run: bash infra/operations/build-images.sh linux/amd64 kairn-ci "${RUNNER_TEMP}/kairn-release.env"
+      - name: Release smoke and coordinated restore
+        run: bash tests/operations/release.sh "${RUNNER_TEMP}/kairn-release.env"

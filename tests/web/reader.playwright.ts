@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { loadReader } from "../../apps/server/src/reader";
 
@@ -115,6 +116,7 @@ test("isolates reader HTML and hydrates the same chapters and controls", async (
   await expect(
     second.getByRole("button", { name: "Larger text" }),
   ).toHaveAttribute("aria-pressed", "false");
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   expect(errors).toEqual([]);
 });
 
@@ -157,4 +159,5 @@ test("creator displays unavailable, loading, error, and empty states through the
   await expect(page.getByText("No published journeys yet")).toBeVisible();
   await page.getByRole("link", { name: "Saved" }).click();
   await expect(page.getByRole("heading", { name: "Saved" })).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
