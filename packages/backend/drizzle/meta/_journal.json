@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794976462443,
+      "tag": "0000_worker_checks",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794978089112,
+      "tag": "0001_domain_foundations",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794980508468,
+      "tag": "0002_identity_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794993812176,
+      "tag": "0003_credential_recovery",
+      "breakpoints": true
+    }
+  ]
+}

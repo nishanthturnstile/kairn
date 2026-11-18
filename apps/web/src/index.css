@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-sans);
+  --color-background: var(--kairn-canvas);
+  --color-foreground: var(--kairn-ink);
+  --color-card: var(--kairn-paper);
+  --color-card-foreground: var(--kairn-ink);
+  --color-primary: var(--kairn-accent);
+  --color-primary-foreground: var(--kairn-paper);
+  --color-muted: var(--kairn-accent-wash);
+  --color-muted-foreground: var(--kairn-subdued);
+  --color-secondary: var(--kairn-accent-wash);
+  --color-secondary-foreground: var(--kairn-ink);
+  --color-accent: var(--kairn-accent-wash);
+  --color-accent-foreground: var(--kairn-accent);
+  --color-destructive: var(--kairn-danger);
+  --color-border: var(--kairn-line);
+  --color-input: var(--kairn-line);
+  --color-ring: var(--kairn-accent);
+  --text-title: var(--kairn-title);
+  --spacing-section: var(--kairn-section);
+  --default-transition-duration: var(--kairn-motion);
+}
+
+:root {
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--kairn-accent);
+    outline-offset: 2px;
+  }
+}

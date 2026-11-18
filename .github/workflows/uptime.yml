@@ -1,0 +1,21 @@
+name: Public availability
+
+on:
+  schedule:
+    - cron: "13,28,43,58 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  availability:
+    if: vars.KAIRN_PUBLIC_URL != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      PUBLIC_URL: ${{ vars.KAIRN_PUBLIC_URL }}
+    steps:
+      - name: Check public application and database readiness
+        run: |
+          curl --fail --silent --show-error --retry 2 --max-time 15 --proto '=https' "${PUBLIC_URL%/}/" >/dev/null
+          curl --fail --silent --show-error --retry 2 --max-time 15 --proto '=https' "${PUBLIC_URL%/}/api/v1/ready" | jq -e '.status == "ready"'

@@ -1,0 +1,23 @@
+{
+	admin off
+}
+
+{$KAIRN_SITE_ADDRESS::8080} {
+	@media path /media /media/*
+	handle @media {
+		reverse_proxy {$KAIRN_API_UPSTREAM:server:3000} {
+			header_down Cache-Control "private, no-store"
+		}
+	}
+
+	@api path /api /api/* /read /read/*
+	handle @api {
+		reverse_proxy {$KAIRN_API_UPSTREAM:server:3000}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

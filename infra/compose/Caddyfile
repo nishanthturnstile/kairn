@@ -1,0 +1,21 @@
+{
+	admin off
+}
+
+:8080 {
+	@media path /media /media/*
+	handle @media {
+		reverse_proxy {$KAIRN_API_UPSTREAM} {
+			header_down Cache-Control "private, no-store"
+		}
+	}
+
+	@api path /api /api/* /read /read/*
+	handle @api {
+		reverse_proxy {$KAIRN_API_UPSTREAM}
+	}
+
+	handle {
+		reverse_proxy {$KAIRN_WEB_UPSTREAM}
+	}
+}

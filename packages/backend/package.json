@@ -1,0 +1,50 @@
+{
+  "name": "@kairn/backend",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/nodemailer": "8.0.2",
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
+  },
+  "exports": {
+    ".": {
+      "node": {
+        "types": "./src/index.ts",
+        "development": "./src/index.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
+    "db:seed": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-development.ts",
+    "db:queue": "pnpm db:queue:migrate && pnpm db:queue:provision && pnpm db:queue:doctor",
+    "db:queue:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/pg-boss/dist/cli.js migrate",
+    "db:queue:provision": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/provision-queues.ts",
+    "db:queue:doctor": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/pg-boss/dist/cli.js doctor",
+    "identity:replay": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/replay-identity.ts",
+    "identity:approve-recovery": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/approve-recovery.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1171.0",
+    "@better-auth/drizzle-adapter": "1.7.25",
+    "@better-auth/expo": "1.7.25",
+    "better-auth": "1.7.25",
+    "drizzle-orm": "0.45.4",
+    "nodemailer": "10.6.0",
+    "pg": "8.23.1",
+    "pg-boss": "12.38.2",
+    "pino": "10.4.0",
+    "zod": "4.6.7"
+  },
+  "files": [
+    "dist"
+  ]
+}

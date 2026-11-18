@@ -1,0 +1,27 @@
+{
+  "name": "@kairn/server",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "2.1.9",
+    "@hono/zod-openapi": "1.6.3",
+    "@kairn/backend": "workspace:*",
+    "@kairn/contracts": "workspace:*",
+    "hono": "4.13.19"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "dev": "tsx watch --conditions=development --env-file-if-exists=.env --env-file-if-exists=.env.local src/index.ts",
+    "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "api:emit": "tsx --conditions=development scripts/emit-openapi.ts"
+  },
+  "files": [
+    "dist"
+  ]
+}

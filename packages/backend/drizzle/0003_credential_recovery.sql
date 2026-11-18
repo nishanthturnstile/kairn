@@ -1,0 +1,3 @@
+CREATE TYPE "kairn"."credential_recovery_state" AS ENUM('required', 'approved');--> statement-breakpoint
+ALTER TABLE "kairn"."accounts" ADD COLUMN "credential_recovery" "kairn"."credential_recovery_state";--> statement-breakpoint
+ALTER TABLE "kairn"."accounts" ADD CONSTRAINT "accounts_credential_recovery_restricted" CHECK ("kairn"."accounts"."credential_recovery" IS NULL OR "kairn"."accounts"."restricted_at" IS NOT NULL);

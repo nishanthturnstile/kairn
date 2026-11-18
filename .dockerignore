@@ -1,0 +1,14 @@
+.git
+.vscode
+docs
+test-results
+playwright-report
+**/node_modules
+**/dist
+**/.env*
+**/.expo
+**/.vite
+**/*.log
+**/*.tsbuildinfo
+apps/mobile/android
+apps/mobile/ios

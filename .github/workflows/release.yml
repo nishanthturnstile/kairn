@@ -1,0 +1,51 @@
+name: Build VPS release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Protected release environment
+        required: true
+        type: environment
+      architecture:
+        description: Architecture verified on the target Linux VPS
+        required: true
+        type: choice
+        options:
+          - amd64
+          - arm64
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: inputs.environment == 'staging' || inputs.environment == 'production'
+    environment: ${{ inputs.environment }}
+    runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ARCHITECTURE: ${{ inputs.architecture }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and smoke-test native Linux images
+        run: |
+          export KAIRN_RELEASE_REVISION="$GITHUB_SHA"
+          bash infra/operations/build-images.sh "linux/$ARCHITECTURE" kairn-release "${RUNNER_TEMP}/kairn-local.env"
+          bash tests/operations/release.sh "${RUNNER_TEMP}/kairn-local.env"
+      - name: Publish tested images to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          bash infra/operations/publish-images.sh "${RUNNER_TEMP}/kairn-local.env" "ghcr.io/${GITHUB_REPOSITORY,,}" "${RUNNER_TEMP}/kairn-release.env"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: kairn-${{ inputs.environment }}-${{ inputs.architecture }}-${{ github.sha }}
+          path: ${{ runner.temp }}/kairn-release.env
+          if-no-files-found: error

@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Kairn",
+    "slug": "kairn",
+    "version": "0.1.0",
+    "scheme": "kairn",
+    "orientation": "portrait",
+    "ios": {
+      "bundleIdentifier": "dev.kairn.app"
+    },
+    "android": {
+      "package": "dev.kairn.app",
+      "allowBackup": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsVersion": "11.33.0"
+        }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-web-browser"
+    ]
+  }
+}

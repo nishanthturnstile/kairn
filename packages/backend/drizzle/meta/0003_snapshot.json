@@ -1,0 +1,1571 @@
+{
+  "id": "0c56e496-6526-4d30-a094-ef23147a3706",
+  "prevId": "81fbb20d-6193-416f-b2da-fb61362ed11f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "kairn.worker_checks": {
+      "name": "worker_checks",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn_auth.account": {
+      "name": "account",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "pg_catalog.gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_userId_idx": {
+          "name": "account_userId_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "schemaTo": "kairn_auth",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn_auth.session": {
+      "name": "session",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "pg_catalog.gen_random_uuid()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_userId_idx": {
+          "name": "session_userId_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "schemaTo": "kairn_auth",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn_auth.user": {
+      "name": "user",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "pg_catalog.gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn_auth.verification": {
+      "name": "verification",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "pg_catalog.gen_random_uuid()"
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn.accounts": {
+      "name": "accounts",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "restricted_at": {
+          "name": "restricted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credential_recovery": {
+          "name": "credential_recovery",
+          "type": "credential_recovery_state",
+          "typeSchema": "kairn",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "security_generation": {
+          "name": "security_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounts_id_user_id_fk": {
+          "name": "accounts_id_user_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "user",
+          "schemaTo": "kairn_auth",
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounts_security_generation_positive": {
+          "name": "accounts_security_generation_positive",
+          "value": "\"kairn\".\"accounts\".\"security_generation\" > 0"
+        },
+        "accounts_credential_recovery_restricted": {
+          "name": "accounts_credential_recovery_restricted",
+          "value": "\"kairn\".\"accounts\".\"credential_recovery\" IS NULL OR \"kairn\".\"accounts\".\"restricted_at\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn_auth.identity_mail": {
+      "name": "identity_mail",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "identity_mail_kind",
+          "typeSchema": "kairn_auth",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "epoch_digest": {
+          "name": "epoch_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ciphertext": {
+          "name": "ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "identity_mail_state",
+          "typeSchema": "kairn_auth",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "identity_mail_account_id_user_id_fk": {
+          "name": "identity_mail_account_id_user_id_fk",
+          "tableFrom": "identity_mail",
+          "tableTo": "user",
+          "schemaTo": "kairn_auth",
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "kairn_auth.identity_recovery": {
+      "name": "identity_recovery",
+      "schema": "kairn_auth",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "epoch_digest": {
+          "name": "epoch_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "identity_recovery_singleton": {
+          "name": "identity_recovery_singleton",
+          "value": "\"kairn_auth\".\"identity_recovery\".\"id\" = 'current'"
+        },
+        "identity_recovery_epoch_digest": {
+          "name": "identity_recovery_epoch_digest",
+          "value": "\"kairn_auth\".\"identity_recovery\".\"epoch_digest\" ~ '^[0-9a-f]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "kairn.journey_capabilities": {
+      "name": "journey_capabilities",
+      "schema": "kairn",
+      "columns": {
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capability": {
+          "name": "capability",
+          "type": "journey_capability",
+          "typeSchema": "kairn",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "journey_capabilities_membership_fk": {
+          "name": "journey_capabilities_membership_fk",
+          "tableFrom": "journey_capabilities",
+          "tableTo": "journey_memberships",
+          "schemaTo": "kairn",
+          "columnsFrom": ["journey_id", "account_id"],
+          "columnsTo": ["journey_id", "account_id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "journey_capabilities_journey_id_account_id_capability_pk": {
+          "name": "journey_capabilities_journey_id_account_id_capability_pk",
+          "columns": ["journey_id", "account_id", "capability"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "kairn.journey_memberships": {
+      "name": "journey_memberships",
+      "schema": "kairn",
+      "columns": {
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "journey_memberships_account_idx": {
+          "name": "journey_memberships_account_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "journey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "journey_memberships_journey_id_journeys_id_fk": {
+          "name": "journey_memberships_journey_id_journeys_id_fk",
+          "tableFrom": "journey_memberships",
+          "tableTo": "journeys",
+          "schemaTo": "kairn",
+          "columnsFrom": ["journey_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "journey_memberships_account_id_accounts_id_fk": {
+          "name": "journey_memberships_account_id_accounts_id_fk",
+          "tableFrom": "journey_memberships",
+          "tableTo": "accounts",
+          "schemaTo": "kairn",
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "journey_memberships_journey_id_account_id_pk": {
+          "name": "journey_memberships_journey_id_account_id_pk",
+          "columns": ["journey_id", "account_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "journey_memberships_revocation_order": {
+          "name": "journey_memberships_revocation_order",
+          "value": "\"kairn\".\"journey_memberships\".\"revoked_at\" >= \"kairn\".\"journey_memberships\".\"joined_at\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.journeys": {
+      "name": "journeys",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "draft_generation": {
+          "name": "draft_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "policy_generation": {
+          "name": "policy_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "journeys_creator_idx": {
+          "name": "journeys_creator_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "journeys_created_by_accounts_id_fk": {
+          "name": "journeys_created_by_accounts_id_fk",
+          "tableFrom": "journeys",
+          "tableTo": "accounts",
+          "schemaTo": "kairn",
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "journeys_title_present": {
+          "name": "journeys_title_present",
+          "value": "length(btrim(\"kairn\".\"journeys\".\"title\")) > 0"
+        },
+        "journeys_generations_positive": {
+          "name": "journeys_generations_positive",
+          "value": "\"kairn\".\"journeys\".\"draft_generation\" > 0 AND \"kairn\".\"journeys\".\"policy_generation\" > 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.audit_events": {
+      "name": "audit_events",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_kind": {
+          "name": "target_kind",
+          "type": "audit_target_kind",
+          "typeSchema": "kairn",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "audit_events_actor_idx": {
+          "name": "audit_events_actor_idx",
+          "columns": [
+            {
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_events_target_idx": {
+          "name": "audit_events_target_idx",
+          "columns": [
+            {
+              "expression": "target_kind",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_events_actor_id_accounts_id_fk": {
+          "name": "audit_events_actor_id_accounts_id_fk",
+          "tableFrom": "audit_events",
+          "tableTo": "accounts",
+          "schemaTo": "kairn",
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "audit_events_action_code": {
+          "name": "audit_events_action_code",
+          "value": "\"kairn\".\"audit_events\".\"action\" ~ '^[a-z][a-z0-9_]{0,63}$'"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.restriction_events": {
+      "name": "restriction_events",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "audit_event_id": {
+          "name": "audit_event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operation": {
+          "name": "operation",
+          "type": "restriction_operation",
+          "typeSchema": "kairn",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_generation": {
+          "name": "policy_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "affected_session_id": {
+          "name": "affected_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "integrity_digest": {
+          "name": "integrity_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "journal_sequence": {
+          "name": "journal_sequence",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "journal_receipt": {
+          "name": "journal_receipt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "restriction_events_audit_event_id_audit_events_id_fk": {
+          "name": "restriction_events_audit_event_id_audit_events_id_fk",
+          "tableFrom": "restriction_events",
+          "tableTo": "audit_events",
+          "schemaTo": "kairn",
+          "columnsFrom": ["audit_event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "restriction_events_audit_event_id_unique": {
+          "name": "restriction_events_audit_event_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["audit_event_id"]
+        },
+        "restriction_events_journal_sequence_unique": {
+          "name": "restriction_events_journal_sequence_unique",
+          "nullsNotDistinct": false,
+          "columns": ["journal_sequence"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "restriction_events_generation_positive": {
+          "name": "restriction_events_generation_positive",
+          "value": "\"kairn\".\"restriction_events\".\"policy_generation\" > 0"
+        },
+        "restriction_events_device_scope": {
+          "name": "restriction_events_device_scope",
+          "value": "(\"kairn\".\"restriction_events\".\"operation\"::text = 'device_session_revoked') = (\"kairn\".\"restriction_events\".\"affected_session_id\" IS NOT NULL)"
+        },
+        "restriction_events_digest_sha256": {
+          "name": "restriction_events_digest_sha256",
+          "value": "\"kairn\".\"restriction_events\".\"integrity_digest\" ~ '^[0-9a-f]{64}$'"
+        },
+        "restriction_events_receipt_pair": {
+          "name": "restriction_events_receipt_pair",
+          "value": "(\"kairn\".\"restriction_events\".\"journal_sequence\" IS NULL) = (\"kairn\".\"restriction_events\".\"journal_receipt\" IS NULL)"
+        },
+        "restriction_events_sequence_positive": {
+          "name": "restriction_events_sequence_positive",
+          "value": "\"kairn\".\"restriction_events\".\"journal_sequence\" > 0"
+        },
+        "restriction_events_receipt_length": {
+          "name": "restriction_events_receipt_length",
+          "value": "length(\"kairn\".\"restriction_events\".\"journal_receipt\") BETWEEN 1 AND 2048"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.export_grant_assets": {
+      "name": "export_grant_assets",
+      "schema": "kairn",
+      "columns": {
+        "grant_id": {
+          "name": "grant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_grant_revision": {
+          "name": "source_grant_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "export_grant_assets_source_asset_idx": {
+          "name": "export_grant_assets_source_asset_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "export_grant_assets_source_grant_idx": {
+          "name": "export_grant_assets_source_grant_idx",
+          "columns": [
+            {
+              "expression": "journey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "export_grant_assets_export_grant_fk": {
+          "name": "export_grant_assets_export_grant_fk",
+          "tableFrom": "export_grant_assets",
+          "tableTo": "original_export_grants",
+          "schemaTo": "kairn",
+          "columnsFrom": ["grant_id", "journey_id", "owner_id"],
+          "columnsTo": ["id", "journey_id", "owner_id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "export_grant_assets_source_asset_fk": {
+          "name": "export_grant_assets_source_asset_fk",
+          "tableFrom": "export_grant_assets",
+          "tableTo": "source_assets",
+          "schemaTo": "kairn",
+          "columnsFrom": ["source_id", "asset_id"],
+          "columnsTo": ["source_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "export_grant_assets_source_grant_fk": {
+          "name": "export_grant_assets_source_grant_fk",
+          "tableFrom": "export_grant_assets",
+          "tableTo": "source_grants",
+          "schemaTo": "kairn",
+          "columnsFrom": ["journey_id", "source_id", "owner_id"],
+          "columnsTo": ["journey_id", "source_id", "owner_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "export_grant_assets_grant_id_asset_id_pk": {
+          "name": "export_grant_assets_grant_id_asset_id_pk",
+          "columns": ["grant_id", "asset_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "export_grant_assets_revision_positive": {
+          "name": "export_grant_assets_revision_positive",
+          "value": "\"kairn\".\"export_grant_assets\".\"source_grant_revision\" > 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.original_export_grants": {
+      "name": "original_export_grants",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "original_export_grants_recipient_idx": {
+          "name": "original_export_grants_recipient_idx",
+          "columns": [
+            {
+              "expression": "journey_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "recipient_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "original_export_grants_owner_idx": {
+          "name": "original_export_grants_owner_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "original_export_grants_owner_id_accounts_id_fk": {
+          "name": "original_export_grants_owner_id_accounts_id_fk",
+          "tableFrom": "original_export_grants",
+          "tableTo": "accounts",
+          "schemaTo": "kairn",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "original_export_grants_recipient_fk": {
+          "name": "original_export_grants_recipient_fk",
+          "tableFrom": "original_export_grants",
+          "tableTo": "journey_memberships",
+          "schemaTo": "kairn",
+          "columnsFrom": ["journey_id", "recipient_id"],
+          "columnsTo": ["journey_id", "account_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "original_export_grants_id_journey_owner_unique": {
+          "name": "original_export_grants_id_journey_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "journey_id", "owner_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "original_export_grants_distinct_recipient": {
+          "name": "original_export_grants_distinct_recipient",
+          "value": "\"kairn\".\"original_export_grants\".\"owner_id\" <> \"kairn\".\"original_export_grants\".\"recipient_id\""
+        },
+        "original_export_grants_expiry_order": {
+          "name": "original_export_grants_expiry_order",
+          "value": "\"kairn\".\"original_export_grants\".\"expires_at\" > \"kairn\".\"original_export_grants\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.source_assets": {
+      "name": "source_assets",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "source_assets_source_id_sources_id_fk": {
+          "name": "source_assets_source_id_sources_id_fk",
+          "tableFrom": "source_assets",
+          "tableTo": "sources",
+          "schemaTo": "kairn",
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "source_assets_source_id_unique": {
+          "name": "source_assets_source_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["source_id", "id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "kairn.source_grants": {
+      "name": "source_grants",
+      "schema": "kairn",
+      "columns": {
+        "journey_id": {
+          "name": "journey_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "source_scope",
+          "typeSchema": "kairn",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "withdrawn_at": {
+          "name": "withdrawn_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "source_grants_source_idx": {
+          "name": "source_grants_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "source_grants_journey_id_journeys_id_fk": {
+          "name": "source_grants_journey_id_journeys_id_fk",
+          "tableFrom": "source_grants",
+          "tableTo": "journeys",
+          "schemaTo": "kairn",
+          "columnsFrom": ["journey_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "source_grants_owner_fk": {
+          "name": "source_grants_owner_fk",
+          "tableFrom": "source_grants",
+          "tableTo": "sources",
+          "schemaTo": "kairn",
+          "columnsFrom": ["source_id", "owner_id"],
+          "columnsTo": ["id", "owner_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "source_grants_journey_id_source_id_pk": {
+          "name": "source_grants_journey_id_source_id_pk",
+          "columns": ["journey_id", "source_id"]
+        }
+      },
+      "uniqueConstraints": {
+        "source_grants_journey_source_owner_unique": {
+          "name": "source_grants_journey_source_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["journey_id", "source_id", "owner_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "source_grants_revision_positive": {
+          "name": "source_grants_revision_positive",
+          "value": "\"kairn\".\"source_grants\".\"revision\" > 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "kairn.sources": {
+      "name": "sources",
+      "schema": "kairn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "sources_owner_idx": {
+          "name": "sources_owner_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sources_owner_id_accounts_id_fk": {
+          "name": "sources_owner_id_accounts_id_fk",
+          "tableFrom": "sources",
+          "tableTo": "accounts",
+          "schemaTo": "kairn",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sources_id_owner_unique": {
+          "name": "sources_id_owner_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id", "owner_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "kairn.credential_recovery_state": {
+      "name": "credential_recovery_state",
+      "schema": "kairn",
+      "values": ["required", "approved"]
+    },
+    "kairn_auth.identity_mail_kind": {
+      "name": "identity_mail_kind",
+      "schema": "kairn_auth",
+      "values": ["verify", "reset"]
+    },
+    "kairn_auth.identity_mail_state": {
+      "name": "identity_mail_state",
+      "schema": "kairn_auth",
+      "values": ["queued", "sent", "failed", "expired"]
+    },
+    "kairn.journey_capability": {
+      "name": "journey_capability",
+      "schema": "kairn",
+      "values": ["administrator", "coauthor", "publisher"]
+    },
+    "kairn.audit_target_kind": {
+      "name": "audit_target_kind",
+      "schema": "kairn",
+      "values": [
+        "account",
+        "journey",
+        "membership",
+        "source",
+        "original_export_grant"
+      ]
+    },
+    "kairn.restriction_operation": {
+      "name": "restriction_operation",
+      "schema": "kairn",
+      "values": [
+        "account_restriction",
+        "credentials_changed",
+        "device_session_revoked",
+        "membership_revocation",
+        "capability_removal",
+        "source_grant_narrowing",
+        "source_withdrawal",
+        "original_export_revocation"
+      ]
+    },
+    "kairn.source_scope": {
+      "name": "source_scope",
+      "schema": "kairn",
+      "values": ["journey_review", "publication_reuse"]
+    }
+  },
+  "schemas": {
+    "kairn": "kairn",
+    "kairn_auth": "kairn_auth"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
