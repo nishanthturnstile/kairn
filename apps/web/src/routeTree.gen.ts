@@ -10,13 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as JourneysRouteImport } from './routes/journeys'
 import { Route as SavedRouteImport } from './routes/saved'
+import { Route as AccountResetRouteImport } from './routes/account_.reset'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -34,39 +41,60 @@ const SavedRoute = SavedRouteImport.update({
   path: '/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountResetRoute = AccountResetRouteImport.update({
+  id: '/account_/reset',
+  path: '/account/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
+  '/account/reset': typeof AccountResetRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
+  '/account/reset': typeof AccountResetRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
+  '/account_/reset': typeof AccountResetRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discover' | '/journeys' | '/saved'
+  fullPaths:
+    '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discover' | '/journeys' | '/saved'
-  id: '__root__' | '/' | '/discover' | '/journeys' | '/saved'
+  to: '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
+  id:
+    | '__root__'
+    | '/'
+    | '/account'
+    | '/discover'
+    | '/journeys'
+    | '/saved'
+    | '/account_/reset'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   DiscoverRoute: typeof DiscoverRoute
   JourneysRoute: typeof JourneysRoute
   SavedRoute: typeof SavedRoute
+  AccountResetRoute: typeof AccountResetRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -76,6 +104,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -99,14 +134,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account_/reset': {
+      id: '/account_/reset'
+      path: '/account/reset'
+      fullPath: '/account/reset'
+      preLoaderRoute: typeof AccountResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   DiscoverRoute: DiscoverRoute,
   JourneysRoute: JourneysRoute,
   SavedRoute: SavedRoute,
+  AccountResetRoute: AccountResetRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

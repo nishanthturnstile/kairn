@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import { check, integer, timestamp, uuid } from "drizzle-orm/pg-core";
-import { kairn } from "../../db/namespaces.js";
+import { check, integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { kairn, kairnAuth } from "../../db/namespaces.js";
 import { user } from "./auth-schema.js";
 
 export const accounts = kairn
@@ -24,3 +24,41 @@ export const accounts = kairn
     ],
   )
   .enableRLS();
+
+export const identityRecovery = kairnAuth.table(
+  "identity_recovery",
+  {
+    id: text("id").primaryKey(),
+    epochDigest: text("epoch_digest").notNull(),
+  },
+  (row) => [
+    check("identity_recovery_singleton", sql`${row.id} = 'current'`),
+    check(
+      "identity_recovery_epoch_digest",
+      sql`${row.epochDigest} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const identityMailKind = kairnAuth.enum("identity_mail_kind", [
+  "verify",
+  "reset",
+]);
+export const identityMailState = kairnAuth.enum("identity_mail_state", [
+  "queued",
+  "sent",
+  "failed",
+  "expired",
+]);
+
+export const identityMail = kairnAuth.table("identity_mail", {
+  id: uuid("id").primaryKey(),
+  accountId: uuid("account_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  kind: identityMailKind("kind").notNull(),
+  epochDigest: text("epoch_digest").notNull(),
+  ciphertext: text("ciphertext"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  state: identityMailState("state").default("queued").notNull(),
+});

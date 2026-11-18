@@ -33,6 +33,8 @@
     "test:integration": "KAIRN_INTEGRATION=1 vp test run tests/integration",
     "api:generate": "pnpm --filter @kairn/server api:emit && pnpm --filter @kairn/contracts api:generate",
     "api:check": "pnpm --filter @kairn/server api:emit --check && pnpm --filter @kairn/contracts api:check",
-    "test:web": "playwright test"
+    "test:web": "playwright test",
+    "test:identity:recovery": "bash tests/integration/isolated-identity.sh",
+    "identity:replay": "pnpm --filter @kairn/backend identity:replay"
   }
 }

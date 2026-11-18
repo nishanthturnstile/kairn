@@ -13,6 +13,8 @@ import { accounts } from "../identity/schema.js";
 
 export const restrictionOperation = kairn.enum("restriction_operation", [
   "account_restriction",
+  "credentials_changed",
+  "device_session_revoked",
   "membership_revocation",
   "capability_removal",
   "source_grant_narrowing",
@@ -70,6 +72,7 @@ export const restrictionEvents = kairn
         .references(() => auditEvents.id),
       operation: restrictionOperation("operation").notNull(),
       policyGeneration: integer("policy_generation").notNull(),
+      affectedSessionId: uuid("affected_session_id"),
       integrityDigest: text("integrity_digest").notNull(),
       journalSequence: bigint("journal_sequence", { mode: "bigint" }).unique(),
       journalReceipt: text("journal_receipt"),
@@ -78,6 +81,10 @@ export const restrictionEvents = kairn
       check(
         "restriction_events_generation_positive",
         sql`${event.policyGeneration} > 0`,
+      ),
+      check(
+        "restriction_events_device_scope",
+        sql`(${event.operation}::text = 'device_session_revoked') = (${event.affectedSessionId} IS NOT NULL)`,
       ),
       check(
         "restriction_events_digest_sha256",

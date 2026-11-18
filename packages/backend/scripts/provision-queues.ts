@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { openJobQueue, workerCheckQueue } from "../src/jobs.js";
+import { identityMailQueue } from "../src/modules/identity/email.js";
+import { restrictionQueue } from "../src/modules/lifecycle/identity-restrictions.js";
 
 const databaseUrl = z
   .url({ protocol: /^postgres(?:ql)?$/ })
@@ -9,6 +11,8 @@ const boss = openJobQueue(databaseUrl);
 try {
   await boss.start();
   await boss.createQueue(workerCheckQueue);
+  await boss.createQueue(identityMailQueue);
+  await boss.createQueue(restrictionQueue);
 } finally {
   await boss.stop();
 }

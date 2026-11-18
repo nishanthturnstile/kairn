@@ -6,10 +6,15 @@ type Message = {
   subject: string;
   text: string;
   html?: string;
+  messageId?: string;
 };
 
 export function openMailTransport(smtpUrl: string) {
-  const transport = createTransport(smtpUrl, {
+  const connection = new URL(smtpUrl);
+  connection.searchParams.set("connectionTimeout", "5000");
+  connection.searchParams.set("greetingTimeout", "5000");
+  connection.searchParams.set("socketTimeout", "10000");
+  const transport = createTransport(connection.href, {
     disableFileAccess: true,
     disableUrlAccess: true,
   });

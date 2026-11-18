@@ -15,6 +15,13 @@
       "when": 1794978089112,
       "tag": "0001_domain_foundations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794980508468,
+      "tag": "0002_identity_recovery",
+      "breakpoints": true
     }
   ]
 }

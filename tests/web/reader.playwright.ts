@@ -54,6 +54,8 @@ async function serveFixture(
         contentType: "text/html; charset=utf-8",
         body: render(story),
       });
+    } else if (pathname === "/api/auth/get-session") {
+      await route.fulfill({ contentType: "application/json", body: "null" });
     } else if (pathname === "/api/v1/ready") {
       const status = await readiness();
       await route.fulfill({
@@ -144,7 +146,7 @@ test("creator displays unavailable, loading, error, and empty states through the
   );
   await page.goto(origin);
   await expect(page.getByRole("heading", { name: "Journeys" })).toBeVisible();
-  await expect(page.getByText("Account access is unavailable")).toBeVisible();
+  await expect(page.getByText("Sign in to continue")).toBeVisible();
   await page.getByRole("link", { name: "Discover" }).click();
   await expect(page.getByText("Checking availability")).toBeVisible();
   first.resolve(503);

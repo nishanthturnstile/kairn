@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { problem, type RequestEnvironment } from "./http/problem.js";
 import { createV1Api, getOpenApiDocument } from "./http/v1.js";
@@ -43,6 +44,7 @@ export function createApp({
       }),
     );
   }
+  app.use("/api/auth/*", bodyLimit({ maxSize: 16_384 }));
   app.on(["GET", "POST"], "/api/auth/*", (context) =>
     authHandler(context.req.raw),
   );

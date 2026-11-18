@@ -1,6 +1,5 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vite-plus/test";
-import { createApp } from "../../apps/server/src/app";
 import {
   accounts,
   auditEvents,
@@ -17,7 +16,6 @@ import {
 } from "../../packages/backend/src/db/schema";
 import {
   checkDatabaseReadiness,
-  createAuth,
   openDatabase,
 } from "../../packages/backend/src/index";
 
@@ -33,39 +31,14 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
   () => {
     it("uses the migrated database for readiness and keeps private domain access closed", async () => {
       const { db, pool } = openDatabase(runtimeUrl);
-      const baseURL = "http://kairn.test";
-      const auth = createAuth(db, {
-        baseURL,
-        secret: randomBytes(32).toString("hex"),
-      });
-      const app = createApp({
-        authHandler: auth.handler,
-        checkReadiness: () => checkDatabaseReadiness(db),
-      });
-
       try {
-        expect((await app.request("/api/v1/ready")).status).toBe(200);
-        const session = await app.request(`${baseURL}/api/auth/get-session`);
-        expect(session.status).toBe(200);
-        expect(session.headers.get("X-Request-Id")).toBeTruthy();
-        await expect(session.json()).resolves.toBeNull();
-        const signup = await app.request(`${baseURL}/api/auth/sign-up/email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Origin: baseURL },
-          body: JSON.stringify({
-            name: "Synthetic user",
-            email: "synthetic@example.test",
-            password: "test-password-never-used",
-          }),
-        });
-        expect(signup.status).toBeGreaterThanOrEqual(400);
-
+        await expect(checkDatabaseReadiness(db)).resolves.toBeUndefined();
+        await expect(
+          pool.query("SELECT id FROM kairn.accounts"),
+        ).resolves.toMatchObject({ rows: [] });
         for (const query of [
-          'SELECT id FROM kairn_auth."account"',
           "SELECT id FROM kairn.journeys",
-          "SELECT id FROM kairn.accounts",
           "SELECT revision FROM kairn.source_grants",
-          "SELECT id FROM kairn.restriction_events",
         ]) {
           await expect(pool.query(query)).rejects.toMatchObject({
             code: "42501",

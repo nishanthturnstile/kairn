@@ -7,3 +7,4 @@ export type { ReaderStory } from "./reader.js";
 export function createApiClient(options?: ClientOptions): Client<paths> {
   return createClient<paths>(options);
 }
+export type { IdentityDevices, RestrictionConfirmation } from "./identity.js";

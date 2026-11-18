@@ -6,7 +6,10 @@ import {
 import { publicEnvironment } from "../env";
 import type { AccountScope } from "../lib/session";
 
-export const Route = createRootRouteWithContext<{ scope: AccountScope }>()({
+export const Route = createRootRouteWithContext<{
+  scope: AccountScope;
+  signOut: () => Promise<boolean>;
+}>()({
   component: AppShell,
 });
 
@@ -51,6 +54,12 @@ function AppShell() {
             </Link>
           ))}
         </nav>
+        <Link
+          to="/account"
+          className="flex min-h-11 items-center px-5 text-sm font-medium text-primary md:px-3"
+        >
+          Account
+        </Link>
       </aside>
       <main
         id="main"

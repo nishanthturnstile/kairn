@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRouteContext } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { Button } from "./ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
@@ -30,9 +30,9 @@ export function WorkspacePage({
       </header>
       {accountRequired ? (
         <Alert className="p-5" role="status">
-          <AlertTitle>Account access is unavailable</AlertTitle>
+          <AlertTitle>Sign in to continue</AlertTitle>
           <AlertDescription>
-            This space opens when you can sign in.
+            <Link to="/account">Open your account</Link> to use this space.
           </AlertDescription>
         </Alert>
       ) : (
