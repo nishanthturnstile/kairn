@@ -21,7 +21,7 @@
     "dev:mobile": "vp run @kairn/mobile#dev",
     "android": "vp run @kairn/mobile#android",
     "ios": "vp run @kairn/mobile#ios",
-    "check": "biome ci && vp run typecheck",
+    "check": "pnpm tokens:check && biome ci && vp run typecheck",
     "format": "biome format --write",
     "typecheck": "vp run --filter \"@kairn/*\" typecheck",
     "test": "vp test run",
@@ -40,6 +40,8 @@
     "check:client-bundles": "bash tests/operations/client-bundles.sh",
     "test:identity:recovery": "bash tests/integration/isolated-identity.sh",
     "identity:approve-recovery": "pnpm --filter @kairn/backend identity:approve-recovery",
-    "identity:replay": "pnpm --filter @kairn/backend identity:replay"
+    "identity:replay": "pnpm --filter @kairn/backend identity:replay",
+    "tokens:generate": "pnpm --filter @kairn/design-tokens generate",
+    "tokens:check": "pnpm --filter @kairn/design-tokens check:generated"
   }
 }

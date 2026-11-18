@@ -22,7 +22,7 @@ export function renderReader(input: ReaderStory | null, assets: ReaderAssets) {
   const markup = renderToString(<Story story={story} />);
   const data = JSON.stringify(story).replaceAll("<", "\\u003c");
   const frame = renderToStaticMarkup(
-    <html lang="en">
+    <html lang="en-IN">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

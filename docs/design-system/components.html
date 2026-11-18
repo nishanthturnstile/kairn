@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kairn · Component review</title>
+  <link rel="stylesheet" href="../../packages/design-tokens/generated/tokens.css">
+  <style>
+    @font-face { font-family: "Source Sans 3"; src: url("../../packages/design-tokens/fonts/source-sans-3.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 1rem/1.5 var(--kairn-semantic-font-family-ui); }
+    main { max-width: 48rem; margin: auto; }
+    section { background: var(--kairn-semantic-color-canvas); color: var(--kairn-semantic-color-ink); border-radius: var(--kairn-semantic-radius-card); padding: clamp(16px,4vw,32px); }
+    header, .controls, .byline { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+    header { padding-bottom: 14px; border-bottom: 1px solid var(--kairn-semantic-color-boundary); }
+    header strong { font-size: 1.375rem; font-weight: 600; }
+    .subtle, dt, .byline { color: var(--kairn-semantic-color-secondary-text); }
+    .phase { color: var(--kairn-semantic-color-story-accent); margin: 18px 0 2px; font-weight: 600; }
+    h1 { font: 400 clamp(2rem,6vw,2.7rem)/1.16 var(--kairn-semantic-font-family-story); margin: 0 0 20px; }
+    h2 { font-size: 1.125rem; margin: 0 0 8px; }
+    .controls { justify-content: start; }
+    label { font-weight: 600; }
+    select { font: inherit; min-height: 48px; max-width: 100%; padding: 6px 12px; color: var(--kairn-semantic-color-ink); background: var(--kairn-semantic-color-surface); border: var(--kairn-semantic-border-control) solid var(--kairn-semantic-color-boundary); border-radius: var(--kairn-semantic-radius-control); }
+    :focus-visible { outline: 3px solid var(--kairn-semantic-color-information); outline-offset: 3px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 0; }
+    article { min-width: 0; background: var(--kairn-component-moment-card-background); border: var(--kairn-component-moment-card-border-width) solid var(--kairn-semantic-color-boundary); border-radius: var(--kairn-component-moment-card-radius); padding: var(--kairn-component-moment-card-padding); }
+    dl { margin: 0; }
+    dl div + div { margin-top: 8px; }
+    dt, small, .byline, .subtle { font-size: .875rem; }
+    dd, p { margin: 0; }
+    dd { font-weight: 600; }
+    .fare { font-size: 2.1rem; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .byline { margin-top: 12px; }
+    .sr { position: absolute; height: 1px; width: 1px; overflow: hidden; clip-path: inset(50%); }
+    @media (max-width: 500px) { .cards { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main><section aria-labelledby="title">
+  <header><strong>Kairn</strong><span class="subtle">Component review · Sample data</span></header>
+  <p class="phase">Day 2 · Coonoor transfer</p>
+  <h1 id="title">Who can see the taxi fare?</h1>
+  <div class="controls">
+    <label for="scenario">Source state</label>
+    <select id="scenario">
+      <option value="offline">Waiting for signal</option>
+      <option value="private">Uploaded privately</option>
+      <option value="review" selected>Shared for review</option>
+      <option value="eligible">Reuse allowed</option>
+      <option value="published">Published to members</option>
+      <option value="withdrawn">Source withdrawn</option>
+    </select>
+  </div>
+  <div class="cards">
+    <article aria-labelledby="owner">
+      <h2 id="owner">Anu’s voice note</h2>
+      <dl>
+        <div><dt>Storage</dt><dd id="storage">Uploaded privately</dd></div>
+        <div><dt>Source permission</dt><dd id="grant">Journey review</dd></div>
+      </dl>
+      <p class="subtle" id="scope">Anu, active coauthors and designated publishers can review this note.</p>
+    </article>
+    <article aria-labelledby="reader">
+      <h2 id="reader">Member’s Learn view</h2>
+      <p id="empty">No transport details published.</p>
+      <div id="published" hidden>
+        <p class="fare">₹2,400</p><p>Shared taxi · per vehicle · 4 passengers</p>
+        <p class="byline">Source linked · Reported by Anu<br>Observed 12 Jun 2026</p>
+      </div>
+    </article>
+  </div>
+  <p aria-live="polite" class="sr" id="announcement"></p>
+</section></main>
+<script>
+  const scenarios = {
+    offline: ["Saved on this device · Waiting for signal", "Only me", "The local note is waiting to upload."],
+    private: ["Uploaded privately", "Only me", "Anu can access the verified upload."],
+    review: ["Uploaded privately", "Journey review", "Anu, active coauthors and designated publishers can review this note."],
+    eligible: ["Uploaded privately", "Allow journey publication and sharing", "The publisher can select this source and preview its approved presentation."],
+    published: ["Uploaded privately", "Allow journey publication and sharing", "The publisher included the fare in a Members only publication."],
+    withdrawn: ["Uploaded privately", "Only me", "Anu withdrew this source. Her original remains private."]
+  };
+  document.getElementById("scenario").addEventListener("change", (event) => {
+    const key = event.target.value;
+    const [storage, grant, scope] = scenarios[key];
+    document.getElementById("storage").textContent = storage;
+    document.getElementById("grant").textContent = grant;
+    document.getElementById("scope").textContent = scope;
+    const visible = key === "published";
+    document.getElementById("published").hidden = !visible;
+    document.getElementById("empty").hidden = visible;
+    document.getElementById("announcement").textContent = scope + (visible ? " The member can read the fare." : " The Learn view has no published transport details.");
+  });
+</script>
+</body>
+</html>

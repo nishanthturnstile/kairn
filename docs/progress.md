@@ -12,6 +12,10 @@ Updated 2026-11-18. Baseline [bootstrap PR #1](https://github.com/nishanthturnst
 
 Then add invitations into the same journey and verify membership revocation before expanding into source and export grants. This first slice covers part of workstream 1. The complete scope is in the [requirements sequence](product-requirements.md#182-dependency-aware-implementation-sequence).
 
+## Design review
+
+The founder approved all seven design-system phases, including [governance and rollout](design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. Next, adopt the approved system in the private create/history milestone above.
+
 ## Completed and verified
 
 | Area | Current evidence |

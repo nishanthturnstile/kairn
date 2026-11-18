@@ -1,33 +1,41 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@kairn/design-tokens/tokens.css";
+
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("@kairn/design-tokens/fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 200 900;
+  font-display: swap;
+}
 
 @theme inline {
-  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-sans: var(--kairn-semantic-font-family-ui);
   --font-heading: var(--font-sans);
-  --color-background: var(--kairn-canvas);
-  --color-foreground: var(--kairn-ink);
-  --color-card: var(--kairn-paper);
-  --color-card-foreground: var(--kairn-ink);
-  --color-primary: var(--kairn-accent);
-  --color-primary-foreground: var(--kairn-paper);
-  --color-muted: var(--kairn-accent-wash);
-  --color-muted-foreground: var(--kairn-subdued);
-  --color-secondary: var(--kairn-accent-wash);
-  --color-secondary-foreground: var(--kairn-ink);
-  --color-accent: var(--kairn-accent-wash);
-  --color-accent-foreground: var(--kairn-accent);
-  --color-destructive: var(--kairn-danger);
-  --color-border: var(--kairn-line);
-  --color-input: var(--kairn-line);
-  --color-ring: var(--kairn-accent);
-  --text-title: var(--kairn-title);
-  --spacing-section: var(--kairn-section);
-  --default-transition-duration: var(--kairn-motion);
+  --color-background: var(--kairn-semantic-color-canvas);
+  --color-foreground: var(--kairn-semantic-color-ink);
+  --color-card: var(--kairn-semantic-color-surface);
+  --color-card-foreground: var(--kairn-semantic-color-ink);
+  --color-primary: var(--kairn-semantic-color-action);
+  --color-primary-foreground: var(--kairn-semantic-color-on-action);
+  --color-muted: var(--kairn-semantic-color-action-wash);
+  --color-muted-foreground: var(--kairn-semantic-color-secondary-text);
+  --color-secondary: var(--kairn-semantic-color-action-wash);
+  --color-secondary-foreground: var(--kairn-semantic-color-ink);
+  --color-accent: var(--kairn-semantic-color-action-wash);
+  --color-accent-foreground: var(--kairn-semantic-color-action);
+  --color-destructive: var(--kairn-semantic-color-error);
+  --color-border: var(--kairn-semantic-color-boundary);
+  --color-input: var(--kairn-semantic-color-boundary);
+  --color-ring: var(--kairn-semantic-color-information);
+  --text-title: var(--kairn-semantic-font-size-chapter);
+  --spacing-section: var(--kairn-semantic-space-step40);
+  --default-transition-duration: var(--kairn-semantic-motion-selection);
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: var(--kairn-semantic-radius-control);
 }
 
 @layer base {
@@ -44,7 +52,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--kairn-accent);
+    outline: 2px solid var(--kairn-semantic-color-information);
     outline-offset: 2px;
   }
 }

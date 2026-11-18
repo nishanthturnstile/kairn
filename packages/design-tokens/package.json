@@ -12,10 +12,15 @@
       "browser": "./src/index.ts",
       "development": "./src/index.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./tokens.css": "./generated/tokens.css",
+    "./fonts/*": "./fonts/*"
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
-  }
+    "typecheck": "tsc --noEmit",
+    "generate": "node scripts/generate.mjs",
+    "check:generated": "node scripts/generate.mjs --check"
+  },
+  "version": "0.1.0"
 }

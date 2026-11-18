@@ -64,14 +64,14 @@ async function serveFixture(
         json: { status: status === 200 ? "ready" : "unavailable" },
       });
     } else {
-      const asset = /^\/assets\/[A-Za-z0-9_-]+\.(js|css)$/.test(pathname);
-      const contentType = asset
-        ? pathname.endsWith(".js")
-          ? "text/javascript"
-          : "text/css"
-        : "text/html";
+      const asset = /^\/assets\/[A-Za-z0-9_-]+\.(js|css|woff2)$/.exec(pathname);
+      const mime: Record<string, string> = {
+        js: "text/javascript",
+        css: "text/css",
+        woff2: "font/woff2",
+      };
       await route.fulfill({
-        contentType,
+        contentType: asset ? mime[asset[1]] : "text/html",
         body: await readFile(
           resolve(buildDir, `client${asset ? pathname : "/index.html"}`),
         ),
