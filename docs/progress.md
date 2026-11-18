@@ -14,6 +14,8 @@ Then add invitations into the same journey and verify membership revocation befo
 
 ## Design review
 
+**PR #5 CI repair in progress.** The [failed foundation job](https://github.com/nishanthturnstile/kairn/actions/runs/44361573931/job/135004090260) stopped at formatting because [workspace settings](../.vscode/settings.json) lacked a final newline; `pnpm check` reproduced it locally. Restored the newline and reconciled the web-shell conflict with `development`, retaining the equivalent `max-w-248` utility. Local validation passed: `pnpm check`, API parity, 25 unit tests, web/iOS/Android builds, client-bundle scans, Expo dependency checks, and 15 browser tests (the service-backed identity test runs separately in CI). Next: require both hosted jobs to pass, then merge into `development`.
+
 The founder approved all seven design-system phases, including [governance and rollout](design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system. Private journey creation and history are the next feature surfaces.
 
 | Existing surface | Where to change it | Coverage |
