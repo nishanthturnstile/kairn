@@ -1,6 +1,6 @@
 # Bootstrap dependency qualification
 
-Step 1 was completed on 18 November 2026. The [candidate manifests](candidate-manifests.json) contain exact direct dependency and generator versions for the root, web, server, and mobile foundations. A temporary pnpm workspace verified those selections on the development Mac. They are inputs for [Step 2](../bootstrap-plan.md#step-2-generate-the-workspace-and-quality-commands), where the repository receives its generated apps and lockfile.
+Step 1 was completed on 18 November 2026. A temporary pnpm workspace verified the initial dependency and generator selections on the development Mac. The project's package manifests and [workspace lockfile](../../pnpm-lock.yaml) record the current pins. The original candidate manifest is available in [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1).
 
 ## Development Mac inventory
 

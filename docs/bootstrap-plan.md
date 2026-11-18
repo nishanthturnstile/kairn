@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Date | 17 November 2026 |
-| Status | Steps 1–7 and the review follow-ups are verified locally. Hosted CI, VPS deployment and independent recovery verification remain open. The upstream picomatch advisory is tracked in the [dependency qualification record](bootstrap/dependency-qualification.md#bootstrap-review-follow-up). See the [deployment and recovery runbook](deployment-and-recovery.md). |
+| Status | Steps 1–7 and the bootstrap review follow-ups merged in PR #1. See [implementation progress](progress.md) for current evidence and pending work. |
 | Basis | Architecture 1.9, requirements 2.6, application design 1.2, and development and validation 1.2. |
 | Scope | Repository foundation, technology recommendations, CLI workflow, service setup, implementation order, and acceptance criteria. |
 
@@ -186,7 +186,7 @@ Create a dependency qualification record with candidate versions, official sourc
 
 **Completion:** compatible candidate manifests and an environment setup checklist exist; unresolved native or binary compatibility is visible before feature dependencies spread.
 
-**Evidence:** [candidate manifests](bootstrap/candidate-manifests.json) and [environment setup checklist](bootstrap/dependency-qualification.md#environment-setup-checklist).
+**Evidence:** [dependency qualification](bootstrap/dependency-qualification.md) records the initial candidates and toolchain evidence. The [workspace lockfile](../pnpm-lock.yaml) records the resolved dependencies.
 
 ### Step 2 Generate the workspace and quality commands
 
@@ -212,7 +212,7 @@ Introduce the Drizzle migration process and separate migration credentials. Inst
 
 Create `/api/v1` contracts, health/readiness endpoints, safe errors and request IDs. Keep `/api/auth` owned by Better Auth. Emit OpenAPI and generate the first client. Version command IDs, expected revisions, pagination, upload acknowledgments and tombstones before clients start depending on them.
 
-Begin backend modules for identity, journeys, sources, editorial, geography, knowledge, publication, sharing, discovery, answers and lifecycle according to [architecture section 5](architecture.md#5-module-ownership-and-repository-structure). Module directories do not imply completed features. Implement the initial account, canonical journey, capability, grant, audit and restriction-event schema before shared-data operations are enabled. Keep source ownership, publication reuse and original export grants separate.
+Establish identity, journeys, sources, and lifecycle modules for the bootstrap. Add the remaining modules with their implementation according to [architecture section 5](architecture.md#5-module-ownership-and-repository-structure). Implement the initial account, canonical journey, capability, grant, audit and restriction-event schema before shared-data operations are enabled. Keep source ownership, publication reuse and original export grants separate.
 
 **Completion:** web and mobile use generated wire types, generated output is reproducible, invalid requests fail predictably, and foundational permission fixtures cover participant, coauthor, publisher, administrator, source owner and revoked member.
 
@@ -226,7 +226,7 @@ On mobile, generate Expo Router navigation for the same product destinations and
 
 **Completion:** production web client/server builds work, reader HTML hydrates without cross-request state leakage, and local Android/iPhone development builds run with Unistyles and the native map module. Inspect client bundles for backend code and server-only AI, storage and email SDKs. Actual camera, battery and background-transfer claims remain subject to the evidence boundaries in the development plan.
 
-**Evidence.** The creator, reader client, and Node reader built successfully. Three Chromium tests passed for reader HTML and hydration, request isolation, unavailable metadata, and creator states. The Linux ARM64 server and Caddy images served the unavailable reader HTML and its manifest assets. The development clients compiled and ran on the iPhone 17 simulator and Android API 37 emulator. Both passed the native Mapbox bridge call and the SQLite, files, and SecureStore fixture across full app relaunch and account switching. Production web and native source maps contained no backend, AI, storage, or email SDK sources. The fixture exercises the Mapbox bridge and makes no basemap requests. See the [web and native checks](../README.md#web-reader-and-browser-tests).
+**Evidence.** The creator, reader client, and Node reader built successfully. Three Chromium tests passed for reader HTML and hydration, request isolation, unavailable metadata, and creator states. The Linux ARM64 server and Caddy images served the unavailable reader HTML and its manifest assets. The development clients compiled and ran on the iPhone 17 simulator and Android API 37 emulator. Both passed the bootstrap checks for the native Mapbox bridge and the SQLite, files, and SecureStore fixture across full app relaunch and account switching. Production web and native source maps contained no backend, AI, storage, or email SDK sources. See the [current native validation workflow](../README.md#native-development-checks).
 
 ### Step 6 Complete identity and recovery foundations
 
@@ -248,7 +248,7 @@ Add a deployment sequence for backup, reviewed migrations, restart, readiness ch
 
 **Completion:** a second clean setup can run the documented workflow, CI protects the foundations, and recovery instructions include demonstrated results. The foundation is then ready for the complete feature sequence below.
 
-**Evidence.** A clean workspace passed frozen install, Biome, type checks, generated-contract checks, unit tests, production builds and Chromium accessibility checks. The local integration suite and the disposable journal replay passed. Native Linux ARM64 images booted the server, worker and edge. The synthetic restore recovered PostgreSQL to the named WAL point, verified the matching SeaweedFS object checksum, preserved private access and excluded later writes while ingress remained closed. The rehearsal used disposable repositories. Hosted CI protections, the VPS architecture, independent backup and journal destinations, and live alert delivery still require verification. See the [deployment and recovery runbook](deployment-and-recovery.md).
+**Evidence.** A clean workspace passed frozen install, Biome, type checks, generated-contract checks, unit tests, production builds and Chromium accessibility checks. The local integration suite and the disposable journal replay passed. Linux ARM64 images booted the server, worker and edge. The synthetic restore recovered PostgreSQL to the named WAL point, verified the matching SeaweedFS object checksum, preserved private access and excluded later writes while ingress remained closed. The rehearsal used disposable repositories. GitHub passed the foundation and Linux amd64 release checks for [PR #1](https://github.com/nishanthturnstile/kairn/pull/1). See [implementation progress](progress.md#open-before-shared-use) for hosted controls and live recovery verification.
 
 **Review follow-up.** CI now executes the live browser identity fixture, the web and native bundle checks, and Expo dependency validation. The release drill qualifies synthetic HEIC and HEVC on the actual worker image and resumes a multipart upload after SeaweedFS restarts. The isolated database tests reject partial migrations, and production worker startup checks mail and journal configuration. The synthetic development seed runs twice against a disposable database to check repeatability.
 
@@ -307,10 +307,8 @@ Carry the experience targets into feature acceptance: initial public compressed 
 
 Keep the solo, five-person/five-day and 500-item fixtures in the test plan. Record Planned, Verified, Failed and Not run distinctly, with source revision, dependency/artifact versions, environment, procedure and limitations. Simulator imports are useful protocol evidence but do not prove real phone camera, battery or background behaviour.
 
-## Decisions for review
+## Decisions carried into R1
 
-The recommended direction is to retain the confirmed stack, use official CLIs to create and generate the foundation, and complete the seven bootstrap steps before progressing through all ten R1 workstreams.
-
-The main implementation choices to review are the proposed Node 24 baseline, the compatible Expo 58 candidate matrix, the CI/registry arrangement, and the independent backup/journal destination. Final product identifiers, deployment inventory and provider access can be collected when their setup work begins. No new hosting platform, task runner, realtime backend or paid build subscription is needed to start.
+The merged foundation uses Node 24, Expo 58, and GitHub Actions. Continue with the ten R1 workstreams in dependency order. Set final app identifiers and provision the actual deployment and independent recovery destinations when that work begins. See [implementation progress](progress.md) for the next slice and current verification.
 
 After review, incorporate accepted decisions into the architecture's canonical register and implement the foundation in small, reviewable changes: workspace generation; local services; contracts/data/jobs; web/native foundations; identity/recovery; and CI/deployment evidence. Keep generated changes separate enough that CLI output and application-specific edits can be reviewed clearly.

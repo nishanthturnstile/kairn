@@ -1,6 +1,8 @@
 # Kairn
 
-Kairn is a pnpm workspace for web, mobile, API, and worker development. The scaffold uses Vite+ to run workspace tasks and Biome for linting and formatting.
+Kairn is a pnpm workspace for web, mobile, API, and worker development. It uses Vite+ to run workspace tasks and Biome for linting and formatting.
+
+Start with [implementation progress](docs/progress.md) for the current milestone, completed work, and pending items.
 
 ## Start developing
 
@@ -103,7 +105,7 @@ To smoke-test the built reader locally, run `READER_BUILD_DIR=../web/dist pnpm d
 
 Boot an Android phone emulator and an iPhone simulator, then run `pnpm android` or `pnpm ios` to build and install the development client. The JavaScript entry configures Unistyles before loading Expo Router. Mapbox is linked in the native builds and maps will open through an explicit map action when geography is implemented. [Unistyles Expo Router setup](https://www.unistyl.es/v3/guides/expo-router/)
 
-Run `EXPO_PUBLIC_KAIRN_DEVICE_FIXTURES=stage pnpm --dir apps/mobile exec expo start --dev-client --localhost` and open the development app on each simulator to stage a synthetic draft, file, and session. Fully terminate Kairn on both devices and restart Metro with `EXPO_PUBLIC_KAIRN_DEVICE_FIXTURES=resume` before relaunching the apps. The fixture checks that another account cannot see the staged records, that the first account's records survive relaunch, and that its SecureStore session can be removed. It also calls the native Mapbox module without loading a map. Use `adb reverse tcp:8081 tcp:8081` when connecting the Android emulator to localhost. Launch Metro without the fixture flag for the normal app shell.
+Run `pnpm dev:mobile --localhost` to start Metro for an existing development build. For Android, forward the Metro and Caddy ports with `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:58080 tcp:58080`. Open Account in each app to check sign-in and recovery against the local stack.
 
 ## Local identity and recovery
 
@@ -112,7 +114,7 @@ Run `pnpm db:migrate` and `pnpm db:queue` after updating the workspace. Generate
 - Run `pnpm test:web:identity` after building and migrating, with PostgreSQL and Mailpit running. It starts temporary application processes and exercises verification, device revocation and password recovery. CI runs this command.
 - Run `pnpm check:client-bundles` to scan temporary browser, Android and iOS source maps for server-only packages.
 - Run `pnpm test:identity:recovery` with the local Mailpit running. It starts a disposable database and checks SMTP idempotency headers, rejects incomplete journal checkpoints and verifies recovery at an independently approved address.
-- Run `EXPO_PUBLIC_KAIRN_AUTH_FIXTURE=1 pnpm --dir apps/mobile exec expo start --dev-client --localhost` for the native identity fixture. On Android, forward ports `8081`, `58080`, and `58025` with `adb reverse`. Open the installed development client on each simulator. Set `EXPO_PUBLIC_API_ORIGIN` to the HTTPS API origin for distributed builds. [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo)
+- For native identity validation, start Metro and use Account on each development client. Open verification and reset emails from Mailpit on the host. Set `EXPO_PUBLIC_API_ORIGIN` to the HTTPS API origin for distributed builds. [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo)
 
 The worker records each delivery as queued, sent, expired, or failed in `kairn_auth.identity_mail`. It discards encrypted links after a terminal outcome. A queue outage rejects registration without creating an account. An exhausted SMTP delivery can be retried by requesting a fresh verification or reset link.
 
