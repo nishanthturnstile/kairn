@@ -1,8 +1,11 @@
 import type { ReaderStory } from "@kairn/contracts";
 import { hydrateRoot } from "react-dom/client";
+import { initializeAppearance } from "../lib/appearance";
 import { Story } from "./story";
 import "../index.css";
+import "./story.css";
 
+initializeAppearance();
 const root = document.getElementById("reader");
 const data = document.getElementById("reader-data");
 if (root && data?.textContent) {

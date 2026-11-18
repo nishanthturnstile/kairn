@@ -5,8 +5,8 @@ export default function Journeys() {
     <Destination
       title="Journeys"
       description="Trips you’ve made and journeys you’ve joined."
-      stateTitle="Account access is unavailable"
-      stateDescription="This space opens when you can sign in."
+      stateTitle="Private journey history"
+      stateDescription="This is where your journey history will be available."
     />
   );
 }

@@ -2,11 +2,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode, useEffect, useMemo, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
+import { initializeAppearance } from "./lib/appearance";
 import { authClient } from "./lib/auth";
 import { createWebSession } from "./lib/session";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
 
+initializeAppearance();
 const session = createWebSession(window.location.origin);
 
 function createCreatorRouter(scope: ReturnType<typeof session.getSnapshot>) {

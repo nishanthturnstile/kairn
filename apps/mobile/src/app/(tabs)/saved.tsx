@@ -5,8 +5,8 @@ export default function Saved() {
     <Destination
       title="Saved"
       description="Stories and research you want to return to."
-      stateTitle="Account access is unavailable"
-      stateDescription="This space opens when you can sign in."
+      stateTitle="Saved references"
+      stateDescription="This is where your private collection will be available."
     />
   );
 }

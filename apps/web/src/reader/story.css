@@ -1,0 +1,76 @@
+.story-reader {
+  display: grid;
+  gap: var(--kairn-semantic-space-step32);
+  max-inline-size: 68ch;
+  margin-inline: auto;
+  padding: var(--kairn-semantic-space-step32) var(--kairn-semantic-space-step16)
+    var(--kairn-semantic-space-step64);
+  overflow-wrap: anywhere;
+}
+
+.story-tools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--kairn-semantic-space-step16);
+}
+
+.story-tools > * {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.story-wordmark,
+.story-link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  color: var(--kairn-semantic-color-action);
+  font-weight: var(--kairn-semantic-font-weight-label);
+}
+
+.story-link {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.story-intro {
+  border-block-end: var(--kairn-semantic-border-control) solid
+    var(--kairn-semantic-color-boundary);
+  padding-block-end: var(--kairn-semantic-space-step24);
+}
+
+.story-intro p,
+.story-chapters p {
+  margin-block-start: var(--kairn-semantic-space-step12);
+  font-size: var(--kairn-semantic-font-size-story-body);
+  line-height: var(--kairn-semantic-line-height-story-body);
+}
+
+.story-chapters {
+  display: grid;
+  gap: var(--kairn-semantic-space-step40);
+}
+
+.story-chapters p {
+  white-space: pre-line;
+}
+
+.story-chapters[data-large-text="true"] p {
+  font-size: var(--kairn-semantic-font-size-section);
+  line-height: 1.6;
+}
+
+.story-heading {
+  font-family: var(--kairn-component-chapter-heading-family);
+  font-size: var(--kairn-component-chapter-heading-font-size);
+  line-height: var(--kairn-component-chapter-heading-line-height);
+  font-weight: var(--kairn-semantic-font-weight-body);
+}
+
+.story-tools button[aria-pressed="true"] {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  box-shadow: inset 0 0 0 1px currentColor;
+}

@@ -1,8 +1,9 @@
 import { Link } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native-unistyles";
+import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { publicEnvironment } from "../env";
+import { Action, AppText, Panel } from "./ui";
 
 export function Destination({
   title,
@@ -15,74 +16,51 @@ export function Destination({
   stateTitle: string;
   stateDescription: string;
 }) {
+  const { theme } = useUnistyles();
+
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={{ flex: 1, backgroundColor: theme.semantic.color.canvas }}
+    >
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <View style={styles.topBar}>
-          <Text style={styles.brand}>{publicEnvironment.appName}</Text>
+          <AppText
+            text={publicEnvironment.appName}
+            variant="label"
+            style={styles.brand}
+          />
           <Link href="/account" asChild>
-            <Text style={styles.account}>Account</Text>
+            <Action accessibilityRole="link" label="Account" />
           </Link>
         </View>
         <View style={styles.heading}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          <Text style={styles.description}>{description}</Text>
+          <AppText text={title} accessibilityRole="header" variant="title" />
+          <AppText text={description} subdued />
         </View>
-        <View style={styles.panel}>
-          <Text accessibilityRole="header" style={styles.stateTitle}>
-            {stateTitle}
-          </Text>
-          <Text style={styles.description}>{stateDescription}</Text>
-        </View>
+        <Panel>
+          <AppText
+            text={stateTitle}
+            accessibilityRole="header"
+            variant="section"
+          />
+          <AppText text={stateDescription} subdued />
+        </Panel>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create(({ colors, spacing, typeScale }) => ({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: spacing.large, gap: spacing.large },
+const styles = StyleSheet.create(({ semantic: { color, space } }) => ({
+  screen: { flex: 1, backgroundColor: color.canvas },
+  content: { padding: space.step24, gap: space.step24 },
   topBar: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.step12,
     alignItems: "center",
     justifyContent: "space-between",
   },
-  account: {
-    color: colors.accent,
-    paddingVertical: spacing.medium,
-    fontWeight: "600",
-  },
-  brand: { fontSize: typeScale.body, fontWeight: "700", color: colors.accent },
-  heading: {
-    gap: spacing.small,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingBottom: spacing.large,
-  },
-  title: {
-    fontSize: typeScale.title,
-    color: colors.ink,
-    fontWeight: "700",
-    letterSpacing: -1,
-  },
-  description: {
-    fontSize: typeScale.body,
-    color: colors.subdued,
-    lineHeight: typeScale.section,
-  },
-  panel: {
-    gap: spacing.small,
-    padding: spacing.medium,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 8,
-    backgroundColor: colors.paper,
-  },
-  stateTitle: {
-    fontSize: typeScale.body,
-    fontWeight: "700",
-    color: colors.ink,
-  },
+  brand: { color: color.action, flexShrink: 1 },
+  heading: { gap: space.step8 },
 }));

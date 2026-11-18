@@ -3,6 +3,8 @@ import {
   Link,
   Outlet,
 } from "@tanstack/react-router";
+import { AppearanceSelect } from "../components/appearance-select";
+import { Button } from "../components/ui/button";
 import { publicEnvironment } from "../env";
 import type { AccountScope } from "../lib/session";
 
@@ -17,53 +19,46 @@ const links = [
   { to: "/journeys", label: "Journeys" },
   { to: "/discover", label: "Discover" },
   { to: "/saved", label: "Saved" },
+  { to: "/account", label: "Account" },
 ] as const;
 
 function AppShell() {
   return (
-    <div className="grid min-h-svh md:grid-cols-[14rem_minmax(0,1fr)]">
-      <a
-        className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:bg-card focus:p-3"
-        href="#main"
+    <div className="grid min-h-svh grid-rows-[auto_1fr] lg:grid-cols-[14rem_minmax(0,1fr)] lg:grid-rows-1">
+      <Button
+        asChild
+        variant="outline"
+        className="sr-only focus:not-sr-only focus:absolute focus:inset-s-4 focus:top-4 focus:z-10"
       >
-        Skip to content
-      </a>
-      <aside className="border-b bg-card md:border-r md:border-b-0 md:px-6 md:py-8">
-        <Link
-          to="/journeys"
-          className="flex min-h-11 items-center gap-2 px-5 pt-3 font-semibold tracking-tight text-primary md:px-2 md:pt-0"
-        >
-          <span
-            aria-hidden="true"
-            className="size-3 rounded-[3px] bg-primary"
-          />
-          {publicEnvironment.appName}
-        </Link>
-        <nav
-          aria-label="Main"
-          className="flex gap-1 overflow-x-auto px-3 py-2 md:mt-7 md:flex-col md:p-0"
-        >
+        <a href="#main">Skip to content</a>
+      </Button>
+      <header className="grid content-start gap-3 control-border-b bg-card px-4 py-3 sm:px-6 lg:gap-8 lg:border-b-0 lg:control-border-e lg:py-8">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:flex-col lg:items-start lg:gap-4">
+          <Link
+            to="/journeys"
+            className="flex min-h-touch min-w-touch items-center text-xl font-semibold text-primary hover:underline"
+          >
+            {publicEnvironment.appName}
+          </Link>
+          <AppearanceSelect />
+        </div>
+        <nav aria-label="Main" className="flex flex-wrap gap-1 lg:flex-col">
           {links.map(({ to, label }) => (
             <Link
               key={to}
               to={to}
-              activeOptions={{ exact: true }}
-              className="flex min-h-11 min-w-fit items-center rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
+              activeOptions={{ exact: to !== "/account" }}
+              className="flex min-h-touch min-w-touch items-center rounded-control px-3 py-2 font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground aria-[current=page]:underline aria-[current=page]:underline-offset-4"
             >
               {label}
             </Link>
           ))}
         </nav>
-        <Link
-          to="/account"
-          className="flex min-h-11 items-center px-5 text-sm font-medium text-primary md:px-3"
-        >
-          Account
-        </Link>
-      </aside>
+      </header>
       <main
         id="main"
-        className="mx-auto w-full max-w-[62rem] px-5 py-10 sm:px-10 md:py-16"
+        tabIndex={-1}
+        className="mx-auto w-full min-w-0 max-w-[62rem] wrap-anywhere px-4 py-8 sm:px-6 lg:px-section lg:py-16"
       >
         <Outlet />
       </main>
