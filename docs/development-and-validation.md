@@ -61,3 +61,5 @@ Storage allocation and exact quotas are configurable deployment inputs; the prod
 For every claimed check record: requirement ID, source revision or artifact digest, environment, fixture version, test procedure, result, date, and known limitations. Use statuses Planned, Verified, Failed, and Not run. Package metadata compatibility alone does not establish native runtime behaviour.
 
 Record resolved dependencies, executable builds and measured results as implementation proceeds. Planned targets and unexecuted tests must remain distinguishable from verified results.
+
+Start with [implementation progress](progress.md) for the latest milestone outcomes and open verification work. Keep runnable regression suites in `tests/` and inline synthetic fixtures in those suites where practical. Record one-time device qualification evidence before retiring its temporary app routes.
