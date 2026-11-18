@@ -1,0 +1,209 @@
+/* Generated from packages/design-tokens/tokens. Edit the DTCG source. */
+
+:root {
+  color-scheme: light;
+  --kairn-semantic-color-canvas: #f6f3eb;
+  --kairn-semantic-color-surface: #ffffff;
+  --kairn-semantic-color-ink: #172c2b;
+  --kairn-semantic-color-secondary-text: #49635f;
+  --kairn-semantic-color-boundary: #78857e;
+  --kairn-semantic-color-action: #174940;
+  --kairn-semantic-color-on-action: #ffffff;
+  --kairn-semantic-color-information: #285aa4;
+  --kairn-semantic-color-success: #21633f;
+  --kairn-semantic-color-warning: #80530b;
+  --kairn-semantic-color-error: #9d2c2d;
+  --kairn-semantic-color-story-accent: #824820;
+  --kairn-semantic-color-action-wash: #e1efea;
+  --kairn-semantic-space-step4: 0.25rem;
+  --kairn-semantic-space-step8: 0.5rem;
+  --kairn-semantic-space-step12: 0.75rem;
+  --kairn-semantic-space-step16: 1rem;
+  --kairn-semantic-space-step24: 1.5rem;
+  --kairn-semantic-space-step32: 2rem;
+  --kairn-semantic-space-step40: 2.5rem;
+  --kairn-semantic-space-step64: 4rem;
+  --kairn-semantic-radius-tag: 4px;
+  --kairn-semantic-radius-control: 8px;
+  --kairn-semantic-radius-card: 12px;
+  --kairn-semantic-border-control: 1px;
+  --kairn-semantic-target-field: 56px;
+  --kairn-semantic-font-family-ui: "Source Sans 3", system-ui, sans-serif;
+  --kairn-semantic-font-family-story: Georgia, serif;
+  --kairn-semantic-font-size-caption: 0.875rem;
+  --kairn-semantic-font-size-body: 1rem;
+  --kairn-semantic-font-size-story-body: 1.125rem;
+  --kairn-semantic-font-size-section: 1.375rem;
+  --kairn-semantic-font-size-chapter: 2.25rem;
+  --kairn-semantic-line-height-caption: 1.25rem;
+  --kairn-semantic-line-height-body: 1.5rem;
+  --kairn-semantic-line-height-story-body: 1.75rem;
+  --kairn-semantic-line-height-section: 1.75rem;
+  --kairn-semantic-line-height-chapter: 2.625rem;
+  --kairn-semantic-font-weight-body: 400;
+  --kairn-semantic-font-weight-label: 600;
+  --kairn-semantic-font-weight-emphasis: 700;
+  --kairn-semantic-motion-instant: 0ms;
+  --kairn-semantic-motion-selection: 180ms;
+  --kairn-semantic-motion-panel: 220ms;
+  --kairn-semantic-easing-selection: cubic-bezier(0, 0, 0.58, 1);
+  --kairn-semantic-elevation-offset-x: 0px;
+  --kairn-semantic-elevation-offset-y: 4px;
+  --kairn-semantic-elevation-blur: 16px;
+  --kairn-semantic-elevation-opacity: 0.14;
+  --kairn-semantic-map-recorded-width: 4px;
+  --kairn-semantic-map-estimated-width: 3px;
+  --kairn-semantic-map-dash: 6px;
+  --kairn-semantic-map-gap: 4px;
+  --kairn-semantic-map-casing: 2px;
+  --kairn-semantic-icon-size: 24px;
+  --kairn-semantic-icon-stroke: 2px;
+  --kairn-semantic-phase-travel-before: #824820;
+  --kairn-semantic-phase-activity: #174940;
+  --kairn-semantic-phase-stay: #49635f;
+  --kairn-semantic-phase-rest-day: #49635f;
+  --kairn-semantic-phase-transfer: #285aa4;
+  --kairn-semantic-phase-challenge: #824820;
+  --kairn-semantic-phase-return-travel: #824820;
+  --kairn-semantic-activity-trek: #174940;
+  --kairn-semantic-activity-road-trip: #285aa4;
+  --kairn-semantic-activity-cycling: #824820;
+  --kairn-semantic-activity-other: #49635f;
+  --kairn-component-capture-button-background: #174940;
+  --kairn-component-capture-button-foreground: #ffffff;
+  --kairn-component-capture-button-min-height: 56px;
+  --kairn-component-capture-button-radius: 8px;
+  --kairn-component-moment-card-background: #ffffff;
+  --kairn-component-moment-card-padding: 1rem;
+  --kairn-component-moment-card-radius: 12px;
+  --kairn-component-moment-card-border-width: 1px;
+  --kairn-component-chapter-heading-family: Georgia, serif;
+  --kairn-component-chapter-heading-font-size: 2.25rem;
+  --kairn-component-chapter-heading-line-height: 2.625rem;
+  --kairn-component-route-line-recorded: #174940;
+  --kairn-component-route-line-estimated: #285aa4;
+  --kairn-component-route-line-recorded-width: 4px;
+  --kairn-component-route-line-estimated-width: 3px;
+  --kairn-component-route-line-dash: 6px;
+  --kairn-component-route-line-gap: 4px;
+  --kairn-component-route-line-casing: 2px;
+  --kairn-component-sync-status-waiting: #80530b;
+  --kairn-component-sync-status-uploaded: #21633f;
+  --kairn-component-sync-status-failed: #9d2c2d;
+}
+
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+  --kairn-semantic-color-canvas: #111c1b;
+  --kairn-semantic-color-surface: #1c2b29;
+  --kairn-semantic-color-ink: #f1f4ee;
+  --kairn-semantic-color-secondary-text: #b5c8bf;
+  --kairn-semantic-color-boundary: #8a9e95;
+  --kairn-semantic-color-action: #9cd5bd;
+  --kairn-semantic-color-on-action: #112b24;
+  --kairn-semantic-color-information: #a9c8ff;
+  --kairn-semantic-color-success: #93d8ac;
+  --kairn-semantic-color-warning: #f2c36f;
+  --kairn-semantic-color-error: #ffabac;
+  --kairn-semantic-color-story-accent: #f3ba88;
+  --kairn-semantic-color-action-wash: #28453c;
+  --kairn-semantic-phase-travel-before: #f3ba88;
+  --kairn-semantic-phase-activity: #9cd5bd;
+  --kairn-semantic-phase-stay: #b5c8bf;
+  --kairn-semantic-phase-rest-day: #b5c8bf;
+  --kairn-semantic-phase-transfer: #a9c8ff;
+  --kairn-semantic-phase-challenge: #f3ba88;
+  --kairn-semantic-phase-return-travel: #f3ba88;
+  --kairn-semantic-activity-trek: #9cd5bd;
+  --kairn-semantic-activity-road-trip: #a9c8ff;
+  --kairn-semantic-activity-cycling: #f3ba88;
+  --kairn-semantic-activity-other: #b5c8bf;
+  --kairn-component-capture-button-background: #9cd5bd;
+  --kairn-component-capture-button-foreground: #112b24;
+  --kairn-component-moment-card-background: #1c2b29;
+  --kairn-component-route-line-recorded: #9cd5bd;
+  --kairn-component-route-line-estimated: #a9c8ff;
+  --kairn-component-sync-status-waiting: #f2c36f;
+  --kairn-component-sync-status-uploaded: #93d8ac;
+  --kairn-component-sync-status-failed: #ffabac;
+}
+
+@media (prefers-color-scheme: dark) {
+:root:not([data-appearance]) {
+  color-scheme: dark;
+  --kairn-semantic-color-canvas: #111c1b;
+  --kairn-semantic-color-surface: #1c2b29;
+  --kairn-semantic-color-ink: #f1f4ee;
+  --kairn-semantic-color-secondary-text: #b5c8bf;
+  --kairn-semantic-color-boundary: #8a9e95;
+  --kairn-semantic-color-action: #9cd5bd;
+  --kairn-semantic-color-on-action: #112b24;
+  --kairn-semantic-color-information: #a9c8ff;
+  --kairn-semantic-color-success: #93d8ac;
+  --kairn-semantic-color-warning: #f2c36f;
+  --kairn-semantic-color-error: #ffabac;
+  --kairn-semantic-color-story-accent: #f3ba88;
+  --kairn-semantic-color-action-wash: #28453c;
+  --kairn-semantic-phase-travel-before: #f3ba88;
+  --kairn-semantic-phase-activity: #9cd5bd;
+  --kairn-semantic-phase-stay: #b5c8bf;
+  --kairn-semantic-phase-rest-day: #b5c8bf;
+  --kairn-semantic-phase-transfer: #a9c8ff;
+  --kairn-semantic-phase-challenge: #f3ba88;
+  --kairn-semantic-phase-return-travel: #f3ba88;
+  --kairn-semantic-activity-trek: #9cd5bd;
+  --kairn-semantic-activity-road-trip: #a9c8ff;
+  --kairn-semantic-activity-cycling: #f3ba88;
+  --kairn-semantic-activity-other: #b5c8bf;
+  --kairn-component-capture-button-background: #9cd5bd;
+  --kairn-component-capture-button-foreground: #112b24;
+  --kairn-component-moment-card-background: #1c2b29;
+  --kairn-component-route-line-recorded: #9cd5bd;
+  --kairn-component-route-line-estimated: #a9c8ff;
+  --kairn-component-sync-status-waiting: #f2c36f;
+  --kairn-component-sync-status-uploaded: #93d8ac;
+  --kairn-component-sync-status-failed: #ffabac;
+}
+}
+
+:root[data-appearance="outdoor"] {
+  color-scheme: light;
+  --kairn-semantic-color-canvas: #ffffff;
+  --kairn-semantic-color-ink: #101815;
+  --kairn-semantic-color-secondary-text: #293b34;
+  --kairn-semantic-color-boundary: #31463d;
+  --kairn-semantic-color-action: #0d382d;
+  --kairn-semantic-color-information: #123e81;
+  --kairn-semantic-color-success: #134729;
+  --kairn-semantic-color-warning: #583900;
+  --kairn-semantic-color-error: #761d23;
+  --kairn-semantic-color-story-accent: #603916;
+  --kairn-semantic-color-action-wash: #e9f2eb;
+  --kairn-semantic-border-control: 2px;
+  --kairn-semantic-phase-travel-before: #603916;
+  --kairn-semantic-phase-activity: #0d382d;
+  --kairn-semantic-phase-stay: #293b34;
+  --kairn-semantic-phase-rest-day: #293b34;
+  --kairn-semantic-phase-transfer: #123e81;
+  --kairn-semantic-phase-challenge: #603916;
+  --kairn-semantic-phase-return-travel: #603916;
+  --kairn-semantic-activity-trek: #0d382d;
+  --kairn-semantic-activity-road-trip: #123e81;
+  --kairn-semantic-activity-cycling: #603916;
+  --kairn-semantic-activity-other: #293b34;
+  --kairn-component-capture-button-background: #0d382d;
+  --kairn-component-moment-card-border-width: 2px;
+  --kairn-component-route-line-recorded: #0d382d;
+  --kairn-component-route-line-estimated: #123e81;
+  --kairn-component-sync-status-waiting: #583900;
+  --kairn-component-sync-status-uploaded: #134729;
+  --kairn-component-sync-status-failed: #761d23;
+}
+
+@media (prefers-reduced-motion: reduce) {
+:root {
+  --kairn-semantic-motion-instant: 0ms;
+  --kairn-semantic-motion-selection: 0ms;
+  --kairn-semantic-motion-panel: 0ms;
+}
+}

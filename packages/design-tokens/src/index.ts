@@ -1,24 +1,38 @@
-export const colors = {
-  canvas: "#f3f7f5",
-  paper: "#ffffff",
-  ink: "#172c2b",
-  subdued: "#49635f",
-  line: "#cbdad4",
-  accent: "#174940",
-  accentWash: "#e1efea",
-  danger: "#9d2c2d",
-} as const;
+import { themes } from "./generated/themes.ts";
 
-export const spacing = {
-  small: 8,
-  medium: 16,
-  large: 24,
-  section: 40,
-} as const;
-export const typeScale = {
-  caption: 14,
-  body: 16,
-  section: 22,
-  title: 36,
-} as const;
-export const motion = { state: 180 } as const;
+export { themes };
+export type Appearance = keyof typeof themes;
+
+export function appTheme(appearance: Appearance) {
+  const { semantic, component } = themes[appearance];
+  const { color, space, fontSize } = semantic;
+  return {
+    semantic,
+    component,
+    colors: {
+      canvas: color.canvas,
+      paper: color.surface,
+      ink: color.ink,
+      subdued: color.secondaryText,
+      line: color.boundary,
+      accent: color.action,
+      accentWash: color.actionWash,
+      danger: color.error,
+    },
+    spacing: {
+      small: space.step8,
+      medium: space.step16,
+      large: space.step24,
+      section: space.step40,
+    },
+    typeScale: {
+      caption: fontSize.caption,
+      body: fontSize.body,
+      section: fontSize.section,
+      title: fontSize.chapter,
+    },
+    motion: { state: semantic.motion.selection },
+  };
+}
+
+export const { colors, spacing, typeScale, motion } = appTheme("light");

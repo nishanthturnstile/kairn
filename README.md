@@ -2,7 +2,7 @@
 
 Kairn is a pnpm workspace for web, mobile, API, and worker development. It uses Vite+ to run workspace tasks and Biome for linting and formatting.
 
-Start with [implementation progress](docs/progress.md) for the current milestone, completed work, and pending items.
+Start with [implementation progress](docs/progress.md) for the current milestone, completed work, and pending items. For UI contributions, follow the [design-system governance and rollout guide](docs/design-system-governance.md).
 
 ## Start developing
 

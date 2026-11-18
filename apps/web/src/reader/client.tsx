@@ -1,7 +1,6 @@
 import type { ReaderStory } from "@kairn/contracts";
 import { hydrateRoot } from "react-dom/client";
 import { Story } from "./story";
-import "virtual:kairn-theme.css";
 import "../index.css";
 
 const root = document.getElementById("reader");

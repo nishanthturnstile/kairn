@@ -1,0 +1,45 @@
+{
+  "semantic": {
+    "color": {
+      "canvas": {
+        "$value": "{primitive.color.pine1000}"
+      },
+      "surface": {
+        "$value": "{primitive.color.pine900}"
+      },
+      "ink": {
+        "$value": "{primitive.color.mist50}"
+      },
+      "secondaryText": {
+        "$value": "{primitive.color.sage200}"
+      },
+      "boundary": {
+        "$value": "{primitive.color.sage400}"
+      },
+      "action": {
+        "$value": "{primitive.color.mint300}"
+      },
+      "onAction": {
+        "$value": "{primitive.color.pine975}"
+      },
+      "information": {
+        "$value": "{primitive.color.blue200}"
+      },
+      "success": {
+        "$value": "{primitive.color.fern300}"
+      },
+      "warning": {
+        "$value": "{primitive.color.ochre300}"
+      },
+      "error": {
+        "$value": "{primitive.color.red200}"
+      },
+      "storyAccent": {
+        "$value": "{primitive.color.clay300}"
+      },
+      "actionWash": {
+        "$value": "{primitive.color.pine850}"
+      }
+    }
+  }
+}

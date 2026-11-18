@@ -1,4 +1,5 @@
 {
   "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"],
+  "compilerOptions": { "allowImportingTsExtensions": true },
   "include": ["src", "app.config.ts"]
 }

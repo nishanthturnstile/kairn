@@ -5,7 +5,6 @@ import { createRoot } from "react-dom/client";
 import { authClient } from "./lib/auth";
 import { createWebSession } from "./lib/session";
 import { routeTree } from "./routeTree.gen";
-import "virtual:kairn-theme.css";
 import "./index.css";
 
 const session = createWebSession(window.location.origin);
