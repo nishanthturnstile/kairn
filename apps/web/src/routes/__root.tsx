@@ -58,7 +58,7 @@ function AppShell() {
       <main
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full min-w-0 max-w-[62rem] wrap-anywhere px-4 py-8 sm:px-6 lg:px-section lg:py-16"
+        className="mx-auto w-full min-w-0 max-w-248 wrap-anywhere px-4 py-8 sm:px-6 lg:px-section lg:py-16"
       >
         <Outlet />
       </main>
