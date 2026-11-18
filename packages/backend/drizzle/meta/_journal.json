@@ -8,6 +8,13 @@
       "when": 1794976462443,
       "tag": "0000_worker_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794978089112,
+      "tag": "0001_domain_foundations",
+      "breakpoints": true
     }
   ]
 }

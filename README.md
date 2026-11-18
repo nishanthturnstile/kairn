@@ -15,12 +15,12 @@ pnpm check
 | Command                      | What it runs                                                                                        |
 | ---------------------------- | --------------------------------------------------------------------------------------------------- |
 | `pnpm dev`                   | Web at `http://localhost:5173`.                                                                     |
-| `pnpm dev:server`            | Hono on `127.0.0.1:3000`. Request `/` to smoke-test the process.                                    |
+| `pnpm dev:server`            | Hono on `127.0.0.1:3000`. Set up the local database and server environment first.                   |
 | `pnpm dev:worker`            | pg-boss worker in watch mode. Set up the local database and add the worker environment first.       |
 | `pnpm dev:mobile`            | Metro for an installed Expo development client.                                                     |
 | `pnpm android` or `pnpm ios` | Compile and run the local Expo development client on the selected emulator or simulator.            |
 | `pnpm check`                 | Biome and strict TypeScript checks across the workspace.                                            |
-| `pnpm test`                  | The Vitest bootstrap tests.                                                                         |
+| `pnpm test`                  | The bootstrap, API contract, and permission tests.                                                  |
 | `pnpm build`                 | Web production assets, compiled Node entry points and packages, and Android/iOS JavaScript bundles. |
 | `pnpm format`                | Format supported source and configuration files with Biome.                                         |
 
@@ -39,6 +39,7 @@ With Docker and Compose running, start the local stack and apply both schemas.
 ```sh
 pnpm services:up
 cp -n packages/backend/.env.example packages/backend/.env.local
+cp -n apps/server/.env.example apps/server/.env.local
 cp -n apps/worker/.env.example apps/worker/.env.local
 pnpm db:migrate
 pnpm db:queue
@@ -53,7 +54,9 @@ The Compose stack binds each published port to loopback.
 | Mailpit SMTP and inbox                               | `127.0.0.1:51025` and `http://127.0.0.1:58025` |
 | Caddy proxy                                          | `http://127.0.0.1:58080`                       |
 
-Run `pnpm dev --host 127.0.0.1` and `pnpm dev:server` on the Mac in separate terminals. Caddy serves web and `/api` on one origin and sends `/media` requests to the Node server. Media returns 404 until the application implements its access checks. The S3 endpoint requires signing credentials and stays on the local development network. The example database connections are for the loopback stack. Only the migration workspace receives the migration credentials.
+Generate a development secret with `pnpm dlx auth@1.7.25 secret` and set `BETTER_AUTH_SECRET` in `apps/server/.env.local`. Use the Caddy origin for `BETTER_AUTH_URL`. [Better Auth CLI](https://better-auth.com/docs/concepts/cli#secret)
+
+Run `pnpm dev --host 127.0.0.1` and `pnpm dev:server` on the Mac in separate terminals. Caddy serves web and `/api` on one origin and sends `/media` requests to the Node server. Media returns 404 until the application implements its access checks. The S3 endpoint requires signing credentials and stays on the local development network. The example database connections are for the loopback stack. The server and worker use the runtime database role. The migration commands and synthetic database fixtures use the migration role.
 
 `pnpm test:integration` runs the local conformance suite against the default Compose stack. Run it with the development worker stopped so the suite controls worker start and stop. `pnpm services:down` stops the stack and preserves its named volumes.
 
@@ -61,9 +64,15 @@ Run `pnpm dev --host 127.0.0.1` and `pnpm dev:server` on the Mac in separate ter
 
 Use `pnpm db:generate --name=<change>` to generate a Drizzle migration from the backend schema. Review the SQL before applying it with `pnpm db:migrate`. `pnpm db:queue` runs the pg-boss CLI migration, provisions the infrastructure check queue, and runs the CLI's drift check.
 
-Vite generates `apps/web/src/routeTree.gen.ts` during web development and builds. Include changes to that file when you change route files. Use `pnpm --dir apps/web exec shadcn add <component>` to add web primitives from the configured registry.
+Use `pnpm api:generate` to emit the OpenAPI 3.1 document and regenerate its TypeScript client types. `pnpm api:check` verifies both files without writing to them. The web and mobile client factories consume the generated paths. The live document is at `/api/v1/openapi.json`, liveness at `/api/v1/health`, database readiness at `/api/v1/ready`, and sync protocol compatibility at `/api/v1/protocol?version=1`.
 
-Synthetic user and journey seeds follow their domain schemas. The API contracts milestone adds the OpenAPI emitter and generated client types.
+Use the Better Auth CLI to regenerate its Drizzle schema when auth options change. Generate to a temporary file, review the diff against `packages/backend/src/modules/identity/auth-schema.ts`, and bind the table definitions to `kairnAuth.table` before generating the database migration. [Better Auth schema generation](https://better-auth.com/docs/concepts/cli#generate)
+
+```sh
+pnpm --dir packages/backend dlx auth@1.7.25 generate --config scripts/auth-generation.ts --adapter drizzle --dialect postgresql --output /tmp/kairn-auth-schema.ts --yes
+```
+
+Vite generates `apps/web/src/routeTree.gen.ts` during web development and builds. Include changes to that file when you change route files. Use `pnpm --dir apps/web exec shadcn add <component>` to add web primitives from the configured registry.
 
 ## Container images
 
@@ -74,4 +83,4 @@ docker build -f infra/images/app/Dockerfile --target worker -t kairn-worker .
 docker build -f infra/images/app/Dockerfile --target edge -t kairn-edge .
 ```
 
-The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the worker and set the edge's `KAIRN_API_UPSTREAM` when its upstream DNS name differs from `server:3000`. The edge serves the static web build on `:8080` by default. Production host configuration and backup policy are part of the deployment milestone.
+The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the server and worker. The server also requires `BETTER_AUTH_SECRET` and an HTTPS origin in `BETTER_AUTH_URL`. Set the edge's `KAIRN_API_UPSTREAM` when its upstream DNS name differs from `server:3000`. The edge serves the static web build on `:8080` by default. Production host configuration and backup policy are part of the deployment milestone.

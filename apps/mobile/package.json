@@ -3,6 +3,7 @@
   "private": true,
   "main": "./index.js",
   "dependencies": {
+    "@kairn/contracts": "workspace:*",
     "@kairn/shared": "workspace:*",
     "@react-native/normalize-colors": "0.88.1",
     "@rnmapbox/maps": "10.3.18",

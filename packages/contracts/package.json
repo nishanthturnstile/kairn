@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "openapi-typescript": "7.13.0",
     "typescript": "6.0.3"
   },
   "exports": {
@@ -12,10 +13,22 @@
       "browser": "./src/index.ts",
       "development": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./schemas": {
+      "types": "./src/schemas.ts",
+      "development": "./src/schemas.ts",
+      "import": "./dist/schemas.js"
     }
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "api:generate": "openapi-typescript openapi.json -o src/generated/api.ts",
+    "api:check": "openapi-typescript openapi.json -o src/generated/api.ts --check"
+  },
+  "dependencies": {
+    "@kairn/sync-protocol": "workspace:*",
+    "openapi-fetch": "0.17.0",
+    "zod": "4.6.7"
   }
 }

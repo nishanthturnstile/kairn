@@ -4,6 +4,11 @@ packages:
 
 strictPeerDependencies: true
 
+peerDependencyRules:
+  allowedVersions:
+    # The pinned generator passes with TypeScript 6 despite its TypeScript 5 peer range.
+    "openapi-typescript@7.13.0>typescript": "6.0.3"
+
 allowBuilds:
   esbuild: true
 

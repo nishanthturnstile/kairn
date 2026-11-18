@@ -11,7 +11,9 @@
       "**",
       "!docs",
       "!pnpm-lock.yaml",
-      "!apps/web/src/routeTree.gen.ts"
+      "!apps/web/src/routeTree.gen.ts",
+      "!packages/contracts/openapi.json",
+      "!packages/contracts/src/generated/api.ts"
     ]
   },
   "formatter": {

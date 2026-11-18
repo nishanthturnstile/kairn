@@ -1,0 +1,572 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kairn API",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "ApiProblem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "about:blank"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "not_found",
+              "service_unavailable",
+              "internal_error"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "requestId"
+        ]
+      },
+      "CommandEnvelopeV1": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "commandId",
+          "deviceId"
+        ]
+      },
+      "RevisionedCommandV1": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "commandId",
+          "deviceId",
+          "expectedRevision"
+        ]
+      },
+      "RevisionConflictV1": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conflictId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "currentRevision": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "commandId",
+          "conflictId",
+          "expectedRevision",
+          "currentRevision"
+        ]
+      },
+      "CursorQueryV1": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      },
+      "CursorPageV1": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          }
+        },
+        "required": [
+          "nextCursor"
+        ]
+      },
+      "UploadPartAcknowledgementV1": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "partNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "byteLength": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5368709120
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "uploadId",
+          "partNumber",
+          "byteLength",
+          "sha256"
+        ]
+      },
+      "UploadCompletionAcknowledgementV1": {
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ]
+          },
+          "uploadId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "byteLength": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "uploadId",
+          "assetId",
+          "byteLength",
+          "sha256"
+        ]
+      },
+      "SyncTombstoneV1": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "protocolVersion": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "deleted",
+                  "access_revoked"
+                ]
+              },
+              "policyGeneration": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "resource": {
+                "type": "string",
+                "enum": [
+                  "journey",
+                  "source",
+                  "asset"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "reason",
+              "policyGeneration",
+              "resource",
+              "id"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "protocolVersion": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "deleted",
+                  "access_revoked"
+                ]
+              },
+              "policyGeneration": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "resource": {
+                "type": "string",
+                "enum": [
+                  "membership"
+                ]
+              },
+              "journeyId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "reason",
+              "policyGeneration",
+              "resource",
+              "journeyId"
+            ]
+          }
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "The HTTP process is alive",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "The HTTP process can reach its migrated database",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ready"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable or requires migration",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "about:blank"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "not_found",
+                        "service_unavailable",
+                        "internal_error"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocol": {
+      "get": {
+        "operationId": "getSyncProtocol",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9]\\d{0,5}$"
+            },
+            "required": false,
+            "name": "version",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supported sync protocol version range",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "minimumVersion": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "currentVersion": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0
+                    },
+                    "supported": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "minimumVersion",
+                    "currentVersion",
+                    "supported"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The requested version is malformed",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "about:blank"
+                      ]
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "minimum": 400,
+                      "maximum": 599
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "not_found",
+                        "service_unavailable",
+                        "internal_error"
+                      ]
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code",
+                    "requestId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
