@@ -84,3 +84,21 @@ docker build -f infra/images/app/Dockerfile --target edge -t kairn-edge .
 ```
 
 The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the server and worker. The server also requires `BETTER_AUTH_SECRET` and an HTTPS origin in `BETTER_AUTH_URL`. Set the edge's `KAIRN_API_UPSTREAM` when its upstream DNS name differs from `server:3000`. The edge serves the static web build on `:8080` by default. Production host configuration and backup policy are part of the deployment milestone.
+
+## Web reader and browser tests
+
+The web build emits the creator and reader clients in `apps/web/dist/client` and the Node reader renderer in `apps/web/dist/server`. The reader uses the deployment's client manifest to load its hashed assets. The Node route at `/read/*` serves the generic unavailable page until publication is implemented.
+
+```sh
+pnpm --filter @kairn/web build
+pnpm exec playwright install chromium
+pnpm test:web
+```
+
+To smoke-test the built reader locally, run `READER_BUILD_DIR=../web/dist pnpm dev:server` and `pnpm --dir apps/web exec vp preview --host 127.0.0.1 --port 5173` in separate terminals, then request `/read/example` through Caddy on port `58080`. Run `docker compose -f infra/compose/dev.yml restart edge` to reload changes to the local Caddyfile. [Vite SSR build guide](https://vite.dev/guide/ssr.html)
+
+## Native development checks
+
+Boot an Android phone emulator and an iPhone simulator, then run `pnpm android` or `pnpm ios` to build and install the development client. The JavaScript entry configures Unistyles before loading Expo Router. Mapbox is linked in the native builds and maps will open through an explicit map action when geography is implemented. [Unistyles Expo Router setup](https://www.unistyl.es/v3/guides/expo-router/)
+
+Run `EXPO_PUBLIC_KAIRN_DEVICE_FIXTURES=stage pnpm --dir apps/mobile exec expo start --dev-client --localhost` and open the development app on each simulator to stage a synthetic draft, file, and session. Fully terminate Kairn on both devices and restart Metro with `EXPO_PUBLIC_KAIRN_DEVICE_FIXTURES=resume` before relaunching the apps. The fixture checks that another account cannot see the staged records, that the first account's records survive relaunch, and that its SecureStore session can be removed. It also calls the native Mapbox module without loading a map. Use `adb reverse tcp:8081 tcp:8081` when connecting the Android emulator to localhost. Launch Metro without the fixture flag for the normal app shell.

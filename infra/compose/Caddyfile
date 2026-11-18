@@ -10,7 +10,7 @@
 		}
 	}
 
-	@api path /api /api/*
+	@api path /api /api/* /read /read/*
 	handle @api {
 		reverse_proxy {$KAIRN_API_UPSTREAM}
 	}

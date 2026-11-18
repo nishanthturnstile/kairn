@@ -1,6 +1,8 @@
 .git
 .vscode
 docs
+test-results
+playwright-report
 **/node_modules
 **/dist
 **/.env*

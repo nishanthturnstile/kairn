@@ -7,6 +7,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
+    "@playwright/test": "1.65.1",
     "@types/node": "24.19.2",
     "typescript": "6.0.3",
     "vite-plus": "1.7.0"
@@ -31,6 +32,7 @@
     "db:queue": "vp run @kairn/backend#db:queue",
     "test:integration": "KAIRN_INTEGRATION=1 vp test run tests/integration",
     "api:generate": "pnpm --filter @kairn/server api:emit && pnpm --filter @kairn/contracts api:generate",
-    "api:check": "pnpm --filter @kairn/server api:emit --check && pnpm --filter @kairn/contracts api:check"
+    "api:check": "pnpm --filter @kairn/server api:emit --check && pnpm --filter @kairn/contracts api:check",
+    "test:web": "playwright test"
   }
 }

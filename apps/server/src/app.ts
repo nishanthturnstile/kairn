@@ -7,9 +7,14 @@ import { createV1Api, getOpenApiDocument } from "./http/v1.js";
 interface AppDependencies {
   authHandler: (request: Request) => Promise<Response>;
   checkReadiness: () => Promise<void>;
+  renderUnavailableReader?: () => string;
 }
 
-export function createApp({ authHandler, checkReadiness }: AppDependencies) {
+export function createApp({
+  authHandler,
+  checkReadiness,
+  renderUnavailableReader,
+}: AppDependencies) {
   const app = new Hono<RequestEnvironment>();
   app.use("*", async (context, next) => {
     const requestId = randomUUID();
@@ -29,6 +34,15 @@ export function createApp({ authHandler, checkReadiness }: AppDependencies) {
 
   app.get("/", (context) => context.json({ service: "kairn-server" }));
   app.get("/api", (context) => context.json({ service: "kairn-server" }));
+  if (renderUnavailableReader) {
+    app.get("/read/*", (context) =>
+      context.html(renderUnavailableReader(), 404, {
+        "Cache-Control": "private, no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex",
+      }),
+    );
+  }
   app.on(["GET", "POST"], "/api/auth/*", (context) =>
     authHandler(context.req.raw),
   );

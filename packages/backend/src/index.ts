@@ -28,6 +28,7 @@ const serverEnvironment = z
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_URL: authOrigin,
     BETTER_AUTH_SECRET: z.string().min(32),
+    READER_BUILD_DIR: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
