@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { logger } from "@kairn/backend";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
@@ -6,7 +7,7 @@ import { problem, type RequestEnvironment } from "./http/problem.js";
 import { createV1Api, getOpenApiDocument } from "./http/v1.js";
 
 interface AppDependencies {
-  authHandler: (request: Request) => Promise<Response>;
+  authHandler: (request: Request, requestId: string) => Promise<Response>;
   checkReadiness: () => Promise<void>;
   renderUnavailableReader?: () => string;
 }
@@ -22,13 +23,20 @@ export function createApp({
     context.set("requestId", requestId);
     await next();
     context.header("X-Request-Id", requestId);
+    logger.info(
+      { requestId, method: context.req.method, status: context.res.status },
+      "HTTP request completed",
+    );
   });
 
   app.onError((error, context) => {
     if (error instanceof HTTPException && error.status === 400) {
       return problem(context, 400);
     }
-    console.error("Unhandled HTTP request", context.var.requestId);
+    logger.error(
+      { requestId: context.var.requestId },
+      "Unhandled HTTP request",
+    );
     return problem(context, 500);
   });
   app.notFound((context) => problem(context, 404));
@@ -46,7 +54,7 @@ export function createApp({
   }
   app.use("/api/auth/*", bodyLimit({ maxSize: 16_384 }));
   app.on(["GET", "POST"], "/api/auth/*", (context) =>
-    authHandler(context.req.raw),
+    authHandler(context.req.raw, context.var.requestId),
   );
 
   const v1 = createV1Api(checkReadiness);

@@ -24,11 +24,13 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/drizzle-kit/bin.cjs migrate",
+    "db:seed": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/seed-development.ts",
     "db:queue": "pnpm db:queue:migrate && pnpm db:queue:provision && pnpm db:queue:doctor",
     "db:queue:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/pg-boss/dist/cli.js migrate",
     "db:queue:provision": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/provision-queues.ts",
     "db:queue:doctor": "node --env-file-if-exists=.env --env-file-if-exists=.env.local ./node_modules/pg-boss/dist/cli.js doctor",
-    "identity:replay": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/replay-identity.ts"
+    "identity:replay": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/replay-identity.ts",
+    "identity:approve-recovery": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/approve-recovery.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1171.0",
@@ -39,6 +41,7 @@
     "nodemailer": "10.6.0",
     "pg": "8.23.1",
     "pg-boss": "12.38.2",
+    "pino": "10.4.0",
     "zod": "4.6.7"
   },
   "files": [

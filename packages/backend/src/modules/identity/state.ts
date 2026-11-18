@@ -56,3 +56,9 @@ export async function identityAccount(
     .for("update");
   return account;
 }
+
+export function canResetCredentials(account: typeof accounts.$inferSelect) {
+  return (
+    account.restrictedAt === null || account.credentialRecovery === "approved"
+  );
+}

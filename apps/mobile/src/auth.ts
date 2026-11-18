@@ -1,18 +1,12 @@
 import { expoClient } from "@better-auth/expo/client";
 import { createAuthClient } from "better-auth/react";
 import * as SecureStore from "expo-secure-store";
+import { resolveAuthOrigin, sessionStoragePrefix } from "./auth-origin";
 
 const configuredOrigin =
   process.env.EXPO_PUBLIC_API_ORIGIN ??
   (__DEV__ ? "http://127.0.0.1:58080" : undefined);
-const publicOrigin = /^https:\/\/[a-z0-9.-]+(?::\d+)?\/?$/i;
-const localOrigin = /^http:\/\/127\.0\.0\.1:\d+\/?$/;
-export const authOrigin =
-  configuredOrigin &&
-  (publicOrigin.test(configuredOrigin) ||
-    (__DEV__ && localOrigin.test(configuredOrigin)))
-    ? configuredOrigin.replace(/\/$/, "")
-    : undefined;
+export const authOrigin = resolveAuthOrigin(configuredOrigin, __DEV__);
 
 const options = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
@@ -33,7 +27,7 @@ export const mobileAuth = authOrigin
         expoClient({
           scheme: "kairn",
           storage,
-          storagePrefix: "kairn_auth",
+          storagePrefix: sessionStoragePrefix(authOrigin),
           disableCache: true,
         }),
       ],

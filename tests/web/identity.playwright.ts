@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-const site = "http://127.0.0.1:58080";
+const site = process.env.KAIRN_WEB_ORIGIN ?? "http://127.0.0.1:58080";
 const inbox = "http://127.0.0.1:58025";
 const password = "Synthetic-browser-password";
 
@@ -24,9 +24,9 @@ async function mailLink(email: string, subject: string) {
   const mail = await fetch(`${inbox}/api/v1/message/${id}`).then((response) =>
     response.json(),
   );
-  const link = String(mail.Text).match(
-    /http:\/\/127\.0\.0\.1:58080\/api\/auth\/\S+/,
-  )?.[0];
+  const link = String(mail.Text)
+    .split(/\s+/)
+    .find((part) => part.startsWith(`${site}/api/auth/`));
   if (!link) throw new Error("Fixture email did not contain a local link.");
   return link;
 }

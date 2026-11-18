@@ -3,6 +3,7 @@ import { eq, isNotNull, sql } from "drizzle-orm";
 import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
+import { logger } from "../../logger.js";
 import { session, verification } from "../identity/auth-schema.js";
 import {
   accounts,
@@ -12,6 +13,8 @@ import {
 import { epochId, identityAccount, identityEpoch } from "../identity/state.js";
 import {
   type IdentityRestriction,
+  type JournalCheckpoint,
+  journalCheckpoint,
   type RestrictionJournal,
   restrictionDigest,
   verifyReceipt,
@@ -134,6 +137,10 @@ export async function registerIdentityRestrictions(
     try {
       await confirmRestriction(db, journal, id);
     } catch {
+      logger.warn(
+        { jobId: job.id, eventId: id },
+        "Restriction awaits independent confirmation",
+      );
       throw new Error("Restriction awaits independent confirmation.");
     }
   });
@@ -143,8 +150,11 @@ export async function replayIdentityRestrictions(
   db: Database,
   journal: RestrictionJournal,
   epoch: string,
+  checkpoint: JournalCheckpoint,
 ) {
   const digest = identityEpoch(epoch);
+  const expected = journalCheckpoint.parse(checkpoint);
+  const closed = "0".repeat(64);
   await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(630006)`);
     const [state] = await tx
@@ -156,21 +166,36 @@ export async function replayIdentityRestrictions(
       throw new Error("Restore requires a new recovery epoch.");
     await tx
       .insert(identityRecovery)
-      .values({ id: epochId, epochDigest: "0".repeat(64) })
+      .values({ id: epochId, epochDigest: closed })
       .onConflictDoUpdate({
         target: identityRecovery.id,
-        set: { epochDigest: "0".repeat(64) },
+        set: { epochDigest: closed },
       });
     await tx.delete(session);
     await tx.delete(verification);
     await tx.update(identityMail).set({ state: "expired", ciphertext: null });
+    await tx
+      .update(accounts)
+      .set({ credentialRecovery: "required" })
+      .where(eq(accounts.credentialRecovery, "approved"));
   });
 
   const head = await journal.head();
+  if (head !== expected.sequence) {
+    throw new Error(
+      "Restriction journal head does not match the trusted checkpoint.",
+    );
+  }
   const seen = new Set<string>();
   const restoredGenerations = new Map<string, number>();
   await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(630006)`);
+    const [state] = await tx
+      .select()
+      .from(identityRecovery)
+      .where(eq(identityRecovery.id, epochId));
+    if (state?.epochDigest !== closed)
+      throw new Error("Identity recovery gate is no longer closed.");
     const confirmed = await tx
       .select({
         id: restrictionEvents.id,
@@ -195,6 +220,17 @@ export async function replayIdentityRestrictions(
         seen.has(event.id)
       ) {
         throw new Error("Restriction journal is incomplete.");
+      }
+      if (
+        sequence === head &&
+        "eventId" in expected &&
+        (receipt.eventId !== expected.eventId ||
+          receipt.digest !== expected.digest ||
+          receipt.receipt !== expected.receipt)
+      ) {
+        throw new Error(
+          "Restriction journal receipt does not match the trusted checkpoint.",
+        );
       }
       const local = localReceipts.get(BigInt(sequence));
       if (
@@ -221,9 +257,15 @@ export async function replayIdentityRestrictions(
             account.securityGeneration,
             event.generation,
           ),
-          ...(event.operation !== "device_session_revoked"
-            ? { restrictedAt: new Date() }
-            : {}),
+          ...(event.operation === "account_restriction"
+            ? { restrictedAt: new Date(), credentialRecovery: null }
+            : event.operation === "credentials_changed" &&
+                (!account.restrictedAt || account.credentialRecovery)
+              ? {
+                  restrictedAt: new Date(),
+                  credentialRecovery: "required" as const,
+                }
+              : {}),
         })
         .where(eq(accounts.id, event.accountId));
     }

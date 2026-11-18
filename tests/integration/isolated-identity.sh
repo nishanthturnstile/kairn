@@ -20,4 +20,6 @@ export KAIRN_TEST_MIGRATION_DATABASE_URL="postgresql://kairn_migrator:temporary-
 export KAIRN_TEST_DATABASE_URL="postgresql://kairn_runtime:temporary-bootstrap-runtime@127.0.0.1:$port/kairn"
 MIGRATION_DATABASE_URL="$KAIRN_TEST_MIGRATION_DATABASE_URL" pnpm db:migrate
 PGBOSS_DATABASE_URL="$KAIRN_TEST_MIGRATION_DATABASE_URL" pnpm db:queue
+MIGRATION_DATABASE_URL="$KAIRN_TEST_MIGRATION_DATABASE_URL" pnpm db:seed
+MIGRATION_DATABASE_URL="$KAIRN_TEST_MIGRATION_DATABASE_URL" pnpm db:seed
 KAIRN_INTEGRATION=1 KAIRN_AUTH_RECOVERY_TEST=isolated pnpm exec vp test run tests/integration/identity.test.ts

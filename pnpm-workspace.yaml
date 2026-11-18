@@ -13,6 +13,9 @@ allowBuilds:
   esbuild: true
 
 overrides:
+  "@esbuild-kit/core-utils>esbuild": 0.25.12
+  "@expo/fingerprint>minimatch": 11.0.9
+  "@ts-morph/common>minimatch": 11.0.9
   vite@*: npm:@voidzero-dev/vite-plus-core@8.3.8000
   vitest@*: 5.1.0
 

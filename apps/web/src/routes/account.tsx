@@ -4,7 +4,7 @@ import type {
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { Button } from "../components/ui/button";
 import { authClient } from "../lib/auth";
 
@@ -56,7 +56,7 @@ function AccountForm() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const input = new FormData(event.currentTarget);
     const email = String(input.get("email")).trim();

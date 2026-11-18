@@ -4,14 +4,14 @@
 |---|---|
 | Version | 1.2 |
 | Date | 17 November 2026 |
-| Development host | The founder's MacBook. CPU architecture, memory, installed SDKs, and tool versions are not assumed. |
+| Development host | The founder's MacBook. The [Mac inventory](bootstrap/dependency-qualification.md#development-mac-inventory) records the verified hardware and toolchain. |
 | Test surfaces | iPhone iOS Simulator, Android phone emulator, and responsive web. |
 | Excluded | Dedicated iPadOS/tablet testing, desktop-native applications, watch and television platforms. |
 | Status | Development setup and release validation specification. |
 
 ## 1. Host and setup
 
-Develop web, backend, and native clients on the MacBook. Install Xcode with an appropriate iPhone Simulator runtime and Android Studio/SDK with an emulator image matching the actual Mac architecture when native implementation begins. Choose the supported Expo SDK and matching native toolchain together. Run one emulator at a time if host resources require it; simultaneous emulators are not an acceptance condition.
+Develop web, backend, and native clients on the MacBook. Use the [verified Xcode and Android setup](bootstrap/dependency-qualification.md#environment-setup-checklist) and record simulator profiles alongside native build results. Choose the Expo SDK and native toolchain together when upgrading. Run one simulator at a time if host resources require it.
 
 Use local Expo development builds for native dependencies; Expo Go is not the qualification environment for the selected map/styling modules. No EAS subscription is required. Local application/data services use a supported container runtime where available; production remains on the existing VPS. Do not assume its OS or capacity matches the MacBook.
 

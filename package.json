@@ -30,12 +30,16 @@
     "services:down": "docker compose -f infra/compose/dev.yml down",
     "db:generate": "vp run @kairn/backend#db:generate",
     "db:migrate": "vp run @kairn/backend#db:migrate",
+    "db:seed": "pnpm --filter @kairn/backend db:seed",
     "db:queue": "vp run @kairn/backend#db:queue",
     "test:integration": "KAIRN_INTEGRATION=1 vp test run tests/integration",
     "api:generate": "pnpm --filter @kairn/server api:emit && pnpm --filter @kairn/contracts api:generate",
     "api:check": "pnpm --filter @kairn/server api:emit --check && pnpm --filter @kairn/contracts api:check",
     "test:web": "playwright test",
+    "test:web:identity": "bash tests/operations/browser-identity.sh",
+    "check:client-bundles": "bash tests/operations/client-bundles.sh",
     "test:identity:recovery": "bash tests/integration/isolated-identity.sh",
+    "identity:approve-recovery": "pnpm --filter @kairn/backend identity:approve-recovery",
     "identity:replay": "pnpm --filter @kairn/backend identity:replay"
   }
 }

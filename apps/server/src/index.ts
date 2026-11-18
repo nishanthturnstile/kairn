@@ -4,6 +4,7 @@ import {
   createAuth,
   initializeLocalIdentity,
   localRecoveryEpoch,
+  logger,
   openDatabase,
   openJobQueue,
   openRestrictionJournal,
@@ -65,5 +66,5 @@ const app = createApp({
   renderUnavailableReader: reader && (() => reader(null)),
 });
 serve({ fetch: app.fetch, hostname: HOST, port: PORT }, ({ port }) => {
-  console.log(`Kairn server listening on ${HOST}:${port}`);
+  logger.info({ host: HOST, port }, "Kairn server listening");
 });

@@ -45,6 +45,8 @@ pnpm db:migrate
 pnpm db:queue
 ```
 
+Run `pnpm db:seed` to add the synthetic account and foothills journey to the loopback development database. Reruns preserve the same fixture IDs. The fixture account has no sign-in credentials.
+
 The Compose stack binds each published port to loopback.
 
 | Service                                              | Local address                                  |
@@ -107,8 +109,9 @@ Run `EXPO_PUBLIC_KAIRN_DEVICE_FIXTURES=stage pnpm --dir apps/mobile exec expo st
 
 Run `pnpm db:migrate` and `pnpm db:queue` after updating the workspace. Generate a local 32-byte hex key with `openssl rand -hex 32`. Set the same `AUTH_MAIL_KEY` in the server and worker environment files. This key encrypts the queued links and is separate from `BETTER_AUTH_SECRET`. Set the worker's `SMTP_URL` and `AUTH_FROM_EMAIL` from its development example. Start the server, web, and worker, then open `/account` through Caddy and use the Mailpit inbox on port `58025` to follow verification and password reset links. Use synthetic email addresses in development. [Better Auth email and password](https://better-auth.com/docs/authentication/email-password)
 
-- Run `KAIRN_WEB_IDENTITY=1 pnpm test:web` with the local web, server, and worker running. The browser test creates a synthetic account and verifies email, device revocation, and password recovery.
-- Run `pnpm test:identity:recovery` with the local Mailpit running. It starts a disposable database and exercises delayed mail, failed delivery, and restore replay against an isolated journal fixture.
+- Run `pnpm test:web:identity` after building and migrating, with PostgreSQL and Mailpit running. It starts temporary application processes and exercises verification, device revocation and password recovery. CI runs this command.
+- Run `pnpm check:client-bundles` to scan temporary browser, Android and iOS source maps for server-only packages.
+- Run `pnpm test:identity:recovery` with the local Mailpit running. It starts a disposable database and checks SMTP idempotency headers, rejects incomplete journal checkpoints and verifies recovery at an independently approved address.
 - Run `EXPO_PUBLIC_KAIRN_AUTH_FIXTURE=1 pnpm --dir apps/mobile exec expo start --dev-client --localhost` for the native identity fixture. On Android, forward ports `8081`, `58080`, and `58025` with `adb reverse`. Open the installed development client on each simulator. Set `EXPO_PUBLIC_API_ORIGIN` to the HTTPS API origin for distributed builds. [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo)
 
 The worker records each delivery as queued, sent, expired, or failed in `kairn_auth.identity_mail`. It discards encrypted links after a terminal outcome. A queue outage rejects registration without creating an account. An exhausted SMTP delivery can be retried by requesting a fresh verification or reset link.
@@ -117,4 +120,6 @@ Password resets and device revocations take effect immediately in PostgreSQL. Re
 
 The independent journal must use a separately operated HTTPS destination with credentials and retention outside database restore. `AUTH_JOURNAL_URL` is its API base. The adapter calls `PUT /events/{id}` with the event and digest, `GET /head` for the latest sequence, and `GET /sequence/{number}` for the event and its receipt. Repeated writes for the same event must return the same durable receipt. The write credential requires append and read access.
 
-Production account access requires this destination and a recovery epoch stored outside PostgreSQL. For a restore, fence previous writers and keep protected traffic closed. Run `pnpm identity:replay` against the restored database with migration credentials, the independent journal and a new `AUTH_RECOVERY_EPOCH`. Replay invalidates restored sessions and links, verifies the ordered receipts, and keeps accounts with newer credential changes locked for verified recovery. An incomplete replay leaves account access closed. Shared data remains gated pending an off-VPS recovery drill.
+Production account access requires this destination and a recovery epoch stored outside PostgreSQL. Replay requires the independently retained journal checkpoint and invalidates restored sessions and links. Accounts with superseded credentials remain locked until an operator approves an independently verified address and the user completes a fresh reset. See the [recovery runbook](docs/deployment-and-recovery.md#restore-with-application-access-closed).
+
+Use `KAIRN_APP_VARIANT=staging` or `KAIRN_APP_VARIANT=production` when generating the corresponding native build. Each variant has its own iOS bundle identifier and Android package. SecureStore credentials are scoped to the normalized API origin. Existing development installs require a fresh sign-in after the storage change.

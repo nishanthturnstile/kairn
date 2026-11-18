@@ -8,10 +8,15 @@ import { and, eq, gt, sql } from "drizzle-orm";
 import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
+import { logger } from "../../logger.js";
 import type { openMailTransport } from "../../mail.js";
 import { user, verification } from "./auth-schema.js";
 import { identityMail } from "./schema.js";
-import { identityAccount, identityIsCurrent } from "./state.js";
+import {
+  canResetCredentials,
+  identityAccount,
+  identityIsCurrent,
+} from "./state.js";
 
 export const identityMailQueue = "identity.email";
 export const authLinkAge = 30 * 60;
@@ -128,7 +133,9 @@ export async function registerIdentityMail(
             message.expiresAt <= new Date() ||
             !recipient ||
             !account ||
-            account.restrictedAt ||
+            (message.kind === "reset"
+              ? !canResetCredentials(account)
+              : account.restrictedAt !== null) ||
             !currentEpoch;
           if (expired) {
             await tx
@@ -171,6 +178,7 @@ export async function registerIdentityMail(
               : "Verify your Kairn email",
             text: `${reset ? "Set a new password" : "Verify your email"} using this link. It expires in 30 minutes.\n\n${link.url}`,
             messageId: `<${id}@${config.from.split("@").at(-1)}>`,
+            idempotencyKey: `identity-mail/${id}`,
           });
           await tx
             .update(identityMail)
@@ -186,7 +194,10 @@ export async function registerIdentityMail(
               and(eq(identityMail.id, id), eq(identityMail.state, "queued")),
             );
         }
-        console.error("Identity email delivery failed", id);
+        logger.warn(
+          { jobId: job.id, mailEventId: id },
+          "Identity email delivery failed",
+        );
         throw new Error("Identity email delivery failed.");
       }
     },

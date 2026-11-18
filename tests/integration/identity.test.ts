@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import {
+  checkDatabaseReadiness,
   createAuth,
   openDatabase,
   openJobQueue,
@@ -88,6 +89,16 @@ async function findMail(email: string, subject: string) {
   const message = await fetch(`${mailpit}/api/v1/message/${id}`).then(
     (response) => response.json(),
   );
+  const headers = await fetch(`${mailpit}/api/v1/message/${id}/headers`).then(
+    (response) => response.json(),
+  );
+  const eventId = String(headers["Message-Id"]?.[0]).match(
+    /^<([0-9a-f-]+)@/,
+  )?.[1];
+  expect(eventId).toBeDefined();
+  expect(headers["Resend-Idempotency-Key"]).toEqual([
+    `identity-mail/${eventId}`,
+  ]);
   const link = String(message.Text).match(
     /http:\/\/kairn\.test\/api\/auth\/\S+/,
   )?.[0];
@@ -130,6 +141,25 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
     const boss = openJobQueue(runtime);
     const transport = openMailTransport("smtp://127.0.0.1:51025");
     const handler = createAuth(database.db, { ...config, boss }).handler;
+
+    it.runIf(process.env.KAIRN_AUTH_RECOVERY_TEST === "isolated")(
+      "rejects a partial identity schema and accepts the complete migration",
+      async () => {
+        const rollback = new Error("Rollback fixture schema");
+        await expect(
+          owner.db.transaction(async (tx) => {
+            await tx.execute(
+              "alter table kairn.accounts drop column credential_recovery",
+            );
+            await expect(checkDatabaseReadiness(tx)).rejects.toThrow();
+            throw rollback;
+          }),
+        ).rejects.toBe(rollback);
+        await expect(
+          checkDatabaseReadiness(database.db),
+        ).resolves.toBeUndefined();
+      },
+    );
 
     beforeAll(async () => {
       await initializeLocalIdentity(database.db, localRecoveryEpoch);
@@ -445,6 +475,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
           "device_session_revoked",
           "credentials_changed",
         ]);
+        const checkpoint = records[1].receipt;
 
         await owner.pool.query(
           "UPDATE kairn_auth.account SET password = $1 WHERE user_id = $2",
@@ -467,7 +498,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
         }).handler;
         available = false;
         await expect(
-          replayIdentityRestrictions(owner.db, journal, epoch),
+          replayIdentityRestrictions(owner.db, journal, epoch, checkpoint),
         ).rejects.toThrow("Fixture destination unavailable");
         await initializeLocalIdentity(database.db, localRecoveryEpoch);
         expect(
@@ -477,7 +508,22 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
           (await call(recovered, "/sign-in/email", { email, password })).status,
         ).toBe(503);
         available = true;
-        await replayIdentityRestrictions(owner.db, journal, epoch);
+        await expect(
+          replayIdentityRestrictions(
+            owner.db,
+            { ...journal, head: async () => 1 },
+            epoch,
+            checkpoint,
+          ),
+        ).rejects.toThrow("head does not match");
+        await expect(
+          replayIdentityRestrictions(owner.db, journal, epoch, {
+            ...checkpoint,
+            receipt: "unrelated-receipt",
+          }),
+        ).rejects.toThrow("receipt does not match");
+        expect((await call(recovered, "/get-session")).status).toBe(503);
+        await replayIdentityRestrictions(owner.db, journal, epoch, checkpoint);
         expect(
           (await call(recovered, "/sign-in/email", { email, password })).status,
         ).toBe(403);
@@ -500,6 +546,71 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
         expect(epochSigningSecret(config.secret, epoch)).not.toBe(
           epochSigningSecret(config.secret, localRecoveryEpoch),
         );
+
+        const { approveCredentialRecovery } = await import(
+          "../../packages/backend/src/modules/identity/recovery"
+        );
+        const verifiedEmail = accountEmail();
+        await expect(
+          approveCredentialRecovery(owner.db, {
+            accountId: id,
+            verifiedEmail,
+            epoch: localRecoveryEpoch,
+          }),
+        ).rejects.toThrow("Complete journal replay");
+        await approveCredentialRecovery(owner.db, {
+          accountId: id,
+          verifiedEmail,
+          epoch,
+        });
+        expect(
+          (await call(recovered, "/get-session", undefined, previous)).status,
+        ).toBe(200);
+        expect(
+          await (
+            await call(recovered, "/get-session", undefined, previous)
+          ).json(),
+        ).toBeNull();
+        expect(
+          (
+            await call(recovered, "/sign-in/email", {
+              email: verifiedEmail,
+              password,
+            })
+          ).status,
+        ).toBe(401);
+        expect(
+          (
+            await call(recovered, "/request-password-reset", {
+              email: verifiedEmail,
+            })
+          ).status,
+        ).toBe(200);
+        const freshToken = resetToken(
+          await findMail(verifiedEmail, "Reset your Kairn password"),
+        );
+        const completed = await call(recovered, "/reset-password", {
+          token: freshToken,
+          newPassword: resetPassword,
+        });
+        expect(completed.status).toBe(200);
+        expect((await completed.json()).confirmation).toBe("confirmed");
+        expect(
+          (
+            await call(recovered, "/sign-in/email", {
+              email: verifiedEmail,
+              password: resetPassword,
+            })
+          ).status,
+        ).toBe(200);
+        expect(
+          (
+            await call(recovered, "/sign-in/email", {
+              email,
+              password: resetPassword,
+            })
+          ).status,
+        ).toBe(401);
       },
       45_000,
     );

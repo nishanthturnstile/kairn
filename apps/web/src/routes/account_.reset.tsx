@@ -1,6 +1,6 @@
 import type { RestrictionConfirmation } from "@kairn/contracts";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
+import { type SubmitEvent, useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { authClient } from "../lib/auth";
 
@@ -23,7 +23,7 @@ function ResetPassword() {
       void navigate({ search: { token: undefined }, replace: true });
   }, [search.token, navigate]);
 
-  async function reset(event: FormEvent<HTMLFormElement>) {
+  async function reset(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token) return;
     const password = String(new FormData(event.currentTarget).get("password"));

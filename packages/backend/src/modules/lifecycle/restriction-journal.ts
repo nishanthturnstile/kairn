@@ -26,6 +26,14 @@ const receiptSchema = z.object({
   receipt: z.string().min(1).max(2048),
 });
 type Receipt = z.infer<typeof receiptSchema>;
+export const journalCheckpoint = z.union([
+  z.strictObject({
+    sequence: z.literal(0),
+    independentlyVerifiedEmpty: z.literal(true),
+  }),
+  receiptSchema,
+]);
+export type JournalCheckpoint = z.infer<typeof journalCheckpoint>;
 const journalRecord = z.object({ event: eventSchema, receipt: receiptSchema });
 
 export interface RestrictionJournal {

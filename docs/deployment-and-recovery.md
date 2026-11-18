@@ -8,7 +8,7 @@ Kairn uses one Linux VPS per environment or separate Compose projects on a revie
 
 On the VPS, record `uname -m`, OS, CPU, available RAM, Docker disk, region and existing workloads. Match `x86_64` to `amd64` and `aarch64` to `arm64`. Install Docker with Compose 2.30 or newer, Bash, curl and jq. Use the [official Docker installation instructions](https://docs.docker.com/engine/install/).
 
-In GitHub, require the `foundation` and `release-smoke` checks before merging. Create protected `staging` and `production` environments. Restrict deployment branches and configure reviewers as supported by the repository plan. Dispatch [Build VPS release](../.github/workflows/release.yml) from the reviewed commit for the VPS architecture. The workflow builds and tests on a native Linux runner, publishes the same tested images to GHCR, and uploads a manifest with their digests. Use a read-only registry credential on the VPS when the packages are private. Keep the prior manifest and its images available. [Protected environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) · [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+In GitHub, require the `foundation` and `release-smoke` checks before merging. Create protected `staging` and `production` environments. Restrict deployment branches and configure reviewers as supported by the repository plan. Merge the release and uptime workflow files into the default branch before dispatching a release or enabling the schedule. Dispatch [Build VPS release](../.github/workflows/release.yml) from the reviewed commit for the VPS architecture. The workflow builds and tests on a native Linux runner, publishes the same tested images to GHCR, and uploads a manifest with their digests. Use a read-only registry credential on the VPS when the packages are private. Keep the prior manifest and its images available. [Workflow triggers](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) · [Protected environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)
 
 ## Environment setup
 
@@ -32,12 +32,12 @@ KAIRN_RESTIC_ENV=/etc/kairn/production/restic.env
 | `storage.env` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET` for the private SeaweedFS store. |
 | `server.env` | Runtime `DATABASE_URL` using `kairn_runtime` at `db:5432/kairn`, HTTPS `BETTER_AUTH_URL` matching Caddy, `BETTER_AUTH_SECRET`, `AUTH_MAIL_KEY`, `AUTH_JOURNAL_URL`, `AUTH_JOURNAL_CREDENTIAL`, and `AUTH_RECOVERY_EPOCH`. |
 | `worker.env` | Runtime `DATABASE_URL`, `AUTH_JOURNAL_URL`, `AUTH_JOURNAL_CREDENTIAL`, `SMTP_URL`, `AUTH_FROM_EMAIL`, and the server's `AUTH_MAIL_KEY`. |
-| `migration.env` | `MIGRATION_DATABASE_URL` and `PGBOSS_DATABASE_URL` using the `kairn_migrator` role at `db:5432/kairn`. For first setup or a restore also configure `AUTH_JOURNAL_URL`, a read credential in `AUTH_JOURNAL_CREDENTIAL`, and the new `AUTH_RECOVERY_EPOCH`. |
+| `migration.env` | `MIGRATION_DATABASE_URL` and `PGBOSS_DATABASE_URL` using the `kairn_migrator` role at `db:5432/kairn`. For first setup or a restore also configure `AUTH_JOURNAL_URL`, a read credential in `AUTH_JOURNAL_CREDENTIAL`, the new `AUTH_RECOVERY_EPOCH`, and the independently retained JSON `AUTH_JOURNAL_CHECKPOINT`. |
 | `restic.env` | `RESTIC_REPOSITORY=s3:https://<provider>/<bucket>/<environment-prefix>` and `RESTIC_PASSWORD`, plus that repository's `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and region or session settings as needed. |
 
 Keep both encrypted repositories and their key recovery outside the VPS. Scope credentials to their environment and repository prefix. The application's journal credentials can append and verify events. Journal administration, retention and recovery keys belong to the independent operator. Set the new epoch in the migration and server files together and keep it outside the restored volumes. Use independent secrets for authentication, mail encryption and backups. [pgBackRest S3 repository configuration](https://pgbackrest.org/configuration.html) · [restic repository setup](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html)
 
-For provisioning, use a fresh project and point DNS to the chosen host. The example uses HTTPS on 443 and ACME on 80. Set the Compose variables below in the operator shell. The commands refer to the repositories configured in the files above.
+For provisioning, use a fresh project and point DNS to the chosen host. The example uses HTTPS on 443 and ACME on 80. Confirm the new journal is empty with its independent operator, then set `AUTH_JOURNAL_CHECKPOINT={"sequence":0,"independentlyVerifiedEmpty":true}` in the migration environment file. Set the Compose variables below in the operator shell. The commands refer to the repositories configured in the files above.
 
 ```bash
 settings=/etc/kairn/production/settings.env
@@ -84,7 +84,7 @@ Align pgBackRest expiration, restic retention, registry digest retention and jou
 
 ## Restore with application access closed
 
-1. Fence the earlier host and all writers. Leave traffic closed and record the independent journal head and confirmed receipts available from the incident. Prepare a new project, fresh Docker volumes, the same recovery repository credentials, and the matched release from the checkpoint. Keep the edge, server and worker absent. Use a separate hostname or deny public traffic at the host firewall during validation.
+1. Fence the earlier host and all writers. Obtain the latest confirmed journal receipt from the independent operator's retained records. Keep the journal checkpoint outside database and object restore volumes and record any confirmation acknowledged since the prior checkpoint. If the latest confirmed receipt cannot be established, keep traffic closed. Prepare a new project, fresh Docker volumes, the same recovery repository credentials, and the matched release from the checkpoint. Keep the edge, server and worker absent. Use a separate hostname or deny public traffic at the host firewall during validation.
 2. List candidate snapshots with `compose run --rm --no-deps -T object-restore snapshots --tag kairn-checkpoint`. Read the chosen snapshot's `/checkpoint.env` via `object-restore dump <snapshot-id> /checkpoint.env`. Review the recorded manifest and set `release` to its recovered release references. Pull those images.
 3. Set `backup_label`, `checkpoint` and `snapshot` to the matching values and restore both stores into the new project.
 
@@ -95,9 +95,19 @@ Align pgBackRest expiration, restic retention, registry digest retention and jou
    compose up -d --wait db storage
    ```
 
-4. Verify that PostgreSQL promoted at the named point and that the restored schema matches the release. Reconcile database references against storage and verify checksums while the app stays closed. Verify that anonymous access to private objects fails. Review the restored job state and keep writers stopped until in-flight jobs and restored credentials have been reconciled.
-5. Choose a new `AUTH_RECOVERY_EPOCH`, update the server and migration files, then use `compose run --rm --no-deps -T ops pnpm --filter @kairn/backend identity:replay`. Compare the replayed journal head and available confirmed receipts with the independent records and verify that old sessions, links and superseded credentials cannot be used. A missing or uncertain tail keeps the application closed.
+4. Verify that PostgreSQL promoted at the named point and that the restored schema matches the checkpoint. Reconcile database references against storage and verify checksums while the app stays closed. Verify that anonymous access to private objects fails. Review the restored job state and keep writers stopped until in-flight jobs and restored credentials have been reconciled. For a checkpoint taken before receipt-gated replay was introduced, retain the checkpoint's data images for the restore, then select a reviewed application release with receipt-gated replay. Pull its operations image and apply its migrations while the server, worker and edge remain stopped. Use that release for replay and reopening.
+5. Choose a new `AUTH_RECOVERY_EPOCH` and update the server and migration files. Set `AUTH_JOURNAL_CHECKPOINT` in the migration file to the independently retained receipt JSON with `sequence`, `eventId`, `digest` and `receipt`. Run `compose run --rm --no-deps -T ops pnpm --filter @kairn/backend identity:replay`. Replay requires a matching head and receipt before installing the new epoch. Verify that old sessions, links and superseded credentials cannot be used.
 6. After the object and identity checks pass and the operator approves reopening, run `bash infra/operations/deploy.sh open "$settings" "$release"` against the restored project. Verify HTTPS, account and worker checks, then resume traffic. Take and verify a new paired checkpoint on the promoted timeline.
+
+### Recover a locked account
+
+Use the verified identity evidence retained by the independent operator to confirm the account ID and current mailbox. Record the approval and its evidence in the incident record. Set `AUTH_RECOVERY_ACCOUNT_ID` and `AUTH_RECOVERY_VERIFIED_EMAIL` temporarily in the protected migration environment, with the current recovery epoch, and run:
+
+```bash
+compose run --rm --no-deps -T ops pnpm --filter @kairn/backend identity:approve-recovery
+```
+
+The command clears the old password, sessions and reset links and records the approval. The account stays locked until the user completes a fresh password reset sent to the approved mailbox. Remove the temporary approval variables after use. A general account restriction requires its own authorized review. A subsequent restore invalidates outstanding mailbox approvals.
 
 ## Monitoring and verification before public access
 

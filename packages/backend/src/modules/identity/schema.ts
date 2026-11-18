@@ -3,6 +3,11 @@ import { check, integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { kairn, kairnAuth } from "../../db/namespaces.js";
 import { user } from "./auth-schema.js";
 
+export const credentialRecoveryState = kairn.enum("credential_recovery_state", [
+  "required",
+  "approved",
+]);
+
 export const accounts = kairn
   .table(
     "accounts",
@@ -14,12 +19,17 @@ export const accounts = kairn
         .defaultNow()
         .notNull(),
       restrictedAt: timestamp("restricted_at", { withTimezone: true }),
+      credentialRecovery: credentialRecoveryState("credential_recovery"),
       securityGeneration: integer("security_generation").default(1).notNull(),
     },
     (account) => [
       check(
         "accounts_security_generation_positive",
         sql`${account.securityGeneration} > 0`,
+      ),
+      check(
+        "accounts_credential_recovery_restricted",
+        sql`${account.credentialRecovery} IS NULL OR ${account.restrictedAt} IS NOT NULL`,
       ),
     ],
   )

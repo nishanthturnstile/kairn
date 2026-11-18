@@ -64,6 +64,8 @@ services:
     env_file:
       - path: ${KAIRN_SERVER_ENV:?Set the server environment file}
         format: raw
+    environment:
+      NODE_ENV: production
     networks: [default, ingress]
     healthcheck:
       test:
@@ -86,6 +88,7 @@ services:
       - path: ${KAIRN_WORKER_ENV:?Set the worker environment file}
         format: raw
     environment:
+      NODE_ENV: production
       KAIRN_WORKER_READY_FILE: /run/kairn/ready
     tmpfs:
       - /run/kairn:uid=1000,gid=1000,mode=0700

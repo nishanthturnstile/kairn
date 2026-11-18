@@ -3,6 +3,7 @@ import { fromDrizzle, PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "./db/index.js";
 import { workerChecks } from "./db/schema.js";
+import { logger } from "./logger.js";
 
 export const workerCheckQueue = "infrastructure.check";
 
@@ -16,7 +17,7 @@ export function openJobQueue(databaseUrl: string, supervise = false) {
     supervise,
     schedule: false,
   });
-  boss.on("error", (error) => console.error("Job queue failed", error.message));
+  boss.on("error", () => logger.error("Job queue failed"));
   return boss;
 }
 

@@ -29,12 +29,15 @@ jobs:
       - run: pnpm api:check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm check:client-bundles
+      - run: pnpm --dir apps/mobile exec expo install --check
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:web
       - name: Integration services
         run: docker compose -f infra/compose/dev.yml up -d --wait db storage mail
       - run: pnpm db:migrate
       - run: pnpm db:queue
+      - run: pnpm test:web:identity
       - run: pnpm test:integration
       - run: pnpm test:identity:recovery
       - name: Remove integration services

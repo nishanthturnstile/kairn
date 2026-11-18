@@ -6,6 +6,7 @@ export {
   openJobQueue,
   registerWorkerChecks,
 } from "./jobs.js";
+export { logger } from "./logger.js";
 export { openMailTransport } from "./mail.js";
 export { createAuth } from "./modules/identity/auth.js";
 export { registerIdentityMail } from "./modules/identity/email.js";
@@ -17,7 +18,10 @@ export {
   registerIdentityRestrictions,
   replayIdentityRestrictions,
 } from "./modules/lifecycle/identity-restrictions.js";
-export { openRestrictionJournal } from "./modules/lifecycle/restriction-journal.js";
+export {
+  journalCheckpoint,
+  openRestrictionJournal,
+} from "./modules/lifecycle/restriction-journal.js";
 export { openObjectStore } from "./storage.js";
 
 const databaseUrl = z.url({ protocol: /^postgres(?:ql)?$/ });
@@ -60,15 +64,33 @@ const serverEnvironment = z
     { path: ["BETTER_AUTH_URL"], error: "Expected HTTPS in production" },
   );
 
-const workerEnvironment = z.object({
-  ...identityConfiguration,
-  DATABASE_URL: databaseUrl,
-  SMTP_URL: z.url({ protocol: /^smtps?$/ }).optional(),
-  AUTH_FROM_EMAIL: z.email().optional(),
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-});
+const workerEnvironment = z
+  .object({
+    ...identityConfiguration,
+    DATABASE_URL: databaseUrl,
+    SMTP_URL: z.url({ protocol: /^smtps?$/ }).optional(),
+    AUTH_FROM_EMAIL: z.email().optional(),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+  })
+  .superRefine((environment, context) => {
+    if (environment.NODE_ENV !== "production") return;
+    for (const key of [
+      "SMTP_URL",
+      "AUTH_FROM_EMAIL",
+      "AUTH_MAIL_KEY",
+      "AUTH_JOURNAL_URL",
+      "AUTH_JOURNAL_CREDENTIAL",
+    ] as const) {
+      if (!environment[key])
+        context.addIssue({
+          code: "custom",
+          path: [key],
+          message: "Required for the production identity worker",
+        });
+    }
+  });
 
 export function parseServerEnvironment(input: NodeJS.ProcessEnv) {
   return serverEnvironment.parse(input);

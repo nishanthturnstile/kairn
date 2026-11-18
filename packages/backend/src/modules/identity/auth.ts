@@ -11,6 +11,7 @@ import { and, count, eq, gt, isNull, like } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
+import { logger } from "../../logger.js";
 import {
   confirmRestriction,
   recordIdentityRestriction,
@@ -29,6 +30,7 @@ import {
 } from "./email.js";
 import { accounts } from "./schema.js";
 import {
+  canResetCredentials,
   epochSigningSecret,
   identityAccount,
   identityEpoch,
@@ -79,7 +81,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
   const digest = identityEpoch(config.epoch);
   const secret = epochSigningSecret(config.secret, config.epoch);
 
-  async function handle(request: Request) {
+  async function handle(request: Request, requestId?: string) {
     const url = new URL(request.url);
     const path = url.pathname.slice(basePath.length);
     const allowed =
@@ -220,7 +222,10 @@ export function createAuth(db: Database, config: AuthConfiguration) {
             confirmation: "confirmed",
           });
         } catch {
-          console.error("Identity restriction awaits confirmation", eventId);
+          logger.warn(
+            { requestId, eventId },
+            "Identity restriction awaits confirmation",
+          );
         }
       }
       return Response.json(
@@ -230,17 +235,14 @@ export function createAuth(db: Database, config: AuthConfiguration) {
     } catch (error) {
       if (error instanceof AuthResponse) {
         if (error.response.status < 500) return error.response;
-        console.error(
-          "Authentication transaction failed",
-          path.startsWith("/reset-password") ? "/reset-password" : path,
-        );
+        logger.warn({ requestId }, "Authentication transaction failed");
         return errorResponse(
           503,
           "AUTH_UNAVAILABLE",
           "Authentication is temporarily unavailable. Try again later.",
         );
       }
-      console.error("Authentication transaction failed");
+      logger.error({ requestId }, "Authentication transaction failed");
       return errorResponse(
         503,
         "AUTH_UNAVAILABLE",
@@ -269,8 +271,9 @@ export function createAuth(db: Database, config: AuthConfiguration) {
       }
       if (
         !account ||
-        account.restrictedAt ||
-        (kind === "reset" && !user.emailVerified)
+        (kind === "verify" && account.restrictedAt) ||
+        (kind === "reset" &&
+          (!user.emailVerified || !canResetCredentials(account)))
       )
         return;
       if (!config.mailKey) throw new Error("Identity email is unavailable.");
@@ -400,11 +403,17 @@ export function createAuth(db: Database, config: AuthConfiguration) {
         sendResetPassword: async ({ user, url, token }) =>
           saveLink("reset", user, { url, token }),
         onPasswordReset: async ({ user }) => {
-          await requireActiveIdentity(tx, user.id);
-          if (!user.emailVerified)
+          const account = await identityAccount(tx, user.id);
+          if (!account || !canResetCredentials(account) || !user.emailVerified)
             throw new APIError("FORBIDDEN", {
               message: "Account recovery is unavailable.",
             });
+          if (account.credentialRecovery === "approved") {
+            await tx
+              .update(accounts)
+              .set({ restrictedAt: null, credentialRecovery: null })
+              .where(eq(accounts.id, user.id));
+          }
           await tx
             .delete(authSchema.verification)
             .where(
@@ -452,8 +461,8 @@ export function createAuth(db: Database, config: AuthConfiguration) {
   }
 
   return {
-    async handler(request: Request) {
-      const result = await handle(request);
+    async handler(request: Request, requestId?: string) {
+      const result = await handle(request, requestId);
       const headers = new Headers(result.headers);
       headers.set("Cache-Control", "private, no-store");
       headers.set("Referrer-Policy", "no-referrer");
@@ -468,7 +477,10 @@ async function lockAccountForCredentials(
   body: Record<string, unknown>,
   url: URL,
 ) {
-  if (path === "/sign-in/email" && typeof body.email === "string") {
+  if (
+    (path === "/sign-in/email" || path === "/request-password-reset") &&
+    typeof body.email === "string"
+  ) {
     const [user] = await tx
       .select({ id: authSchema.user.id })
       .from(authSchema.user)

@@ -34,6 +34,12 @@ CMD ["node", "dist/index.js"]
 FROM base AS worker
 ENV NODE_ENV=production
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ffmpeg=7:5.1.9-0+deb12u1 \
+       libheif-examples=1.15.1-1+deb12u1 \
+       libimage-exiftool-perl=12.57+dfsg-1 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --chown=node:node --from=worker-build /deploy/ ./
 USER node
 CMD ["node", "dist/index.js"]
