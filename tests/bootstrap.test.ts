@@ -14,7 +14,11 @@ describe("bootstrap configuration", () => {
       HOST: "127.0.0.1",
       PORT: 8080,
     });
-    expect(parseWorkerEnvironment({})).toEqual({ NODE_ENV: "development" });
+    const DATABASE_URL = "postgresql://127.0.0.1/kairn";
+    expect(parseWorkerEnvironment({ DATABASE_URL })).toEqual({
+      DATABASE_URL,
+      NODE_ENV: "development",
+    });
     expect(parsePublicEnvironment({ appName: undefined })).toEqual({
       appName: "Kairn",
     });
@@ -22,7 +26,12 @@ describe("bootstrap configuration", () => {
 
   it("rejects invalid private and public configuration", () => {
     expect(() => parseServerEnvironment({ PORT: "70000" })).toThrow();
-    expect(() => parseWorkerEnvironment({ NODE_ENV: "invalid" })).toThrow();
+    expect(() =>
+      parseWorkerEnvironment({
+        DATABASE_URL: "postgresql://127.0.0.1/kairn",
+        NODE_ENV: "invalid",
+      }),
+    ).toThrow();
     expect(() => parsePublicEnvironment({ appName: " " })).toThrow();
   });
 });

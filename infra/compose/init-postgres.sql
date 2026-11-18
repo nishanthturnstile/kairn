@@ -1,0 +1,22 @@
+\set ON_ERROR_STOP on
+\getenv migrator_password KAIRN_MIGRATOR_PASSWORD
+\getenv runtime_password KAIRN_RUNTIME_PASSWORD
+
+BEGIN;
+CREATE EXTENSION postgis;
+CREATE EXTENSION vector;
+
+CREATE ROLE kairn_migrator LOGIN PASSWORD :'migrator_password';
+CREATE ROLE kairn_runtime LOGIN PASSWORD :'runtime_password';
+
+REVOKE ALL ON DATABASE kairn FROM PUBLIC;
+GRANT CONNECT, CREATE ON DATABASE kairn TO kairn_migrator;
+GRANT CONNECT ON DATABASE kairn TO kairn_runtime;
+
+CREATE SCHEMA pgboss AUTHORIZATION kairn_migrator;
+GRANT USAGE ON SCHEMA pgboss TO kairn_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE kairn_migrator IN SCHEMA pgboss
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO kairn_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE kairn_migrator IN SCHEMA pgboss
+  GRANT USAGE, SELECT ON SEQUENCES TO kairn_runtime;
+COMMIT;

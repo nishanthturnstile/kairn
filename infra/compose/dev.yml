@@ -1,0 +1,78 @@
+name: kairn-dev
+
+services:
+  db:
+    build:
+      context: ../images/postgres
+    environment:
+      POSTGRES_DB: kairn
+      POSTGRES_USER: kairn_admin
+      POSTGRES_PASSWORD: ${KAIRN_ADMIN_PASSWORD:-local-admin-only}
+      KAIRN_MIGRATOR_PASSWORD: ${KAIRN_MIGRATOR_PASSWORD:-local-migrator-only}
+      KAIRN_RUNTIME_PASSWORD: ${KAIRN_RUNTIME_PASSWORD:-local-runtime-only}
+    ports:
+      - "127.0.0.1:${KAIRN_DB_PORT:-55432}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/10-kairn.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U kairn_admin -d kairn"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [data]
+
+  storage:
+    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
+    command: ["mini", "-dir=/data", "-master.telemetry=false"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${KAIRN_S3_ACCESS_KEY:-kairn-local}
+      AWS_SECRET_ACCESS_KEY: ${KAIRN_S3_SECRET_KEY:-local-storage-only}
+      S3_BUCKET: ${KAIRN_S3_BUCKET:-kairn-private}
+    ports:
+      - "127.0.0.1:${KAIRN_S3_PORT:-58333}:8333"
+    volumes:
+      - seaweedfs:/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8333"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [data]
+
+  mail:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_DISABLE_VERSION_CHECK: "true"
+    ports:
+      - "127.0.0.1:${KAIRN_SMTP_PORT:-51025}:1025"
+      - "127.0.0.1:${KAIRN_MAIL_UI_PORT:-58025}:8025"
+    volumes:
+      - mailpit:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [data]
+
+  edge:
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    environment:
+      KAIRN_WEB_UPSTREAM: ${KAIRN_WEB_UPSTREAM:-host.docker.internal:5173}
+      KAIRN_API_UPSTREAM: ${KAIRN_API_UPSTREAM:-host.docker.internal:3000}
+    ports:
+      - "127.0.0.1:${KAIRN_EDGE_PORT:-58080}:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [edge]
+
+networks:
+  data:
+  edge:
+
+volumes:
+  postgres:
+  seaweedfs:
+  mailpit:

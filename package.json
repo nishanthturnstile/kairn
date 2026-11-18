@@ -23,6 +23,12 @@
     "format": "biome format --write",
     "typecheck": "vp run --filter \"@kairn/*\" typecheck",
     "test": "vp test run",
-    "build": "vp run --filter \"@kairn/*\" build"
+    "build": "vp run --filter \"@kairn/*\" build",
+    "services:up": "docker compose -f infra/compose/dev.yml up -d --wait",
+    "services:down": "docker compose -f infra/compose/dev.yml down",
+    "db:generate": "vp run @kairn/backend#db:generate",
+    "db:migrate": "vp run @kairn/backend#db:migrate",
+    "db:queue": "vp run @kairn/backend#db:queue",
+    "test:integration": "KAIRN_INTEGRATION=1 vp test run tests/integration"
   }
 }

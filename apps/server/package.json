@@ -17,5 +17,8 @@
     "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
