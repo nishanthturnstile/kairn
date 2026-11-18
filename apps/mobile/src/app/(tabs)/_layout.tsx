@@ -1,27 +1,11 @@
-import { Tabs } from "expo-router";
-import { useUnistyles } from "react-native-unistyles";
+import { Tabs } from "expo-router/js-tabs";
+import { DestinationTabs } from "../../components/destination-tabs";
 
 export default function TabLayout() {
-  const { theme } = useUnistyles();
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.accent,
-        tabBarInactiveTintColor: theme.colors.subdued,
-        tabBarActiveBackgroundColor: theme.colors.accentWash,
-        tabBarStyle: {
-          backgroundColor: theme.colors.paper,
-          borderTopColor: theme.colors.line,
-        },
-        tabBarItemStyle: { minHeight: 48 },
-        tabBarLabelStyle: {
-          fontSize: theme.typeScale.caption,
-          fontWeight: "600",
-        },
-        tabBarIconStyle: { display: "none" },
-      }}
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <DestinationTabs {...props} />}
     >
       <Tabs.Screen name="journeys" options={{ title: "Journeys" }} />
       <Tabs.Screen name="discover" options={{ title: "Discover" }} />

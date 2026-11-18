@@ -14,7 +14,16 @@ Then add invitations into the same journey and verify membership revocation befo
 
 ## Design review
 
-The founder approved all seven design-system phases, including [governance and rollout](design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. Next, adopt the approved system in the private create/history milestone above.
+The founder approved all seven design-system phases, including [governance and rollout](design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system. Private journey creation and history are the next feature surfaces.
+
+| Existing surface | Where to change it | Coverage |
+| --- | --- | --- |
+| Web workspace | [Shell](../apps/web/src/routes/__root.tsx), [workspace states](../apps/web/src/components/workspace-page.tsx), [shared controls](../apps/web/src/components/ui/) | Journeys, Discover and Saved, including sign-in prompts, loading, retry and empty states. |
+| Web account | [Account](../apps/web/src/routes/account.tsx) and [password reset](../apps/web/src/routes/account_.reset.tsx) | Registration, verification, recovery, signed-in devices, revocation and feedback. |
+| Web story | [Reader](../apps/web/src/reader/story.tsx) | Server-rendered chapters, larger text, appearance selection and the generic unavailable story. |
+| Android and iPhone | [Destination](../apps/mobile/src/components/destination.tsx), [tabs](../apps/mobile/src/components/destination-tabs.tsx), [account](../apps/mobile/src/app/account.tsx) and [shared controls](../apps/mobile/src/components/ui.tsx) | Journeys, Discover, Saved, account forms, device controls and app appearance. Both platforms load the bundled Source Sans 3 faces. |
+
+The [production-route browser checks](../tests/web/reader.playwright.ts) cover persisted appearances, 44 CSS px controls, 320 CSS px reflow at 200% text size, automated accessibility and the reader with JavaScript disabled. The Chromium account flow also exercised a local server and email inbox. Native checks on the API 37 Android emulator and iPhone 17 simulator exercised the three tabs, account form modes, signed-in devices, sign-out and appearance choices. Changing the system appearance while Journeys was open updated the status bar, heading, panel and selected tab together. At Android 2× font scale and the largest iOS accessibility text size, the tab labels remained readable. Physical-device glare and manual TalkBack and VoiceOver checks remain open.
 
 ## Completed and verified
 

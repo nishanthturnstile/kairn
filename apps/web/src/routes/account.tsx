@@ -4,8 +4,12 @@ import type {
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type SubmitEvent, useState } from "react";
+import { type SubmitEvent, useRef, useState } from "react";
+import { PageHeading } from "../components/page-heading";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
+import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth";
 
 export const Route = createFileRoute("/account")({
@@ -28,20 +32,48 @@ const modeLabels = {
   resend: "Resend verification",
 };
 
+type Feedback = {
+  text: string;
+  variant: "default" | "destructive" | "success" | "warning";
+};
+
+const feedbackTextClass = {
+  default: "text-muted-foreground",
+  destructive: "text-destructive",
+  success: "text-success",
+  warning: "text-warning",
+};
+
 function AccountPage() {
   const { data, isPending, error } = authClient.useSession();
   const verification = Route.useSearch();
   return (
     <section className="grid max-w-lg gap-6">
-      <h1 className="text-title font-semibold tracking-tight">Account</h1>
+      <PageHeading title="Account" />
       {verification.error && (
-        <p role="alert">That verification link is invalid or has expired.</p>
+        <Alert variant="destructive">
+          <AlertDescription>
+            That verification link is invalid or has expired.
+          </AlertDescription>
+        </Alert>
       )}
       {verification.verification && !verification.error && (
-        <p role="status">Your email is verified. You can sign in now.</p>
+        <Alert variant="success" role="status">
+          <AlertDescription>
+            Your email is verified. You can sign in now.
+          </AlertDescription>
+        </Alert>
       )}
-      {isPending && <output>Checking your session</output>}
-      {error && <p role="alert">Account access is temporarily unavailable.</p>}
+      {isPending && (
+        <output className="text-muted-foreground">Checking your session</output>
+      )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Account access is temporarily unavailable.
+          </AlertDescription>
+        </Alert>
+      )}
       {data?.user ? (
         <SignedInAccount email={data.user.email} id={data.user.id} />
       ) : (
@@ -53,8 +85,9 @@ function AccountPage() {
 
 function AccountForm() {
   const [mode, setMode] = useState<FormMode>("sign-in");
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<Feedback>();
   const [busy, setBusy] = useState(false);
+  const focusHeading = useRef(false);
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,44 +95,52 @@ function AccountForm() {
     const email = String(input.get("email")).trim();
     const password = String(input.get("password") ?? "");
     setBusy(true);
-    setMessage("");
+    setFeedback(undefined);
     try {
       if (mode === "sign-in") {
         const { error } = await authClient.signIn.email({ email, password });
         if (error)
-          setMessage(
-            error.code === "EMAIL_NOT_VERIFIED"
-              ? "Verify your email before signing in."
-              : "Couldn’t sign in. Check your email and password.",
-          );
+          setFeedback({
+            variant: "destructive",
+            text:
+              error.code === "EMAIL_NOT_VERIFIED"
+                ? "Verify your email before signing in."
+                : "Couldn’t sign in. Check your email and password.",
+          });
       } else if (mode === "sign-up") {
         const { error } = await authClient.signUp.email({
           email,
           password,
           name: String(input.get("name")).trim(),
         });
-        setMessage(
-          error
+        setFeedback({
+          variant: error ? "destructive" : "default",
+          text: error
             ? "Couldn’t register. Check your details and try again."
             : "Check your inbox for a verification link.",
-        );
+        });
       } else if (mode === "recover") {
         const { error } = await authClient.requestPasswordReset({ email });
-        setMessage(
-          error
+        setFeedback({
+          variant: error ? "destructive" : "default",
+          text: error
             ? "Couldn’t request a reset email. Try again later."
             : "If that account can receive a reset email, check your inbox.",
-        );
+        });
       } else {
         const { error } = await authClient.sendVerificationEmail({ email });
-        setMessage(
-          error
+        setFeedback({
+          variant: error ? "destructive" : "default",
+          text: error
             ? "Couldn’t request a verification email. Try again later."
             : "If that email still needs verification, check your inbox.",
-        );
+        });
       }
     } catch {
-      setMessage("Couldn’t connect to Kairn. Try again.");
+      setFeedback({
+        variant: "destructive",
+        text: "Couldn’t connect to Kairn. Try again.",
+      });
     } finally {
       setBusy(false);
     }
@@ -107,52 +148,75 @@ function AccountForm() {
 
   return (
     <form
-      className="grid gap-4 rounded-lg border bg-card p-6"
+      className="grid gap-4 rounded-card control-border bg-card p-4"
       onSubmit={(event) => void submit(event)}
     >
-      <h2 className="text-lg font-semibold">{modeLabels[mode]}</h2>
-      {mode === "sign-up" && (
-        <label className="grid gap-1">
-          Name
-          <input
-            name="name"
-            autoComplete="name"
-            className="min-h-11 rounded-md border px-3"
-            required
-          />
-        </label>
-      )}
-      <label className="grid gap-1">
-        Email
-        <input
-          name="email"
-          type="email"
-          autoComplete="email"
-          className="min-h-11 rounded-md border px-3"
-          required
-        />
-      </label>
-      {(mode === "sign-in" || mode === "sign-up") && (
-        <label className="grid gap-1">
-          Password
-          <input
-            key={mode}
-            name="password"
-            type="password"
-            autoComplete={
-              mode === "sign-up" ? "new-password" : "current-password"
-            }
-            minLength={mode === "sign-up" ? 12 : undefined}
-            className="min-h-11 rounded-md border px-3"
-            required
-          />
-        </label>
-      )}
-      <Button className="min-h-11 justify-self-start" disabled={busy}>
+      <h2
+        className="text-xl font-semibold"
+        ref={(heading) => {
+          if (heading && focusHeading.current) {
+            heading.focus();
+            focusHeading.current = false;
+          }
+        }}
+        tabIndex={-1}
+      >
         {modeLabels[mode]}
+      </h2>
+      <FieldGroup>
+        {mode === "sign-up" && (
+          <Field>
+            <FieldLabel htmlFor="account-name">Name</FieldLabel>
+            <Input id="account-name" name="name" autoComplete="name" required />
+          </Field>
+        )}
+        <Field>
+          <FieldLabel htmlFor="account-email">Email</FieldLabel>
+          <Input
+            id="account-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+          />
+        </Field>
+        {(mode === "sign-in" || mode === "sign-up") && (
+          <Field>
+            <FieldLabel htmlFor="account-password">Password</FieldLabel>
+            <Input
+              key={mode}
+              id="account-password"
+              name="password"
+              type="password"
+              autoComplete={
+                mode === "sign-up" ? "new-password" : "current-password"
+              }
+              minLength={mode === "sign-up" ? 12 : undefined}
+              aria-describedby={
+                mode === "sign-up" ? "account-password-hint" : undefined
+              }
+              required
+            />
+            {mode === "sign-up" && (
+              <p
+                id="account-password-hint"
+                className="text-sm text-muted-foreground"
+              >
+                Use at least 12 characters.
+              </p>
+            )}
+          </Field>
+        )}
+      </FieldGroup>
+      <Button type="submit" className="justify-self-start" disabled={busy}>
+        {busy ? "Please wait…" : modeLabels[mode]}
       </Button>
-      {message && <p role="status">{message}</p>}
-      <div className="flex flex-wrap gap-1">
+      {feedback && (
+        <p className={feedbackTextClass[feedback.variant]} role="status">
+          {feedback.text}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-1 border-t pt-2">
         {(Object.keys(modeLabels) as FormMode[])
           .filter((option) => option !== mode)
           .map((option) => (
@@ -160,11 +224,12 @@ function AccountForm() {
               key={option}
               type="button"
               variant="link"
-              className="min-h-11"
+              size="sm"
               disabled={busy}
               onClick={() => {
+                focusHeading.current = true;
                 setMode(option);
-                setMessage("");
+                setFeedback(undefined);
               }}
             >
               {modeLabels[option]}
@@ -177,7 +242,7 @@ function AccountForm() {
 
 function SignedInAccount({ email, id }: { email: string; id: string }) {
   const { signOut } = Route.useRouteContext();
-  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState<Feedback>();
   const [revoking, setRevoking] = useState(false);
   const devices = useQuery({
     queryKey: [id, "devices"],
@@ -192,7 +257,7 @@ function SignedInAccount({ email, id }: { email: string; id: string }) {
   });
 
   async function revoke(deviceId: string) {
-    setMessage("");
+    setFeedback(undefined);
     setRevoking(true);
     try {
       const { data, error } = await authClient.$fetch<RestrictionConfirmation>(
@@ -200,69 +265,96 @@ function SignedInAccount({ email, id }: { email: string; id: string }) {
         { method: "POST", body: { id: deviceId } },
       );
       if (error) {
-        setMessage(
-          "Couldn’t revoke this session. Sign in again to refresh your session.",
-        );
+        setFeedback({
+          variant: "destructive",
+          text: "Couldn’t revoke this session. Sign in again to refresh your session.",
+        });
         return;
       }
-      setMessage(
-        data?.confirmation === "pending"
+      const pending = data?.confirmation === "pending";
+      setFeedback({
+        variant: pending ? "warning" : "success",
+        text: pending
           ? "Device signed out. Recovery confirmation is pending."
           : "Device signed out.",
-      );
+      });
       await devices.refetch();
     } catch {
-      setMessage("Couldn’t reach Kairn. Try again.");
+      setFeedback({
+        variant: "destructive",
+        text: "Couldn’t reach Kairn. Try again.",
+      });
     } finally {
       setRevoking(false);
     }
   }
 
   return (
-    <div className="grid gap-5 rounded-lg border bg-card p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p>{email}</p>
+    <div className="grid min-w-0 gap-4 rounded-card control-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+        <p className="min-w-0 font-semibold">{email}</p>
         <Button
-          className="min-h-11"
           variant="outline"
           onClick={async () => {
             const success = await signOut();
-            if (!success) setMessage("Couldn’t sign out. Try again.");
+            if (!success)
+              setFeedback({
+                variant: "destructive",
+                text: "Couldn’t sign out. Try again.",
+              });
           }}
         >
           Sign out
         </Button>
       </div>
-      <h2 className="text-lg font-semibold">Signed-in devices</h2>
-      {devices.isPending && <output>Loading devices</output>}
-      {devices.isError && <p role="alert">Couldn’t load your devices.</p>}
-      {devices.data?.devices.map((device) => (
-        <div
-          key={device.id}
-          className="flex flex-wrap items-center justify-between gap-3 border-t pt-3"
-        >
-          {device.id === devices.data?.currentDeviceId ? (
-            <p>This device</p>
-          ) : (
-            <>
-              <p>
-                Session started {new Date(device.createdAt).toLocaleString()}
-              </p>
-              <Button
-                className="min-h-11"
-                variant="outline"
-                disabled={revoking}
-                onClick={() => void revoke(device.id)}
-              >
-                Revoke device
-              </Button>
-            </>
-          )}
-        </div>
-      ))}
-      {message && <p role="status">{message}</p>}
-      {!message && Boolean(devices.data?.pendingRestrictions) && (
-        <p role="status">Account changes await recovery confirmation.</p>
+      <h2 className="text-xl font-semibold">Signed-in devices</h2>
+      {devices.isPending && (
+        <output className="text-muted-foreground">Loading devices</output>
+      )}
+      {devices.isError && (
+        <p className="text-destructive" role="alert">
+          Couldn’t load your devices.
+        </p>
+      )}
+      {devices.data && (
+        <ul className="grid gap-3">
+          {devices.data.devices.map((device) => (
+            <li
+              key={device.id}
+              className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
+            >
+              {device.id === devices.data?.currentDeviceId ? (
+                <p>This device</p>
+              ) : (
+                <>
+                  <p>
+                    Session started{" "}
+                    <time dateTime={device.createdAt}>
+                      {new Date(device.createdAt).toLocaleString("en-IN")}
+                    </time>
+                  </p>
+                  <Button
+                    variant="outline"
+                    disabled={revoking}
+                    onClick={() => void revoke(device.id)}
+                  >
+                    Revoke device
+                  </Button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {feedback && (
+        <p className={feedbackTextClass[feedback.variant]} role="status">
+          {feedback.text}
+        </p>
+      )}
+      {!feedback && Boolean(devices.data?.pendingRestrictions) && (
+        <p className="text-warning" role="status">
+          Account changes await recovery confirmation.
+        </p>
       )}
     </div>
   );

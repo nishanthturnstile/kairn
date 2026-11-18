@@ -13,6 +13,7 @@
 @theme inline {
   --font-sans: var(--kairn-semantic-font-family-ui);
   --font-heading: var(--font-sans);
+  --font-story: var(--kairn-semantic-font-family-story);
   --color-background: var(--kairn-semantic-color-canvas);
   --color-foreground: var(--kairn-semantic-color-ink);
   --color-card: var(--kairn-semantic-color-surface);
@@ -25,13 +26,33 @@
   --color-secondary-foreground: var(--kairn-semantic-color-ink);
   --color-accent: var(--kairn-semantic-color-action-wash);
   --color-accent-foreground: var(--kairn-semantic-color-action);
+  --color-information: var(--kairn-semantic-color-information);
+  --color-success: var(--kairn-semantic-color-success);
+  --color-warning: var(--kairn-semantic-color-warning);
   --color-destructive: var(--kairn-semantic-color-error);
   --color-border: var(--kairn-semantic-color-boundary);
   --color-input: var(--kairn-semantic-color-boundary);
   --color-ring: var(--kairn-semantic-color-information);
-  --text-title: var(--kairn-semantic-font-size-chapter);
+  --text-sm: var(--kairn-semantic-font-size-caption);
+  --text-sm--line-height: var(--kairn-semantic-line-height-caption);
+  --text-base: var(--kairn-semantic-font-size-body);
+  --text-base--line-height: var(--kairn-semantic-line-height-body);
+  --text-lg: var(--kairn-semantic-font-size-story-body);
+  --text-lg--line-height: var(--kairn-semantic-line-height-story-body);
+  --text-xl: var(--kairn-semantic-font-size-section);
+  --text-xl--line-height: var(--kairn-semantic-line-height-section);
+  --text-4xl: var(--kairn-semantic-font-size-chapter);
+  --text-4xl--line-height: var(--kairn-semantic-line-height-chapter);
+  --font-weight-normal: var(--kairn-semantic-font-weight-body);
+  --font-weight-semibold: var(--kairn-semantic-font-weight-label);
+  --font-weight-bold: var(--kairn-semantic-font-weight-emphasis);
   --spacing-section: var(--kairn-semantic-space-step40);
+  --spacing-touch: max(44px, 2.75rem);
+  --radius-tag: var(--kairn-semantic-radius-tag);
+  --radius-control: var(--kairn-semantic-radius-control);
+  --radius-card: var(--kairn-semantic-radius-card);
   --default-transition-duration: var(--kairn-semantic-motion-selection);
+  --default-transition-timing-function: var(--kairn-semantic-easing-selection);
 }
 
 :root {
@@ -44,7 +65,9 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-base text-foreground;
+    accent-color: var(--kairn-semantic-color-action);
+    caret-color: var(--kairn-semantic-color-information);
   }
 
   html {
@@ -54,5 +77,48 @@
   :focus-visible {
     outline: 2px solid var(--kairn-semantic-color-information);
     outline-offset: 2px;
+  }
+
+  ::selection {
+    color: var(--kairn-semantic-color-on-action);
+    background-color: var(--kairn-semantic-color-action);
+  }
+}
+
+@utility control-border {
+  border-width: var(--kairn-semantic-border-control);
+}
+
+@utility control-border-b {
+  border-bottom-width: var(--kairn-semantic-border-control);
+}
+
+@utility control-border-e {
+  border-inline-end-width: var(--kairn-semantic-border-control);
+}
+
+@layer components {
+  .appearance-picker {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+  }
+
+  .appearance-picker select {
+    appearance: none;
+  }
+
+  .appearance-picker::after {
+    position: absolute;
+    inset-inline-end: var(--kairn-semantic-space-step16);
+    width: var(--kairn-semantic-space-step8);
+    height: var(--kairn-semantic-space-step8);
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-25%) rotate(45deg);
+    pointer-events: none;
+    content: "";
   }
 }

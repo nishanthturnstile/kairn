@@ -64,7 +64,10 @@ async function serveFixture(
         json: { status: status === 200 ? "ready" : "unavailable" },
       });
     } else {
-      const asset = /^\/assets\/[A-Za-z0-9_-]+\.(js|css|woff2)$/.exec(pathname);
+      const asset =
+        /^\/assets\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(js|css|woff2)$/.exec(
+          pathname,
+        );
       const mime: Record<string, string> = {
         js: "text/javascript",
         css: "text/css",
@@ -160,4 +163,110 @@ test("creator displays unavailable, loading, error, and empty states through the
   await page.getByRole("link", { name: "Saved" }).click();
   await expect(page.getByRole("heading", { name: "Saved" })).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("appearance carries across workspace, account and story at large text sizes", async ({
+  page,
+}) => {
+  await serveFixture(page);
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+  await page.goto(origin);
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(17, 28, 27)",
+  );
+  await page
+    .getByRole("combobox", { name: "Appearance" })
+    .selectOption({ label: "Light" });
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(246, 243, 235)",
+  );
+  await page
+    .getByRole("combobox", { name: "Appearance" })
+    .selectOption({ label: "Outdoor" });
+  for (const path of [
+    "/journeys",
+    "/discover",
+    "/saved",
+    "/account",
+    "/account/reset",
+    "/account/reset?token=fixture",
+    "/read/creek",
+    "/read/missing",
+  ]) {
+    await page.goto(origin + path);
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-appearance",
+      "outdoor",
+    );
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    for (const control of await page
+      .locator("button:visible, input:visible, select:visible")
+      .all()) {
+      const bounds = await control.boundingBox();
+      expect(bounds?.height, path).toBeGreaterThanOrEqual(44);
+      expect(bounds?.width, path).toBeGreaterThanOrEqual(44);
+    }
+    if (path === "/account") {
+      await expect(page.getByLabel("Email", { exact: true })).toHaveCSS(
+        "border-top-width",
+        "2px",
+      );
+    }
+    await page.evaluate(async () => {
+      document.documentElement.style.fontSize = "200%";
+      await document.fonts.ready;
+    });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+      path,
+    ).toBeLessThanOrEqual(320);
+    expect((await new AxeBuilder({ page }).analyze()).violations, path).toEqual(
+      [],
+    );
+  }
+  await page
+    .getByRole("combobox", { name: "Appearance" })
+    .selectOption({ label: "System" });
+  await expect(page.locator("body")).toHaveCSS(
+    "background-color",
+    "rgb(17, 28, 27)",
+  );
+});
+
+test("reader keeps chapter hierarchy when the visitor enlarges the text", async ({
+  page,
+}) => {
+  await serveFixture(page);
+  await page.goto(`${origin}/read/creek`);
+  const heading = page.getByRole("heading", { name: "First crossing" });
+  await expect(heading).toHaveCSS("font-family", /Georgia/);
+  await expect(heading).toHaveCSS("font-size", "36px");
+  const prose = page.getByText("A footbridge crossed the creek.");
+  await expect(prose).toHaveCSS("font-size", "18px");
+  await page.getByRole("button", { name: "Larger text" }).click();
+  await expect(prose).toHaveCSS("font-size", "22px");
+});
+
+test.describe("server-rendered reader", () => {
+  test.use({ javaScriptEnabled: false });
+  test("loads chapter typography and reading content without hydration", async ({
+    page,
+  }) => {
+    await serveFixture(page);
+    await page.goto(`${origin}/read/creek`);
+    await expect(
+      page.getByRole("heading", { name: "First crossing" }),
+    ).toHaveCSS("font-family", /Georgia/);
+    await expect(page.getByText("A footbridge crossed the creek.")).toHaveCSS(
+      "font-size",
+      "18px",
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { PageHeading } from "./page-heading";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "./ui/alert";
 import { Button } from "./ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { Skeleton } from "./ui/skeleton";
@@ -21,19 +22,16 @@ export function WorkspacePage({
   emptyDescription,
 }: WorkspacePageProps) {
   return (
-    <section className="grid gap-8">
-      <header className="grid gap-2 border-b pb-6">
-        <h1 className="font-heading text-title font-semibold tracking-tight">
-          {title}
-        </h1>
-        <p className="text-muted-foreground">{description}</p>
-      </header>
+    <section className="grid max-w-2xl gap-6 sm:gap-8">
+      <PageHeading title={title} description={description} />
       {accountRequired ? (
-        <Alert className="p-5" role="status">
+        <Alert role="status">
           <AlertTitle>Sign in to continue</AlertTitle>
-          <AlertDescription>
-            <Link to="/account">Open your account</Link> to use this space.
-          </AlertDescription>
+          <AlertAction>
+            <Button asChild variant="outline">
+              <Link to="/account">Open your account</Link>
+            </Button>
+          </AlertAction>
         </Alert>
       ) : (
         <CollectionsState title={emptyTitle} description={emptyDescription} />
@@ -62,39 +60,38 @@ function CollectionsState({
   if (readiness.isPending)
     return (
       <output
-        className="grid gap-3 rounded-lg border bg-card p-6"
+        className="grid gap-3 rounded-card control-border bg-card p-4"
         aria-busy="true"
       >
-        <span className="text-sm text-muted-foreground">
-          Checking availability
-        </span>
-        <Skeleton className="h-4 w-40 max-w-full motion-reduce:animate-none" />
-        <Skeleton className="h-4 w-64 max-w-full motion-reduce:animate-none" />
+        <span className="text-muted-foreground">Checking availability</span>
+        <Skeleton className="h-4 w-40 max-w-full" />
+        <Skeleton className="h-4 w-64 max-w-full" />
       </output>
     );
 
   if (readiness.isError)
     return (
-      <Alert variant="destructive" className="gap-2 p-5">
+      <Alert variant="destructive">
         <AlertTitle>Couldn’t connect to Kairn</AlertTitle>
         <AlertDescription>
           Check your connection, then try again.
         </AlertDescription>
-        <Button
-          className="min-h-11 w-fit"
-          variant="outline"
-          onClick={() => void readiness.refetch()}
-          disabled={readiness.isFetching}
-        >
-          Try again
-        </Button>
+        <AlertAction>
+          <Button
+            variant="outline"
+            onClick={() => void readiness.refetch()}
+            disabled={readiness.isFetching}
+          >
+            {readiness.isFetching ? "Trying again…" : "Try again"}
+          </Button>
+        </AlertAction>
       </Alert>
     );
 
   return (
-    <Empty className="items-start rounded-lg border border-solid bg-card p-6 text-left">
-      <EmptyHeader className="items-start">
-        <EmptyTitle className="text-lg">{title}</EmptyTitle>
+    <Empty>
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
     </Empty>

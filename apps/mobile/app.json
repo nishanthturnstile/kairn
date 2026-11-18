@@ -6,7 +6,8 @@
     "scheme": "kairn",
     "orientation": "portrait",
     "ios": {
-      "bundleIdentifier": "dev.kairn.app"
+      "bundleIdentifier": "dev.kairn.app",
+      "userInterfaceStyle": "automatic"
     },
     "android": {
       "package": "dev.kairn.app",
@@ -22,7 +23,17 @@
       ],
       "expo-secure-store",
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/SourceSans3-Regular.ttf",
+            "./assets/fonts/SourceSans3-Semibold.ttf",
+            "./assets/fonts/SourceSans3-Bold.ttf"
+          ]
+        }
+      ]
     ]
   }
 }
