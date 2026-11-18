@@ -1,0 +1,88 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!docs",
+      "!pnpm-lock.yaml",
+      "!apps/web/src/routeTree.gen.ts"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/web/src/**",
+        "apps/mobile/src/**",
+        "apps/mobile/index.js",
+        "packages/contracts/src/**",
+        "packages/shared/src/**",
+        "packages/sync-protocol/src/**",
+        "packages/design-tokens/src/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@kairn/backend",
+                      "@kairn/backend/**",
+                      "@kairn/server",
+                      "@kairn/server/**",
+                      "@kairn/worker",
+                      "@kairn/worker/**",
+                      "**/packages/backend/**",
+                      "**/apps/server/**",
+                      "**/apps/worker/**",
+                      "**/../backend/**",
+                      "**/../server/**",
+                      "**/../worker/**"
+                    ],
+                    "message": "Use a client-safe workspace package for shared code."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}

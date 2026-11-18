@@ -1,0 +1,25 @@
+{
+  "name": "@kairn/backend",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3"
+  },
+  "exports": {
+    ".": {
+      "node": {
+        "types": "./src/index.ts",
+        "development": "./src/index.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@kairn/worker",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15"
+  },
+  "dependencies": {
+    "@kairn/backend": "workspace:*"
+  },
+  "scripts": {
+    "dev": "tsx watch --conditions=development --env-file-if-exists=.env --env-file-if-exists=.env.local src/index.ts",
+    "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  }
+}

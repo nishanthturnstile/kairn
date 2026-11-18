@@ -1,0 +1,28 @@
+{
+  "name": "kairn",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.22.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3",
+    "vite-plus": "1.7.0"
+  },
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "dev": "vp run @kairn/web#dev",
+    "dev:server": "vp run @kairn/server#dev",
+    "dev:worker": "vp run @kairn/worker#dev",
+    "dev:mobile": "vp run @kairn/mobile#dev",
+    "android": "vp run @kairn/mobile#android",
+    "ios": "vp run @kairn/mobile#ios",
+    "check": "biome ci && vp run typecheck",
+    "format": "biome format --write",
+    "typecheck": "vp run --filter \"@kairn/*\" typecheck",
+    "test": "vp test run",
+    "build": "vp run --filter \"@kairn/*\" build"
+  }
+}

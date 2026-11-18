@@ -1,0 +1,26 @@
+packages:
+  - apps/*
+  - packages/*
+
+strictPeerDependencies: true
+
+allowBuilds:
+  esbuild: true
+
+overrides:
+  vite@*: npm:@voidzero-dev/vite-plus-core@8.3.8000
+  vitest@*: 5.1.0
+
+minimumReleaseAgeExclude:
+  - "@expo/cli@58.1.21"
+  - "@expo/metro-config@58.0.23"
+  - "@expo/router-server@58.0.23"
+  - "@hono/node-server@2.1.9"
+  - "@tanstack/query-core@5.108.0"
+  - "@tanstack/react-query@5.108.0"
+  - babel-preset-expo@58.0.26
+  - expo-dev-client@58.0.21
+  - expo-dev-launcher@58.0.21
+  - expo-file-system@58.0.14
+  - expo-router@58.0.32
+  - expo@58.0.26
