@@ -1,10 +1,10 @@
 # Journey components · Phase 4
 
-**Founder-approved · 18 November 2026.** A companion records a fare, a coauthor selects the note for a chapter, and a planner reads the approved amount. All three use one moment. Show the controls each person can use and the evidence each may see. [Interactive component specimen](design-system/components.html)
+**Founder-approved · 18 November 2026.** A companion records a fare, a coauthor selects the note for a chapter, and a planner reads the approved amount. All three use one moment. Show the controls each person can use and the evidence each may see. [Interactive component specimen](../../design-system/components.html)
 
 ## Priority and shared behaviour
 
-Priorities order component design within the [R1 delivery sequence](product-requirements.md#182-dependency-aware-implementation-sequence). Build capture and rights states first because a false save or unintended disclosure is difficult to recover from. A media-viewer-first release would demonstrate Story sooner but leave offline ownership unresolved.
+Priorities order component design within the [R1 delivery sequence](../product-requirements.md#182-dependency-aware-implementation-sequence). Build capture and rights states first because a false save or unintended disclosure is difficult to recover from. A media-viewer-first release would demonstrate Story sooner but leave offline ownership unresolved.
 
 Use English (India), scalable type, visible keyboard focus and labelled icons. Primary field actions get a 56-unit target. Other primary touch controls target 44 CSS px on web, at least 48 dp on Android and 44 pt on iPhone. At large text sizes stack metadata and actions. Keep focus on the originating control after dismissal. Announce meaningful changes once. [Foundations](design-system-foundations.md) · [W3C status messages](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)
 
@@ -43,7 +43,7 @@ Use one primary media item per moment. Thumbnails keep the timeline readable on 
 | Cost summary | Amount, original currency, exact/estimated, unit, group size, inclusions and date. | “₹2,400 per vehicle · 4 passengers.” Separate group and per-person bases, missing values and currencies. Read amount with its basis. | Definition list or table / stacked labelled rows / stacked labelled rows. |
 | Filters | Discover uses destination, activity, dates and status. Learn uses category. Show applied choices, count and Reset. | Unapplied, applied or zero matches. Keep choices on Back. Announce result count after Apply. A chip has a named remove action. | Fieldset or filter dialog / bottom sheet / sheet with Apply. |
 
-Use provenance labels for practical knowledge because a rating cannot explain who paid a fare or when. Use distinct owner and publisher selectors because a single “Share” switch hides whose consent is needed. [Source scopes](product-requirements.md#23-source-sharing-scopes) · [Experience brief](application-design.md)
+Use provenance labels for practical knowledge because a rating cannot explain who paid a fare or when. Use distinct owner and publisher selectors because a single “Share” switch hides whose consent is needed. [Source scopes](../product-requirements.md#23-source-sharing-scopes) · [Experience brief](../application-design.md)
 
 ## Review checks
 

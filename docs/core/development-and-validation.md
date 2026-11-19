@@ -4,14 +4,14 @@
 |---|---|
 | Version | 1.2 |
 | Date | 17 November 2026 |
-| Development host | The founder's MacBook. The [Mac inventory](bootstrap/dependency-qualification.md#development-mac-inventory) records the verified hardware and toolchain. |
+| Development host | The founder's MacBook. The [Mac inventory](../bootstrap/dependency-qualification.md#development-mac-inventory) records the verified hardware and toolchain. |
 | Test surfaces | iPhone iOS Simulator, Android phone emulator, and responsive web. |
 | Excluded | Dedicated iPadOS/tablet testing, desktop-native applications, watch and television platforms. |
 | Status | Development setup and release validation specification. |
 
 ## 1. Host and setup
 
-Develop web, backend, and native clients on the MacBook. Use the [verified Xcode and Android setup](bootstrap/dependency-qualification.md#environment-setup-checklist) and record simulator profiles alongside native build results. Choose the Expo SDK and native toolchain together when upgrading. Run one simulator at a time if host resources require it.
+Develop web, backend, and native clients on the MacBook. Use the [verified Xcode and Android setup](../bootstrap/dependency-qualification.md#environment-setup-checklist) and record simulator profiles alongside native build results. Choose the Expo SDK and native toolchain together when upgrading. Run one simulator at a time if host resources require it.
 
 Use local Expo development builds for native dependencies; Expo Go is not the qualification environment for the selected map/styling modules. No EAS subscription is required. Local application/data services use a supported container runtime where available; production remains on the existing VPS. Do not assume its OS or capacity matches the MacBook.
 
@@ -62,4 +62,4 @@ For every claimed check record: requirement ID, source revision or artifact dige
 
 Record resolved dependencies, executable builds and measured results as implementation proceeds. Planned targets and unexecuted tests must remain distinguishable from verified results.
 
-Start with [implementation progress](progress.md) for the latest milestone outcomes and open verification work. Keep runnable regression suites in `tests/` and inline synthetic fixtures in those suites where practical. Record one-time device qualification evidence before retiring its temporary app routes.
+Start with [implementation progress](../progress.md) for the latest milestone outcomes and open verification work. Keep runnable regression suites in `tests/` and inline synthetic fixtures in those suites where practical. Record one-time device qualification evidence before retiring its temporary app routes.

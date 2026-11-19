@@ -1,10 +1,10 @@
 # Design foundations · Phase 2
 
-**Founder-approved · 18 November 2026.** English (India) is the sole launch interface language. Metric units and INR are the defaults. The [Phase 3 token contract](design-system-tokens.md) implements these foundations. Capture uses optional foreground location and tracks imported from other recorders. Use the [visual specimen](design-system/foundations.html) to compare the same chapter in three appearances.
+**Founder-approved · 18 November 2026.** English (India) is the sole launch interface language. Metric units and INR are the defaults. The [Phase 3 token contract](design-system-tokens.md) implements these foundations. Capture uses optional foreground location and tracks imported from other recorders. Use the [visual specimen](../../design-system/foundations.html) to compare the same chapter in three appearances.
 
 ## Identity and voice
 
-Use **Kairn** as a working wordmark, set in Source Sans 3 Semibold with ordinary letter spacing. Keep the deep green already present in the bootstrap tokens. Pair it with warm paper, dark ink and a small amount of terracotta for chapter metadata. These choices fit a fare receipt, a coastal drive and a rest-day photograph equally well. A mountain emblem or expedition-badge identity would give trekking disproportionate weight. A bespoke mark can wait until the product name is confirmed. [Existing palette](../packages/design-tokens/src/index.ts) · [Product plan](product-plan.md)
+Use **Kairn** as a working wordmark, set in Source Sans 3 Semibold with ordinary letter spacing. Keep the deep green already present in the bootstrap tokens. Pair it with warm paper, dark ink and a small amount of terracotta for chapter metadata. These choices fit a fare receipt, a coastal drive and a rest-day photograph equally well. A mountain emblem or expedition-badge identity would give trekking disproportionate weight. A bespoke mark can wait until the product name is confirmed. [Existing palette](../../../packages/design-tokens/src/index.ts) · [Product plan](../product-plan.md)
 
 Aim for **observant, calm and precise**. In Story, preserve the contributor’s words. In capture, say where the work is: “Saved on this device.” In Learn, say what the group observed: “₹2,400 for the vehicle, four passengers.” Reserve celebratory language for the authors themselves.
 
@@ -35,7 +35,7 @@ Use action green for the next action or current selection. Use a check and verb 
 | Activity type | Use action green for Trek, information blue for Road trip, story accent for Cycling, secondary ink for Other. Pair with footprints, car, bicycle or compass and text. Use these accents on neutral surfaces. |
 | Map evidence | Recorded track uses a solid action-green 4-unit line. An estimated connection uses a dashed information-blue 3-unit line, 6 on/4 off. Use a contrasting light or dark casing extending 2 units on each side and opaque labels. A captured stop uses a circle, a selected moment a double ring and its name. |
 
-The limited palette keeps phase, activity and status readable together. Seven unique phase hues plus four activity hues would compete with the map. Author-confirmed travel can carry a transport icon even when its path is unknown. Leave a visible break for missing evidence. Use permitted geometry and bounds for the map, profile and stage list. Check Map and Satellite at two zoom levels. A schematic specimen only demonstrates the legend. [Geographic evidence](product-requirements.md#82-evidence-categories)
+The limited palette keeps phase, activity and status readable together. Seven unique phase hues plus four activity hues would compete with the map. Author-confirmed travel can carry a transport icon even when its path is unknown. Leave a visible break for missing evidence. Use permitted geometry and bounds for the map, profile and stage list. Check Map and Satellite at two zoom levels. A schematic specimen only demonstrates the legend. [Geographic evidence](../product-requirements.md#82-evidence-categories)
 
 ## Type, space and motion
 
@@ -65,4 +65,4 @@ Lead with a contributor-approved photograph or video poster, keep the original a
 
 ## Where to maintain the system
 
-Keep approved decisions in **version-controlled repository docs**, the review specimen beside them and implementation values in the [existing token package](../packages/design-tokens/src/index.ts). This gives the founder, helpers and AI tools the same inspectable reference in each change. A Figma-first library would add a second maintenance task. Add an optional Figma library when someone regularly designs there, with variables derived from the approved tokens. Phase 3 can then formalise token files and build outputs. [Experience budgets](application-design.md#10-experience-and-performance-acceptance)
+Keep approved decisions in **version-controlled repository docs**, the review specimen beside them and implementation values in the [existing token package](../../../packages/design-tokens/src/index.ts). This gives the founder, helpers and AI tools the same inspectable reference in each change. A Figma-first library would add a second maintenance task. Add an optional Figma library when someone regularly designs there, with variables derived from the approved tokens. Phase 3 can then formalise token files and build outputs. [Experience budgets](../application-design.md#10-experience-and-performance-acceptance)

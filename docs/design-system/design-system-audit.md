@@ -2,7 +2,7 @@
 
 **Principles and audit for review · 18 November 2026.** The design should follow one moment from capture to publication to later use. A companion can record the taxi fare offline, a friend can hear the approved recording in the story, and a planner can find what the group paid. Each person needs a different presentation of the same evidence.
 
-**Release context.** Web and Android launch first. Native iPhone is developed and simulator-tested now, with responsive web serving iPhone contributors at launch. The stack is React with Tailwind/shadcn on web and Expo/React Native with Unistyles on phones. WCAG 2.2 AA is the minimum. English is the initial interface and processing language. Original text and recordings retain their language. Brand identity is open. [Product plan](product-plan.md) · [Requirements](product-requirements.md) · [Experience brief](application-design.md)
+**Release context.** Web and Android launch first. Native iPhone is developed and simulator-tested now, with responsive web serving iPhone contributors at launch. The stack is React with Tailwind/shadcn on web and Expo/React Native with Unistyles on phones. WCAG 2.2 AA is the minimum. English is the initial interface and processing language. Original text and recordings retain their language. Brand identity is open. [Product plan](../core/product-plan.md) · [Requirements](../core/product-requirements.md) · [Experience brief](../core/application-design.md)
 
 ## Six principles and the patterns behind them
 
@@ -10,7 +10,7 @@
 
 Put labelled Photo and Voice actions within thumb reach of the open journey. Use an opaque control surface for glare and separate tap-to-start and tap-to-stop states for gloves. Keep the destination visible. Confirm “Saved on this device” only after persistence. Show upload waits and retry separately. Capture can finish without signal, a map or a location fix.
 
-A press-and-hold recorder with one success tick is compact, but requires sustained contact and leaves the author guessing whether companions can see the item. Garmin documents the battery/detail trade-off of continuous recording. Kairn R1 accepts imported tracks and bounded foreground fixes. [Garmin recording guidance](https://support.garmin.com/en-US/?faq=3yEuP9Wb1H5kIpJY7miJ96) · [Capture requirements](product-requirements.md#5-capture-offline-saving-and-synchronisation)
+A press-and-hold recorder with one success tick is compact, but requires sustained contact and leaves the author guessing whether companions can see the item. Garmin documents the battery/detail trade-off of continuous recording. Kairn R1 accepts imported tracks and bounded foreground fixes. [Garmin recording guidance](https://support.garmin.com/en-US/?faq=3yEuP9Wb1H5kIpJY7miJ96) · [Capture requirements](../core/product-requirements.md#5-capture-offline-saving-and-synchronisation)
 
 ### 2. Tell the whole trip in chapters
 
@@ -63,11 +63,11 @@ Official guidance checked on 18 November 2026. The applications to Kairn are des
 
 **Use familiar platform behavior.** Android keeps system Back, native sheets, pickers, font scaling and optional haptics. iPhone keeps navigation-stack back/swipe, native sheets, Photos picker, Dynamic Type, 44 pt touch targets and system haptics. Web keeps URL/history, keyboard focus restoration, accessible dialogs, file inputs and browser zoom. Pair haptics with visible and screen-reader feedback. A single custom shell would make familiar dismissal and recovery gestures less reliable. [Android Back](https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture) · [Apple accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) · [WCAG 2.2](https://www.w3.org/TR/WCAG22/)
 
-**Judge the design against existing budgets.** Serve story text and sized thumbnails before map code, allow one live map and one playing item, and test the existing 2.5-second p75 LCP target. Restart offline after recording and verify the saved item and its destination. At large text sizes, let names, costs and privacy labels wrap. Test mixed-script names and long place names even in the English UI. The reader task is to reconstruct the sequence and find a supplied transport or cost detail within 60 seconds without a map gesture. [Acceptance targets](application-design.md#10-experience-and-performance-acceptance)
+**Judge the design against existing budgets.** Serve story text and sized thumbnails before map code, allow one live map and one playing item, and test the existing 2.5-second p75 LCP target. Restart offline after recording and verify the saved item and its destination. At large text sizes, let names, costs and privacy labels wrap. Test mixed-script names and long place names even in the English UI. The reader task is to reconstruct the sequence and find a supplied transport or cost detail within 60 seconds without a map gesture. [Acceptance targets](../core/application-design.md#10-experience-and-performance-acceptance)
 
 ## Decisions for this checkpoint
 
-The founder answered these questions on 18 November 2026. The [Phase 2 foundations](design-system-foundations.md) record the launch defaults and proposed design direction for a founder-led team with up to two helpers.
+The founder answered these questions on 18 November 2026. The [Phase 2 foundations](../core/design-system/design-system-foundations.md) record the launch defaults and proposed design direction for a founder-led team with up to two helpers.
 
 1. Should background GPS stay with external recorders for R1, as CAP-08 specifies, or is the new brief requesting an explicit scope change?
 2. Which scripts should the first typography samples cover for original names, places and notes? Which distance/elevation units and currencies should the samples include? Preserve the reported currency and cost basis in either case.

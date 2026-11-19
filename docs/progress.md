@@ -1,22 +1,24 @@
 # Implementation progress
 
-Updated 2026-11-18. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
+Updated 2026-11-19. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
 
 ## Next milestone
 
 **Ready to start · R1 workstream 1, private journeys and membership.** Start with an authenticated person creating a private journey and seeing one entry for it in their own history. This gives capture and offline sync a stable account and journey destination.
 
+The [implementation plan](plans/private-journey-creation-and-history.md) covers shared contracts and backend, responsive web, and local Android and iOS verification. Feature checks are planned. Start with the shared contracts and additive database migration.
+
 1. Add authenticated journey creation and private history contracts. Derive the account from the server session and validate the journey title, dates, and timezone.
 2. Create the canonical journey, creator membership, initial capabilities, and audit record in one transaction. Keep history scoped to current membership and return one entry per journey.
 3. Connect the web and native Journeys views. Verify unauthenticated access is rejected, a second account cannot read the journey, and multiple capabilities do not create duplicate entries.
 
-Then add invitations into the same journey and verify membership revocation before expanding into source and export grants. This first slice covers part of workstream 1. The complete scope is in the [requirements sequence](product-requirements.md#182-dependency-aware-implementation-sequence).
+Then add invitations into the same journey and verify membership revocation before expanding into source and export grants. This first slice covers part of workstream 1. The complete scope is in the [requirements sequence](core/product-requirements.md#182-dependency-aware-implementation-sequence).
 
 ## Design review
 
 **PR #5 CI repair verified.** The [failed foundation job](https://github.com/nishanthturnstile/kairn/actions/runs/44361573931/job/135004090260) stopped because [workspace settings](../.vscode/settings.json) lacked a final newline. Restored it and reconciled the web-shell conflict with `development`, retaining the equivalent `max-w-248` utility. Both `foundation` and `release-smoke` passed in the [hosted validation run](https://github.com/nishanthturnstile/kairn/actions/runs/44362384404), including browser, integration, identity-recovery, and coordinated restore checks. Local formatting/types, API parity, 25 unit tests, builds, client-bundle scans, Expo dependency checks, and 15 browser tests also passed. The next feature milestone remains private journey creation and history above.
 
-The founder approved all seven design-system phases, including [governance and rollout](design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system. Private journey creation and history are the next feature surfaces.
+The founder approved all seven design-system phases, including [governance and rollout](core/design-system/design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system. Private journey creation and history are the next feature surfaces.
 
 | Existing surface | Where to change it | Coverage |
 | --- | --- | --- |
@@ -31,7 +33,7 @@ The [production-route browser checks](../tests/web/reader.playwright.ts) cover p
 
 | Area | Current evidence |
 | --- | --- |
-| Workspace and data | All seven [bootstrap steps](bootstrap-plan.md#bootstrap-execution-sequence) landed. The workspace has shared contracts, schema migrations, local PostgreSQL and SeaweedFS, and a durable worker. |
+| Workspace and data | All seven [bootstrap steps](plans/bootstrap-plan.md#bootstrap-execution-sequence) landed. The workspace has shared contracts, schema migrations, local PostgreSQL and SeaweedFS, and a durable worker. |
 | Account access | Local registration, verification, session revocation, and password reset worked in Chromium and the Android and iOS development clients. Isolated tests covered journal replay and a fresh reset for a recovery-locked account. |
 | Web and mobile | Navigation shells, account screens, reader rendering and hydration, and native storage adapters are in place. Journey creation, private history, and shared-data flows are pending. |
 | CI and recovery | GitHub's `foundation` and `release-smoke` checks passed on PR #1, including the hosted Linux amd64 synthetic restore drill. A local Linux ARM64 drill also passed. |
@@ -46,4 +48,4 @@ The [production-route browser checks](../tests/web/reader.playwright.ts) cover p
 | Independent recovery | Provision off-VPS backup storage and the restriction journal, then demonstrate replay and closed-access recovery using those destinations. |
 | Dependency advisory | The [picomatch advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) was open at bootstrap sign-off. Track its resolution in [dependency qualification](bootstrap/dependency-qualification.md#bootstrap-review-follow-up). |
 
-Use the [deployment and recovery runbook](deployment-and-recovery.md) for operations and the [development and validation plan](development-and-validation.md#6-evidence-register) for verification expectations. Update this file when a milestone or blocker changes.
+Use the [deployment and recovery runbook](deployment-and-recovery.md) for operations and the [development and validation plan](core/development-and-validation.md#6-evidence-register) for verification expectations. Update this file when a milestone or blocker changes.

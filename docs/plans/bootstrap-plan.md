@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Date | 17 November 2026 |
-| Status | Steps 1–7 and the bootstrap review follow-ups merged in PR #1. See [implementation progress](progress.md) for current evidence and pending work. |
+| Status | Steps 1–7 and the bootstrap review follow-ups merged in PR #1. See [implementation progress](../progress.md) for current evidence and pending work. |
 | Basis | Architecture 1.9, requirements 2.6, application design 1.2, and development and validation 1.2. |
 | Scope | Repository foundation, technology recommendations, CLI workflow, service setup, implementation order, and acceptance criteria. |
 
@@ -13,7 +13,7 @@ The first implementation milestone should leave a reproducible development envir
 
 ## Relationship to the existing documents
 
-[Product requirements](product-requirements.md) remain authoritative for behaviour and release scope. [Architecture section 14](architecture.md#14-canonical-stack-and-dependency-register) remains the canonical dependency register. This proposal explains installation timing and execution; it does not replace that register. Approved changes should be reconciled there before installation.
+[Product requirements](../core/product-requirements.md) remain authoritative for behaviour and release scope. [Architecture section 14](../core/architecture.md#14-canonical-stack-and-dependency-register) remains the canonical dependency register. This proposal explains installation timing and execution; it does not replace that register. Approved changes should be reconciled there before installation.
 
 The application has three particularly important foundations:
 
@@ -144,7 +144,7 @@ For every installation or generation step:
 
 | Working directory | Official CLI approach | Configuration to retain |
 |---|---|---|
-| Temporary directory | `pnpm dlx --package=vite-plus@1.7.0 vp create vite:monorepo` | Use the [verified command and flags](bootstrap/dependency-qualification.md#pinned-starter-cli-commands), then bring the reviewed workspace files into the existing repository. [Creation guide](https://viteplus.dev/guide/create). |
+| Temporary directory | `pnpm dlx --package=vite-plus@1.7.0 vp create vite:monorepo` | Use the [verified command and flags](../bootstrap/dependency-qualification.md#pinned-starter-cli-commands), then bring the reviewed workspace files into the existing repository. [Creation guide](https://viteplus.dev/guide/create). |
 | Repository root | `pnpm create vite@9.3.4 apps/web --template react-ts --no-interactive --no-immediate` | The Vite+ monorepo initializer produces a vanilla web starter. Use this React/TypeScript template and apply the Vite+ aliases recorded in Step 1. |
 | Repository root | `pnpm dlx create-hono@0.19.5 apps/server --template nodejs` | Decline the nested install and consolidate package-manager settings at the workspace root. [Hono setup](https://hono.dev/docs/getting-started/nodejs). |
 | Repository root | `pnpm create expo@5.1.9 apps/mobile --template default@58.0.35 --no-install --no-agents-md` | Use the pinned Expo Router template and install through the workspace. [Expo initializer](https://docs.expo.dev/more/create-expo/). |
@@ -162,7 +162,7 @@ Do not run a second web initializer through shadcn after Vite+ creates the app. 
 | Ordinary packages | `vp add <package>` / `vp add -D <package>` in the owning workspace | Use the selected package manager through Vite+; keep backend dependencies out of clients. [Add command](https://viteplus.dev/guide/package-management/add). |
 | Native modules | `pnpm exec expo install <packages>` in `apps/mobile` | Expo resolves SDK-compatible packages. Include an exact Nitro Modules version from its compatibility table. |
 | Native diagnostics | `pnpm exec expo install --check`; `pnpm dlx expo-doctor@latest` | Check both dependency alignment and real builds. [Expo CLI](https://docs.expo.dev/more/expo-cli/), [development tools](https://docs.expo.dev/develop/tools/). |
-| Local native builds | `pnpm exec expo run:android` and `pnpm exec expo run:ios` | Use the [verified Mac toolchain](bootstrap/dependency-qualification.md#development-mac-inventory) for local development builds. |
+| Local native builds | `pnpm exec expo run:android` and `pnpm exec expo run:ios` | Use the [verified Mac toolchain](../bootstrap/dependency-qualification.md#development-mac-inventory) for local development builds. |
 | Better Auth schema | `pnpm dlx auth@latest generate --config <auth-config-path> --output <auth-schema-path>` | Current official CLI entrypoint is `auth`. Generate for the configured Drizzle adapter, then apply through Drizzle migrations. [CLI reference](https://better-auth.com/docs/concepts/cli). |
 | SQL migrations | `pnpm exec drizzle-kit generate`; `pnpm exec drizzle-kit migrate` | Configure explicit schema/output paths in `packages/backend`; review and commit SQL. Use custom migrations for extensions where needed. [Generate](https://orm.drizzle.team/docs/drizzle-kit-generate), [migrate](https://orm.drizzle.team/docs/drizzle-kit-migrate). |
 | Queue schema | `pnpm exec pg-boss migrate`; `pnpm exec pg-boss doctor` | Use `PGBOSS_DATABASE_URL` from protected environment configuration. Separate migration privileges from application privileges. [Queue CLI](https://pgboss.io/cli). |
@@ -186,7 +186,7 @@ Create a dependency qualification record with candidate versions, official sourc
 
 **Completion:** compatible candidate manifests and an environment setup checklist exist; unresolved native or binary compatibility is visible before feature dependencies spread.
 
-**Evidence:** [dependency qualification](bootstrap/dependency-qualification.md) records the initial candidates and toolchain evidence. The [workspace lockfile](../pnpm-lock.yaml) records the resolved dependencies.
+**Evidence:** [dependency qualification](../bootstrap/dependency-qualification.md) records the initial candidates and toolchain evidence. The [workspace lockfile](../../pnpm-lock.yaml) records the resolved dependencies.
 
 ### Step 2 Generate the workspace and quality commands
 
@@ -196,7 +196,7 @@ Provide documented tasks for local service startup/shutdown, development process
 
 **Completion:** a clean checkout installs with the frozen lockfile; root tasks correctly address every workspace; browser/native code cannot import server-only packages.
 
-**Evidence:** a fresh frozen install, Biome, strict type checks and builds for all nine app and package workspaces, and three bootstrap tests passed. The generated route tree reproduced byte for byte. Expo Doctor passed 20 checks, and Metro exported both platforms. The local web and Hono endpoints responded, and Biome rejected backend package imports, relative server imports and client-safe re-exports. See the [workspace commands](../README.md).
+**Evidence:** a fresh frozen install, Biome, strict type checks and builds for all nine app and package workspaces, and three bootstrap tests passed. The generated route tree reproduced byte for byte. Expo Doctor passed 20 checks, and Metro exported both platforms. The local web and Hono endpoints responded, and Biome rejected backend package imports, relative server imports and client-safe re-exports. See the [workspace commands](../../README.md).
 
 ### Step 3 Establish local data and worker services
 
@@ -206,17 +206,17 @@ Introduce the Drizzle migration process and separate migration credentials. Inst
 
 **Completion:** a fresh database migrates from zero, PostGIS/pgvector queries execute, a domain transaction and queued job roll back together, a job survives worker restart, private storage passes representative multipart/read tests, and Mailpit captures a test message. Repeated startup preserves data.
 
-**Evidence:** PostgreSQL 17.12 initialized the extensions and separate migration/runtime roles. Drizzle and pg-boss migrated from an empty volume, and the pg-boss drift check passed. Seven conformance tests passed against the local services. A Compose down/up cycle preserved a database row, queued job, signed-access object and captured message. The Linux ARM64 server, worker and Caddy images built and passed smoke checks. The [local services workflow](../README.md#local-data-services) records the commands.
+**Evidence:** PostgreSQL 17.12 initialized the extensions and separate migration/runtime roles. Drizzle and pg-boss migrated from an empty volume, and the pg-boss drift check passed. Seven conformance tests passed against the local services. A Compose down/up cycle preserved a database row, queued job, signed-access object and captured message. The Linux ARM64 server, worker and Caddy images built and passed smoke checks. The [local services workflow](../../README.md#local-data-services) records the commands.
 
 ### Step 4 Establish contracts and domain boundaries
 
 Create `/api/v1` contracts, health/readiness endpoints, safe errors and request IDs. Keep `/api/auth` owned by Better Auth. Emit OpenAPI and generate the first client. Version command IDs, expected revisions, pagination, upload acknowledgments and tombstones before clients start depending on them.
 
-Establish identity, journeys, sources, and lifecycle modules for the bootstrap. Add the remaining modules with their implementation according to [architecture section 5](architecture.md#5-module-ownership-and-repository-structure). Implement the initial account, canonical journey, capability, grant, audit and restriction-event schema before shared-data operations are enabled. Keep source ownership, publication reuse and original export grants separate.
+Establish identity, journeys, sources, and lifecycle modules for the bootstrap. Add the remaining modules with their implementation according to [architecture section 5](../core/architecture.md#5-module-ownership-and-repository-structure). Implement the initial account, canonical journey, capability, grant, audit and restriction-event schema before shared-data operations are enabled. Keep source ownership, publication reuse and original export grants separate.
 
 **Completion:** web and mobile use generated wire types, generated output is reproducible, invalid requests fail predictably, and foundational permission fixtures cover participant, coauthor, publisher, administrator, source owner and revoked member.
 
-**Evidence.** `pnpm api:check` reproduced the OpenAPI document and generated client types. The web and mobile client factories passed contract tests, including malformed version input and request IDs. The new PostgreSQL migration passed on the existing database and a fresh instance. Permission fixtures covered all six roles, and database fixtures verified canonical memberships, scoped grants, and denial of private tables to the runtime role. All 17 unit tests and nine integration tests passed. The API responded through local Caddy and from the Linux ARM64 server image. Better Auth owns `/api/auth`. Email authentication and independent journal confirmation are Step 6 work. See [the workspace commands](../README.md#migrations-and-generation).
+**Evidence.** `pnpm api:check` reproduced the OpenAPI document and generated client types. The web and mobile client factories passed contract tests, including malformed version input and request IDs. The new PostgreSQL migration passed on the existing database and a fresh instance. Permission fixtures covered all six roles, and database fixtures verified canonical memberships, scoped grants, and denial of private tables to the runtime role. All 17 unit tests and nine integration tests passed. The API responded through local Caddy and from the Linux ARM64 server image. Better Auth owns `/api/auth`. Email authentication and independent journal confirmation are Step 6 work. See [the workspace commands](../../README.md#migrations-and-generation).
 
 ### Step 5 Build the web and native foundations
 
@@ -226,7 +226,7 @@ On mobile, generate Expo Router navigation for the same product destinations and
 
 **Completion:** production web client/server builds work, reader HTML hydrates without cross-request state leakage, and local Android/iPhone development builds run with Unistyles and the native map module. Inspect client bundles for backend code and server-only AI, storage and email SDKs. Actual camera, battery and background-transfer claims remain subject to the evidence boundaries in the development plan.
 
-**Evidence.** The creator, reader client, and Node reader built successfully. Three Chromium tests passed for reader HTML and hydration, request isolation, unavailable metadata, and creator states. The Linux ARM64 server and Caddy images served the unavailable reader HTML and its manifest assets. The development clients compiled and ran on the iPhone 17 simulator and Android API 37 emulator. Both passed the bootstrap checks for the native Mapbox bridge and the SQLite, files, and SecureStore fixture across full app relaunch and account switching. Production web and native source maps contained no backend, AI, storage, or email SDK sources. See the [current native validation workflow](../README.md#native-development-checks).
+**Evidence.** The creator, reader client, and Node reader built successfully. Three Chromium tests passed for reader HTML and hydration, request isolation, unavailable metadata, and creator states. The Linux ARM64 server and Caddy images served the unavailable reader HTML and its manifest assets. The development clients compiled and ran on the iPhone 17 simulator and Android API 37 emulator. Both passed the bootstrap checks for the native Mapbox bridge and the SQLite, files, and SecureStore fixture across full app relaunch and account switching. Production web and native source maps contained no backend, AI, storage, or email SDK sources. See the [current native validation workflow](../../README.md#native-development-checks).
 
 ### Step 6 Complete identity and recovery foundations
 
@@ -236,7 +236,7 @@ Define the independent restriction-journal adapter, stable event identity, order
 
 **Completion:** identity flows work in the web and both native builds, email failures are visible, and account/security restrictions survive the tested rollback scenario. Any foundation missing the independent destination remains explicitly incomplete for shared use.
 
-**Evidence.** Chromium, iPhone 17 Simulator, and the Android API 37 emulator passed verified email identity and password recovery with Mailpit. Browser tests verified device revocation and pending confirmation. PostgreSQL integration exercised stale sessions, untrusted return destinations, expired and consumed reset links, delayed delivery, queue rollback, and exhausted SMTP delivery. A disposable PostgreSQL fixture restored an older password and replayed independently retained test receipts, including out-of-order confirmation and an unavailable journal tail. The old credentials and restored token stayed blocked. An actual off-VPS journal destination and recovery drill are pending. See the [local identity and recovery commands](../README.md#local-identity-and-recovery).
+**Evidence.** Chromium, iPhone 17 Simulator, and the Android API 37 emulator passed verified email identity and password recovery with Mailpit. Browser tests verified device revocation and pending confirmation. PostgreSQL integration exercised stale sessions, untrusted return destinations, expired and consumed reset links, delayed delivery, queue rollback, and exhausted SMTP delivery. A disposable PostgreSQL fixture restored an older password and replayed independently retained test receipts, including out-of-order confirmation and an unavailable journal tail. The old credentials and restored token stayed blocked. An actual off-VPS journal destination and recovery drill are pending. See the [local identity and recovery commands](../../README.md#local-identity-and-recovery).
 
 **Review follow-up.** Replay now requires an independently retained checkpoint. The fixture rejects a stable truncated head and a mismatched receipt, then proves that approved recovery requires a fresh reset at the verified address. Native credentials are scoped by API origin and distributed variants use distinct app identifiers. Mailpit confirms a stable Resend idempotency header, and Pino logs request and job IDs without recording email addresses, tokens or request bodies.
 
@@ -248,13 +248,13 @@ Add a deployment sequence for backup, reviewed migrations, restart, readiness ch
 
 **Completion:** a second clean setup can run the documented workflow, CI protects the foundations, and recovery instructions include demonstrated results. The foundation is then ready for the complete feature sequence below.
 
-**Evidence.** A clean workspace passed frozen install, Biome, type checks, generated-contract checks, unit tests, production builds and Chromium accessibility checks. The local integration suite and the disposable journal replay passed. Linux ARM64 images booted the server, worker and edge. The synthetic restore recovered PostgreSQL to the named WAL point, verified the matching SeaweedFS object checksum, preserved private access and excluded later writes while ingress remained closed. The rehearsal used disposable repositories. GitHub passed the foundation and Linux amd64 release checks for [PR #1](https://github.com/nishanthturnstile/kairn/pull/1). See [implementation progress](progress.md#open-before-shared-use) for hosted controls and live recovery verification.
+**Evidence.** A clean workspace passed frozen install, Biome, type checks, generated-contract checks, unit tests, production builds and Chromium accessibility checks. The local integration suite and the disposable journal replay passed. Linux ARM64 images booted the server, worker and edge. The synthetic restore recovered PostgreSQL to the named WAL point, verified the matching SeaweedFS object checksum, preserved private access and excluded later writes while ingress remained closed. The rehearsal used disposable repositories. GitHub passed the foundation and Linux amd64 release checks for [PR #1](https://github.com/nishanthturnstile/kairn/pull/1). See [implementation progress](../progress.md#open-before-shared-use) for hosted controls and live recovery verification.
 
 **Review follow-up.** CI now executes the live browser identity fixture, the web and native bundle checks, and Expo dependency validation. The release drill qualifies synthetic HEIC and HEVC on the actual worker image and resumes a multipart upload after SeaweedFS restarts. The isolated database tests reject partial migrations, and production worker startup checks mail and journal configuration. The synthetic development seed runs twice against a disposable database to check repeatability.
 
 ## Full application implementation after bootstrap
 
-Follow [requirements section 18.2](product-requirements.md#182-dependency-aware-implementation-sequence). Each workstream extends the production application and adds lifecycle controls with its data.
+Follow [requirements section 18.2](../core/product-requirements.md#182-dependency-aware-implementation-sequence). Each workstream extends the production application and adds lifecycle controls with its data.
 
 | Order | Production work | Evidence that closes the workstream |
 |---|---|---|
@@ -276,7 +276,7 @@ Implement export, deletion, retention, quotas, access invalidation, support and 
 | Service or input | Needed for | Timing and owner action |
 |---|---|---|
 | Git hosting and optional registry | CI and artifact distribution | Reuse the current repository host. Confirm deployment identity and protected environment access during CI setup. |
-| Container runtime, Android tooling, Xcode | Local services and native builds | The [Mac toolchain](bootstrap/dependency-qualification.md#development-mac-inventory) is installed and verified. Local development uses Docker Compose and local Expo builds. |
+| Container runtime, Android tooling, Xcode | Local services and native builds | The [Mac toolchain](../bootstrap/dependency-qualification.md#development-mac-inventory) is installed and verified. Local development uses Docker Compose and local Expo builds. |
 | Product identity and domain | Production URLs, email sender, native package IDs | Keep the existing working name until the founder selects ownership/domain/package identifiers. Set final identifiers before distribution/signing integration. |
 | Existing VPS | Production app and primary data | Inventory the real machine before configuring resource limits or public routes. The approximately 4 vCPU/8 GB baseline is a testing assumption. |
 | Independent backup/journal destination | Recovery and restrictions | Select region, retention, write/verify credentials and key recovery before shared use. Keep backup administration separate from application append credentials. |
@@ -309,6 +309,6 @@ Keep the solo, five-person/five-day and 500-item fixtures in the test plan. Reco
 
 ## Decisions carried into R1
 
-The merged foundation uses Node 24, Expo 58, and GitHub Actions. Continue with the ten R1 workstreams in dependency order. Set final app identifiers and provision the actual deployment and independent recovery destinations when that work begins. See [implementation progress](progress.md) for the next slice and current verification.
+The merged foundation uses Node 24, Expo 58, and GitHub Actions. Continue with the ten R1 workstreams in dependency order. Set final app identifiers and provision the actual deployment and independent recovery destinations when that work begins. See [implementation progress](../progress.md) for the next slice and current verification.
 
 After review, incorporate accepted decisions into the architecture's canonical register and implement the foundation in small, reviewable changes: workspace generation; local services; contracts/data/jobs; web/native foundations; identity/recovery; and CI/deployment evidence. Keep generated changes separate enough that CLI output and application-specific edits can be reviewed clearly.
