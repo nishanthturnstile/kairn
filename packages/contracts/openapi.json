@@ -6,45 +6,6 @@
   },
   "components": {
     "schemas": {
-      "ApiProblem": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "about:blank"
-            ]
-          },
-          "title": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer",
-            "minimum": 400,
-            "maximum": 599
-          },
-          "code": {
-            "type": "string",
-            "enum": [
-              "invalid_request",
-              "not_found",
-              "service_unavailable",
-              "internal_error"
-            ]
-          },
-          "requestId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        "required": [
-          "type",
-          "title",
-          "status",
-          "code",
-          "requestId"
-        ]
-      },
       "CommandEnvelopeV1": {
         "type": "object",
         "properties": {
@@ -318,6 +279,356 @@
             ]
           }
         ]
+      },
+      "ApiProblem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "about:blank"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "unauthorized",
+              "origin_rejected",
+              "not_found",
+              "idempotency_conflict",
+              "account_changed",
+              "request_too_large",
+              "unsupported_media_type",
+              "service_unavailable",
+              "internal_error"
+            ]
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "body",
+                        "title",
+                        "intendedStart",
+                        "intendedEnd",
+                        "timeZone",
+                        "startOffset",
+                        "endOffset",
+                        "idempotency-key",
+                        "x-expected-account",
+                        "cursor",
+                        "section",
+                        "journeyId"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_value",
+                        "invalid_calendar_date",
+                        "unsupported_timezone",
+                        "nonexistent_time",
+                        "invalid_offset",
+                        "offset_without_end",
+                        "date_out_of_range",
+                        "end_before_start",
+                        "invalid_cursor"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "code"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "intendedStart",
+                        "intendedEnd"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ambiguous_time"
+                      ]
+                    },
+                    "offsets": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "string",
+                          "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "code",
+                    "offsets"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "requestId"
+        ]
+      },
+      "CreatedJourneyV1": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CreateJourneyV1": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "intendedStart": {
+            "type": "string",
+            "pattern": "^(?!0000)\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "intendedEnd": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?!0000)\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "timeZone": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
+          },
+          "startOffset": {
+            "type": "string",
+            "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+          },
+          "endOffset": {
+            "type": "string",
+            "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+          }
+        },
+        "required": [
+          "title",
+          "intendedStart",
+          "timeZone"
+        ],
+        "additionalProperties": false
+      },
+      "InitialJourneyHistoryV1": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "upcoming": {
+            "$ref": "#/components/schemas/JourneyHistoryPageV1"
+          },
+          "recent": {
+            "$ref": "#/components/schemas/JourneyHistoryPageV1"
+          }
+        },
+        "required": [
+          "asOf",
+          "upcoming",
+          "recent"
+        ]
+      },
+      "JourneyHistoryPageV1": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 2048,
+            "pattern": "^[A-Za-z0-9._~-]+$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivateJourneyV1"
+            }
+          }
+        },
+        "required": [
+          "nextCursor",
+          "items"
+        ]
+      },
+      "PrivateJourneyV1": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "archived"
+            ]
+          },
+          "schedule": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "timeZone": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^[A-Za-z][A-Za-z0-9_+.-]*(?:\\/[A-Za-z0-9_+.-]+)*$"
+              },
+              "intendedStart": {
+                "type": "object",
+                "properties": {
+                  "local": {
+                    "type": "string",
+                    "pattern": "^(?!0000)\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "instant": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "offset": {
+                    "type": "string",
+                    "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+                  }
+                },
+                "required": [
+                  "local",
+                  "instant",
+                  "offset"
+                ]
+              },
+              "intendedEnd": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "local": {
+                    "type": "string",
+                    "pattern": "^(?!0000)\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "instant": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "offset": {
+                    "type": "string",
+                    "pattern": "^[+-](?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$"
+                  }
+                },
+                "required": [
+                  "local",
+                  "instant",
+                  "offset"
+                ]
+              }
+            },
+            "required": [
+              "timeZone",
+              "intendedStart",
+              "intendedEnd"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "administrator",
+                "coauthor",
+                "publisher"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "state",
+          "schedule",
+          "capabilities"
+        ]
+      },
+      "ContinuedJourneyHistoryV1": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "recent"
+            ]
+          },
+          "page": {
+            "$ref": "#/components/schemas/JourneyHistoryPageV1"
+          }
+        },
+        "required": [
+          "asOf",
+          "section",
+          "page"
+        ]
       }
     },
     "parameters": {}
@@ -411,43 +722,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "about:blank"
-                      ]
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "invalid_request",
-                        "not_found",
-                        "service_unavailable",
-                        "internal_error"
-                      ]
-                    },
-                    "requestId": {
-                      "type": "string",
-                      "format": "uuid"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "code",
-                    "requestId"
-                  ]
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }
@@ -523,43 +798,800 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "about:blank"
-                      ]
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/journeys": {
+      "post": {
+        "operationId": "createJourney",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "x-expected-account",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJourneyV1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A matching creation attempt already committed and the journey is accessible.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedJourneyV1"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A private journey was created.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Location": {
+                "required": true,
+                "description": "Relative API path to the created journey",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedJourneyV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input. Issues identify fields and safe validation codes.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A current verified session is required.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The write origin is forbidden.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The journey is unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The key belongs to a different payload (idempotency_conflict) or the verified account changed (account_changed).",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body exceeds 4096 bytes.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "A JSON body is required.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error occurred.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Recovery is closed or the service is temporarily unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listJourneys",
+        "description": "Omit section and cursor for initial history. Supply both to continue one section.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^[A-Za-z0-9._~-]+$"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "upcoming",
+                "recent"
+              ]
+            },
+            "required": false,
+            "name": "section",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "x-expected-account",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The verified account's private history page or pages.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/InitialJourneyHistoryV1"
                     },
-                    "title": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "integer",
-                      "minimum": 400,
-                      "maximum": 599
-                    },
-                    "code": {
-                      "type": "string",
-                      "enum": [
-                        "invalid_request",
-                        "not_found",
-                        "service_unavailable",
-                        "internal_error"
-                      ]
-                    },
-                    "requestId": {
-                      "type": "string",
-                      "format": "uuid"
+                    {
+                      "$ref": "#/components/schemas/ContinuedJourneyHistoryV1"
                     }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "code",
-                    "requestId"
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input. Issues identify fields and safe validation codes.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A current verified session is required.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The journey is unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The verified account changed (account_changed).",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error occurred.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Recovery is closed or the service is temporarily unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/journeys/{journeyId}": {
+      "get": {
+        "operationId": "getJourney",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "journeyId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "x-expected-account",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private metadata for a journey the caller is a current member of.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateJourneyV1"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input. Issues identify fields and safe validation codes.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A current verified session is required.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The journey is unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The verified account changed (account_changed).",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected server error occurred.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Recovery is closed or the service is temporarily unavailable.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Server-generated request ID",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProblem"
                 }
               }
             }

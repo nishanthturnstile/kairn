@@ -2,8 +2,10 @@ import type {
   IdentityDevices,
   RestrictionConfirmation,
 } from "@kairn/contracts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { journeyPath } from "@kairn/contracts/journeys";
+import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -17,6 +19,7 @@ import {
   Panel,
   StatusNotice,
 } from "../components/ui";
+import { useMobileSession } from "../mobile-session";
 import type { AppearancePreference } from "../theme";
 
 type Client = NonNullable<typeof mobileAuth>;
@@ -56,11 +59,36 @@ export default function AccountRoute() {
 }
 
 function Account({ client }: { client: Client }) {
+  const { state, scope, refresh, signOut } = useMobileSession();
   const session = client.useSession();
-  const user = session.data?.user;
+  const router = useRouter();
+  const { returnTo } = useLocalSearchParams();
+  const returned = useRef(false);
+  const [signOutFailed, setSignOutFailed] = useState(false);
+  const user =
+    state === "verified" && session.data?.user.id === scope?.accountId
+      ? session.data?.user
+      : undefined;
+  useEffect(() => {
+    if (!user || returned.current) return;
+    if (returnTo === "journeys") {
+      returned.current = true;
+      router.dismissTo("/journeys");
+    } else {
+      const target = journeyPath.safeParse({ journeyId: returnTo });
+      if (target.success) {
+        returned.current = true;
+        router.dismissTo({
+          pathname: "/journeys/[journeyId]",
+          params: target.data,
+        });
+      }
+    }
+  }, [returnTo, router, user]);
+
   return (
     <View style={styles.group}>
-      {session.error && (
+      {state === "unavailable" && (
         <Panel>
           <StatusNotice
             notice={{
@@ -68,21 +96,36 @@ function Account({ client }: { client: Client }) {
               tone: "error",
             }}
           />
-          <Action
-            label="Try again"
-            disabled={session.isPending}
-            onPress={() => void session.refetch()}
-          />
+          <Action label="Try again" onPress={() => refresh()} />
         </Panel>
       )}
+      {signOutFailed && (
+        <StatusNotice
+          notice={{
+            text: "Couldn’t sign out on the server. Try again.",
+            tone: "error",
+          }}
+        />
+      )}
       {user ? (
-        <Devices client={client} email={user.email} accountId={user.id} />
-      ) : session.isPending ? (
+        <Devices
+          client={client}
+          email={user.email}
+          accountId={user.id}
+          signOut={() => {
+            setSignOutFailed(false);
+            void signOut().then(
+              (success) => setSignOutFailed(!success),
+              () => setSignOutFailed(true),
+            );
+          }}
+        />
+      ) : state === "checking" ? (
         <StatusNotice
           notice={{ text: "Checking your session", tone: "info" }}
         />
       ) : (
-        <AccountForm client={client} />
+        state === "signed-out" && <AccountForm client={client} />
       )}
     </View>
   );
@@ -241,14 +284,15 @@ function Devices({
   client,
   email,
   accountId,
+  signOut,
 }: {
   client: Client;
   email: string;
   accountId: string;
+  signOut: () => void;
 }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
-  const queryClient = useQueryClient();
   const devices = useQuery({
     queryKey: [accountId, "devices"],
     async queryFn({ signal }) {
@@ -260,39 +304,27 @@ function Devices({
     },
   });
 
-  async function act(deviceId?: string) {
+  async function revoke(deviceId: string) {
     setBusy(true);
     setNotice(null);
     try {
-      if (!deviceId) {
-        await queryClient.cancelQueries();
-        queryClient.clear();
-        const { error } = await client.signOut();
-        if (error) {
-          setNotice({
-            text: "Couldn’t sign out on the server. Try again.",
-            tone: "error",
-          });
-        }
-      } else {
-        const { data, error } = await client.$fetch<RestrictionConfirmation>(
-          "/devices/revoke",
-          { method: "POST", body: { id: deviceId } },
-        );
-        setNotice({
-          text: error
-            ? "Couldn’t revoke this session. Sign in again to refresh your session."
-            : data?.confirmation === "pending"
-              ? "Device signed out. Recovery confirmation is pending."
-              : "Device signed out.",
-          tone: error
-            ? "error"
-            : data?.confirmation === "pending"
-              ? "warning"
-              : "success",
-        });
-        await devices.refetch();
-      }
+      const { data, error } = await client.$fetch<RestrictionConfirmation>(
+        "/devices/revoke",
+        { method: "POST", body: { id: deviceId } },
+      );
+      setNotice({
+        text: error
+          ? "Couldn’t revoke this session. Sign in again to refresh your session."
+          : data?.confirmation === "pending"
+            ? "Device signed out. Recovery confirmation is pending."
+            : "Device signed out.",
+        tone: error
+          ? "error"
+          : data?.confirmation === "pending"
+            ? "warning"
+            : "success",
+      });
+      await devices.refetch();
     } catch {
       setNotice({ text: "Couldn’t reach Kairn. Try again.", tone: "error" });
     } finally {
@@ -309,7 +341,7 @@ function Devices({
       />
       <AppText text={email} subdued />
       <View style={styles.actions}>
-        <Action label="Sign out" disabled={busy} onPress={() => void act()} />
+        <Action label="Sign out" disabled={busy} onPress={signOut} />
       </View>
       {devices.isPending && (
         <StatusNotice notice={{ text: "Loading devices", tone: "info" }} />
@@ -342,7 +374,7 @@ function Devices({
                   variant="danger"
                   accessibilityLabel={`Revoke device, session started ${started}`}
                   disabled={busy}
-                  onPress={() => void act(device.id)}
+                  onPress={() => void revoke(device.id)}
                 />
               </View>
             )}

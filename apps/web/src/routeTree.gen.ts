@@ -15,6 +15,8 @@ import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as JourneysRouteImport } from './routes/journeys'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as AccountResetRouteImport } from './routes/account_.reset'
+import { Route as JourneysJourneyIdRouteImport } from './routes/journeys_.$journeyId'
+import { Route as JourneysNewRouteImport } from './routes/journeys_.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +48,16 @@ const AccountResetRoute = AccountResetRouteImport.update({
   path: '/account/reset',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JourneysJourneyIdRoute = JourneysJourneyIdRouteImport.update({
+  id: '/journeys_/$journeyId',
+  path: '/journeys/$journeyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JourneysNewRoute = JourneysNewRouteImport.update({
+  id: '/journeys_/new',
+  path: '/journeys/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
+  '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys/new': typeof JourneysNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
+  '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys/new': typeof JourneysNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +87,30 @@ export interface FileRoutesById {
   '/journeys': typeof JourneysRoute
   '/saved': typeof SavedRoute
   '/account_/reset': typeof AccountResetRoute
+  '/journeys_/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys_/new': typeof JourneysNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
+    | '/'
+    | '/account'
+    | '/discover'
+    | '/journeys'
+    | '/saved'
+    | '/account/reset'
+    | '/journeys/$journeyId'
+    | '/journeys/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
+  to:
+    | '/'
+    | '/account'
+    | '/discover'
+    | '/journeys'
+    | '/saved'
+    | '/account/reset'
+    | '/journeys/$journeyId'
+    | '/journeys/new'
   id:
     | '__root__'
     | '/'
@@ -86,6 +119,8 @@ export interface FileRouteTypes {
     | '/journeys'
     | '/saved'
     | '/account_/reset'
+    | '/journeys_/$journeyId'
+    | '/journeys_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,6 +130,8 @@ export interface RootRouteChildren {
   JourneysRoute: typeof JourneysRoute
   SavedRoute: typeof SavedRoute
   AccountResetRoute: typeof AccountResetRoute
+  JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
+  JourneysNewRoute: typeof JourneysNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +178,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountResetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journeys_/$journeyId': {
+      id: '/journeys_/$journeyId'
+      path: '/journeys/$journeyId'
+      fullPath: '/journeys/$journeyId'
+      preLoaderRoute: typeof JourneysJourneyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journeys_/new': {
+      id: '/journeys_/new'
+      path: '/journeys/new'
+      fullPath: '/journeys/new'
+      preLoaderRoute: typeof JourneysNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -151,6 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   JourneysRoute: JourneysRoute,
   SavedRoute: SavedRoute,
   AccountResetRoute: AccountResetRoute,
+  JourneysJourneyIdRoute: JourneysJourneyIdRoute,
+  JourneysNewRoute: JourneysNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

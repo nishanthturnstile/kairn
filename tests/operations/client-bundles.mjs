@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const forbidden =
-  /(?:packages\/backend\/|apps\/(?:server|worker)\/|(?:^|\/)node_modules\/(?:\.pnpm\/)?(?:@kairn[+/]backend|@aws-sdk[+/]|@ai-sdk[+/]|(?:nodemailer|pg|pg-boss|pino|sharp|drizzle-orm|ai)(?:[/@]|$)))/;
+  /(?:packages\/backend\/|apps\/(?:server|worker)\/|(?:^|\/)node_modules\/(?:\.pnpm\/)?(?:@kairn[+/]backend|@aws-sdk[+/]|@ai-sdk[+/]|(?:nodemailer|pg|pg-boss|pino|sharp|drizzle-orm|ai|temporal-polyfill|temporal-spec|temporal-utils)(?:[/@]|$)))/;
 const output = process.argv[2];
 
 function sources(map) {

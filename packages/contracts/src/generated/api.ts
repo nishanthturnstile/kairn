@@ -52,20 +52,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/journeys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Omit section and cursor for initial history. Supply both to continue one section. */
+        get: operations["listJourneys"];
+        put?: never;
+        post: operations["createJourney"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getJourney"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ApiProblem: {
-            /** @enum {string} */
-            type: "about:blank";
-            title: string;
-            status: number;
-            /** @enum {string} */
-            code: "invalid_request" | "not_found" | "service_unavailable" | "internal_error";
-            /** Format: uuid */
-            requestId: string;
-        };
         CommandEnvelopeV1: {
             /** @enum {number} */
             protocolVersion: 1;
@@ -140,6 +163,83 @@ export interface components {
             /** Format: uuid */
             journeyId: string;
         };
+        ApiProblem: {
+            /** @enum {string} */
+            type: "about:blank";
+            title: string;
+            status: number;
+            /** @enum {string} */
+            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
+            /** Format: uuid */
+            requestId: string;
+            issues?: ({
+                /** @enum {string} */
+                field: "body" | "title" | "intendedStart" | "intendedEnd" | "timeZone" | "startOffset" | "endOffset" | "idempotency-key" | "x-expected-account" | "cursor" | "section" | "journeyId";
+                /** @enum {string} */
+                code: "invalid_value" | "invalid_calendar_date" | "unsupported_timezone" | "nonexistent_time" | "invalid_offset" | "offset_without_end" | "date_out_of_range" | "end_before_start" | "invalid_cursor";
+            } | {
+                /** @enum {string} */
+                field: "intendedStart" | "intendedEnd";
+                /** @enum {string} */
+                code: "ambiguous_time";
+                offsets: [
+                    string,
+                    string
+                ];
+            })[];
+        };
+        CreatedJourneyV1: {
+            /** Format: uuid */
+            id: string;
+        };
+        CreateJourneyV1: {
+            title: string;
+            intendedStart: string;
+            intendedEnd?: string | null;
+            timeZone: string;
+            startOffset?: string;
+            endOffset?: string;
+        };
+        InitialJourneyHistoryV1: {
+            /** Format: date-time */
+            asOf: string;
+            upcoming: components["schemas"]["JourneyHistoryPageV1"];
+            recent: components["schemas"]["JourneyHistoryPageV1"];
+        };
+        JourneyHistoryPageV1: {
+            nextCursor: string | null;
+            items: components["schemas"]["PrivateJourneyV1"][];
+        };
+        PrivateJourneyV1: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @enum {string} */
+            state: "draft" | "archived";
+            schedule: {
+                timeZone: string;
+                intendedStart: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                };
+                intendedEnd: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                } | null;
+            } | null;
+            capabilities: ("administrator" | "coauthor" | "publisher")[];
+        };
+        ContinuedJourneyHistoryV1: {
+            /** Format: date-time */
+            asOf: string;
+            /** @enum {string} */
+            section: "upcoming" | "recent";
+            page: components["schemas"]["JourneyHistoryPageV1"];
+        };
     };
     responses: never;
     parameters: never;
@@ -205,16 +305,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": {
-                        /** @enum {string} */
-                        type: "about:blank";
-                        title: string;
-                        status: number;
-                        /** @enum {string} */
-                        code: "invalid_request" | "not_found" | "service_unavailable" | "internal_error";
-                        /** Format: uuid */
-                        requestId: string;
-                    };
+                    "application/problem+json": components["schemas"]["ApiProblem"];
                 };
             };
         };
@@ -253,16 +344,358 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": {
-                        /** @enum {string} */
-                        type: "about:blank";
-                        title: string;
-                        status: number;
-                        /** @enum {string} */
-                        code: "invalid_request" | "not_found" | "service_unavailable" | "internal_error";
-                        /** Format: uuid */
-                        requestId: string;
-                    };
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listJourneys: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                section?: "upcoming" | "recent";
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified account's private history page or pages. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InitialJourneyHistoryV1"] | components["schemas"]["ContinuedJourneyHistoryV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The verified account changed (account_changed). */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    createJourney: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJourneyV1"];
+            };
+        };
+        responses: {
+            /** @description A matching creation attempt already committed and the journey is accessible. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedJourneyV1"];
+                };
+            };
+            /** @description A private journey was created. */
+            201: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    /** @description Relative API path to the created journey */
+                    Location: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedJourneyV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The key belongs to a different payload (idempotency_conflict) or the verified account changed (account_changed). */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getJourney: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private metadata for a journey the caller is a current member of. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateJourneyV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The verified account changed (account_changed). */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
                 };
             };
         };

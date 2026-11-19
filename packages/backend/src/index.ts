@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export { checkDatabaseReadiness, openDatabase } from "./db/index.js";
+export {
+  checkDatabaseReadiness,
+  checkJourneyReadiness,
+  openDatabase,
+} from "./db/index.js";
 export {
   enqueueWorkerCheck,
   openJobQueue,
@@ -8,12 +12,13 @@ export {
 } from "./jobs.js";
 export { logger } from "./logger.js";
 export { openMailTransport } from "./mail.js";
-export { createAuth } from "./modules/identity/auth.js";
+export { createAuth, type VerifiedSession } from "./modules/identity/auth.js";
 export { registerIdentityMail } from "./modules/identity/email.js";
 export {
   initializeLocalIdentity,
   localRecoveryEpoch,
 } from "./modules/identity/state.js";
+export { createJourneyService } from "./modules/journeys/service.js";
 export {
   registerIdentityRestrictions,
   replayIdentityRestrictions,

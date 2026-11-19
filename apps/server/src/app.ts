@@ -3,18 +3,21 @@ import { logger } from "@kairn/backend";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
+import type { JourneyOperations } from "./http/journeys.js";
 import { problem, type RequestEnvironment } from "./http/problem.js";
 import { createV1Api, getOpenApiDocument } from "./http/v1.js";
 
 interface AppDependencies {
   authHandler: (request: Request, requestId: string) => Promise<Response>;
   checkReadiness: () => Promise<void>;
+  journeys?: JourneyOperations;
   renderUnavailableReader?: () => string;
 }
 
 export function createApp({
   authHandler,
   checkReadiness,
+  journeys,
   renderUnavailableReader,
 }: AppDependencies) {
   const app = new Hono<RequestEnvironment>();
@@ -57,7 +60,7 @@ export function createApp({
     authHandler(context.req.raw, context.var.requestId),
   );
 
-  const v1 = createV1Api(checkReadiness);
+  const v1 = createV1Api(checkReadiness, journeys);
   const document = getOpenApiDocument(v1);
   app.get("/api/v1/openapi.json", (context) => context.json(document));
   app.route("/", v1);

@@ -4,21 +4,32 @@ import type {
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type SubmitEvent, useRef, useState } from "react";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth";
+import {
+  journeyReturnTo,
+  savedJourneyReturnTo,
+  saveJourneyReturnTo,
+} from "../lib/journey-return";
+import { useSessionAccess } from "../lib/session-access";
 
 export const Route = createFileRoute("/account")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { verification?: "confirmed"; error?: string } => ({
+  ): {
+    verification?: "confirmed";
+    error?: string;
+    returnTo?: ReturnType<typeof journeyReturnTo>;
+  } => ({
     verification:
       search.verification === "confirmed" ? ("confirmed" as const) : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
+    returnTo: journeyReturnTo(search.returnTo),
   }),
   component: AccountPage,
 });
@@ -47,6 +58,27 @@ const feedbackTextClass = {
 function AccountPage() {
   const { data, isPending, error } = authClient.useSession();
   const verification = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const { state } = useSessionAccess();
+  const { returnTo, verification: confirmed } = verification;
+  useEffect(() => {
+    if (returnTo) saveJourneyReturnTo(returnTo);
+  }, [returnTo]);
+  useEffect(() => {
+    if (state !== "verified") return;
+    const destination =
+      returnTo ?? (confirmed ? savedJourneyReturnTo() : undefined);
+    if (!destination) return;
+    saveJourneyReturnTo(undefined);
+    if (destination === "/journeys")
+      void navigate({ to: "/journeys", replace: true });
+    else
+      void navigate({
+        to: "/journeys/$journeyId",
+        params: { journeyId: destination.slice("/journeys/".length) },
+        replace: true,
+      });
+  }, [confirmed, navigate, returnTo, state]);
   return (
     <section className="grid max-w-lg gap-6">
       <PageHeading title="Account" />

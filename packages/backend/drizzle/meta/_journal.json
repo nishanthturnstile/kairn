@@ -29,6 +29,13 @@
       "when": 1794993812176,
       "tag": "0003_credential_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795061536061,
+      "tag": "0004_private_journey_operations",
+      "breakpoints": true
     }
   ]
 }

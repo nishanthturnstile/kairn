@@ -47,7 +47,7 @@ function AppShell() {
             <Link
               key={to}
               to={to}
-              activeOptions={{ exact: to !== "/account" }}
+              activeOptions={{ exact: to !== "/account" && to !== "/journeys" }}
               className="flex min-h-touch min-w-touch items-center rounded-control px-3 py-2 font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground aria-[current=page]:underline aria-[current=page]:underline-offset-4"
             >
               {label}

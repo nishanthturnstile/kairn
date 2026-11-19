@@ -7,7 +7,7 @@ import {
   freshSessionMiddleware,
   sensitiveSessionMiddleware,
 } from "better-auth/api";
-import { and, count, eq, gt, isNull, like } from "drizzle-orm";
+import { and, count, eq, exists, gt, isNull, like } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
@@ -76,10 +76,31 @@ interface AuthConfiguration {
   journal?: RestrictionJournal;
 }
 
+export interface VerifiedSession {
+  accountId: string;
+  sessionId: string;
+}
+
 export function createAuth(db: Database, config: AuthConfiguration) {
   const publicOrigin = new URL(config.baseURL).origin;
   const digest = identityEpoch(config.epoch);
   const secret = epochSigningSecret(config.secret, config.epoch);
+
+  async function withCurrentIdentity<Result>(
+    operation: (tx: DatabaseTransaction) => Promise<Result>,
+  ) {
+    try {
+      return await db.transaction(async (tx) => {
+        if (!(await identityIsCurrent(tx, digest))) {
+          return { status: 503 } as const;
+        }
+        return operation(tx);
+      });
+    } catch {
+      logger.error("Authenticated operation transaction failed");
+      return { status: 503 } as const;
+    }
+  }
 
   async function handle(request: Request, requestId?: string) {
     const url = new URL(request.url);
@@ -461,6 +482,52 @@ export function createAuth(db: Database, config: AuthConfiguration) {
   }
 
   return {
+    verifySession(headers: Headers) {
+      return withCurrentIdentity(async (tx) => {
+        const auth = requestAuth(
+          tx,
+          () => {},
+          () => {},
+        );
+        const current = await auth.api.getSession({
+          headers,
+          query: { disableCookieCache: true, disableRefresh: true },
+        });
+        if (
+          !current?.user.emailVerified ||
+          !(await identitySessionIsCurrent(
+            tx,
+            current.user.id,
+            current.session.id,
+          ))
+        ) {
+          return { status: 401 } as const;
+        }
+        return {
+          status: 200,
+          accountId: current.user.id,
+          sessionId: current.session.id,
+        } as const;
+      });
+    },
+    withCurrentSession<Result>(
+      session: VerifiedSession,
+      operation: (tx: DatabaseTransaction) => Promise<Result>,
+    ) {
+      return withCurrentIdentity(async (tx) => {
+        if (
+          !(await identitySessionIsCurrent(
+            tx,
+            session.accountId,
+            session.sessionId,
+            true,
+          ))
+        ) {
+          return { status: 401 } as const;
+        }
+        return operation(tx);
+      });
+    },
     async handler(request: Request, requestId?: string) {
       const result = await handle(request, requestId);
       const headers = new Headers(result.headers);
@@ -510,10 +577,11 @@ async function identitySessionIsCurrent(
   tx: DatabaseTransaction,
   id: string,
   sessionId: string,
+  lockSession = false,
 ) {
   const account = await identityAccount(tx, id);
   if (!account || account.restrictedAt) return false;
-  const [session] = await tx
+  const query = tx
     .select({ id: authSchema.session.id })
     .from(authSchema.session)
     .where(
@@ -521,8 +589,20 @@ async function identitySessionIsCurrent(
         eq(authSchema.session.id, sessionId),
         eq(authSchema.session.userId, id),
         gt(authSchema.session.expiresAt, new Date()),
+        exists(
+          tx
+            .select({ id: authSchema.user.id })
+            .from(authSchema.user)
+            .where(
+              and(
+                eq(authSchema.user.id, id),
+                eq(authSchema.user.emailVerified, true),
+              ),
+            ),
+        ),
       ),
     );
+  const [session] = await (lockSession ? query.for("share") : query);
   return session !== undefined;
 }
 

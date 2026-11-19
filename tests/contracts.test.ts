@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { createMobileApiClient } from "../apps/mobile/src/api";
 import { createApp } from "../apps/server/src/app";
+import type { JourneyOperations } from "../apps/server/src/http/journeys";
 import { createWebApiClient } from "../apps/web/src/lib/api";
+import { resolveJourneySchedule } from "../packages/backend/src/modules/journeys/schedule";
 import type { components } from "../packages/contracts/src/index";
 import { apiProblem } from "../packages/contracts/src/schemas";
 import {
@@ -57,7 +59,7 @@ describe("versioned HTTP contracts", () => {
       "/api/v1/protocol?version=private-input",
       { headers: { "X-Request-Id": "untrusted-id" } },
     );
-    const missing = await app.request("/api/v1/journeys");
+    const missing = await app.request("/api/v1/missing");
     expect(invalid.headers.get("Content-Type")).toContain(
       "application/problem+json",
     );
@@ -111,6 +113,361 @@ describe("versioned HTTP contracts", () => {
     expect(
       Object.keys(document.paths).some((path) => path.startsWith("/api/auth")),
     ).toBe(false);
+  });
+});
+
+const webOrigin = "http://kairn.test";
+const accountId = "250dbeb0-da94-4de9-a164-cadaa8d2d6bd";
+const session = {
+  accountId,
+  sessionId: "dc48aaff-7946-4a46-9c97-4240f95622b1",
+};
+const journeyId = "da716ed6-bf00-410f-a3c5-09a0058a9d80";
+const asOf = "2026-06-01T00:00:00Z";
+const createInput = {
+  title: "  Coorg  ",
+  intendedStart: "2026-06-12T09:00",
+  timeZone: "Asia/Kolkata",
+} satisfies components["schemas"]["CreateJourneyV1"];
+const journey = {
+  id: journeyId,
+  title: "Coorg",
+  state: "draft",
+  schedule: {
+    timeZone: "Asia/Kolkata",
+    intendedStart: {
+      local: "2026-06-12T09:00",
+      instant: "2026-06-12T03:30:00Z",
+      offset: "+05:30",
+    },
+    intendedEnd: null,
+  },
+  capabilities: ["administrator", "coauthor", "publisher"],
+} satisfies components["schemas"]["PrivateJourneyV1"];
+const legacyJourney = {
+  ...journey,
+  id: "879dba47-bebe-492a-90d0-72c65c1a9ac2",
+  title: "Undated journey",
+  state: "archived",
+  schedule: null,
+} satisfies components["schemas"]["PrivateJourneyV1"];
+
+function journeyApiFixture() {
+  const internalJourney = { ...journey, createdBy: accountId };
+  const operations = {
+    writeOrigins: [webOrigin],
+    verifySession: vi.fn<JourneyOperations["verifySession"]>(async (headers) =>
+      headers.get("Cookie") === "fixture-session=verified"
+        ? { status: 200, ...session }
+        : { status: 401 },
+    ),
+    create: vi.fn<JourneyOperations["create"]>(
+      async (_accountId, _key, input) => {
+        const result = resolveJourneySchedule(input);
+        return result.issue
+          ? { status: 400, issue: result.issue }
+          : { status: 201, id: journey.id };
+      },
+    ),
+    history: vi.fn<JourneyOperations["history"]>(async (_, query) =>
+      query.section === "recent"
+        ? {
+            status: 200,
+            history: {
+              asOf,
+              section: "recent",
+              page: { items: [legacyJourney], nextCursor: null },
+            },
+          }
+        : {
+            status: 200,
+            history: {
+              asOf,
+              upcoming: { items: [internalJourney], nextCursor: null },
+              recent: { items: [], nextCursor: "next-recent" },
+            },
+          },
+    ),
+    detail: vi.fn<JourneyOperations["detail"]>(async (_, id) =>
+      id === journey.id
+        ? { status: 200, journey: internalJourney }
+        : { status: 404 },
+    ),
+  } satisfies JourneyOperations;
+  const http = createApp({
+    authHandler: async () => new Response(null, { status: 404 }),
+    checkReadiness: async () => {},
+    journeys: operations,
+  });
+  const cookie = { Cookie: "fixture-session=verified" };
+  const fetch = async (request: Request) => http.request(request);
+  const headers = {
+    ...cookie,
+    "Content-Type": "application/json",
+    "Idempotency-Key": randomUUID(),
+  };
+  return { http, fetch, operations, headers, cookie };
+}
+
+async function expectJourneyProblem(
+  response: Response,
+  status: number,
+  code: components["schemas"]["ApiProblem"]["code"],
+) {
+  expect(response.status).toBe(status);
+  expect(response.headers.get("Content-Type")).toContain(
+    "application/problem+json",
+  );
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  const body = apiProblem.parse(await response.json());
+  expect(body).toMatchObject({ status, code });
+  expect(response.headers.get("X-Request-Id")).toBe(body.requestId);
+  return body;
+}
+
+describe("private journey HTTP contracts", () => {
+  it("returns the canonical ID at creation and replay and forwards a verified actor and normalized input", async () => {
+    const { fetch, operations, cookie } = journeyApiFixture();
+    const web = createWebApiClient();
+    const key = randomUUID().toUpperCase();
+    const options = {
+      baseUrl: webOrigin,
+      fetch,
+      headers: { ...cookie, Origin: webOrigin },
+      params: {
+        header: {
+          "idempotency-key": key,
+          "x-expected-account": accountId.toUpperCase(),
+        },
+      },
+      body: createInput,
+    };
+    const created = await web.POST("/api/v1/journeys", options);
+    expect(created.data).toEqual({ id: journey.id });
+    expect(created.response.status).toBe(201);
+    expect(created.response.headers.get("Location")).toBe(
+      `/api/v1/journeys/${journey.id}`,
+    );
+    expect(created.response.headers.get("Cache-Control")).toBe(
+      "private, no-store",
+    );
+    expect(created.response.headers.get("X-Request-Id")).toBeTruthy();
+    expect(operations.create).toHaveBeenCalledWith(session, key.toLowerCase(), {
+      ...createInput,
+      title: "Coorg",
+      intendedEnd: null,
+    });
+
+    operations.create.mockResolvedValue({ status: 200, id: journey.id });
+    const replay = await web.POST("/api/v1/journeys", {
+      ...options,
+      body: { ...createInput, intendedEnd: null },
+    });
+    expect(replay.response.status).toBe(200);
+    expect(replay.data).toEqual(created.data);
+    expect(operations.create).toHaveBeenLastCalledWith(
+      session,
+      key.toLowerCase(),
+      {
+        ...createInput,
+        title: "Coorg",
+        intendedEnd: null,
+      },
+    );
+  });
+
+  it("uses one private projection for initial history, a continuation and detail", async () => {
+    const { fetch, operations, cookie } = journeyApiFixture();
+    const mobile = createMobileApiClient(webOrigin);
+    const initial = await mobile.GET("/api/v1/journeys", {
+      fetch,
+      headers: cookie,
+    });
+    const next = await mobile.GET("/api/v1/journeys", {
+      fetch,
+      headers: cookie,
+      params: { query: { section: "recent", cursor: "next-recent" } },
+    });
+    const detail = await mobile.GET("/api/v1/journeys/{journeyId}", {
+      fetch,
+      headers: cookie,
+      params: { path: { journeyId: journey.id } },
+    });
+    expect(initial.data).toEqual({
+      asOf,
+      upcoming: { items: [journey], nextCursor: null },
+      recent: { items: [], nextCursor: "next-recent" },
+    });
+    expect(next.data).toEqual({
+      asOf,
+      section: "recent",
+      page: { items: [legacyJourney], nextCursor: null },
+    });
+    expect(detail.data).toEqual(journey);
+    expect(detail.response.headers.get("Cache-Control")).toBe(
+      "private, no-store",
+    );
+    expect(operations.history).toHaveBeenLastCalledWith(session, {
+      section: "recent",
+      cursor: "next-recent",
+    });
+  });
+
+  it("checks session and account before operations and uses a generic unavailable detail", async () => {
+    const { http, operations, headers, cookie } = journeyApiFixture();
+    await expectJourneyProblem(
+      await app.request("/api/v1/journeys"),
+      503,
+      "service_unavailable",
+    );
+    await expectJourneyProblem(
+      await http.request("/api/v1/journeys"),
+      401,
+      "unauthorized",
+    );
+    await expectJourneyProblem(
+      await http.request("/api/v1/journeys", {
+        method: "POST",
+        headers: { ...headers, "X-Expected-Account": randomUUID() },
+        body: "{",
+      }),
+      409,
+      "account_changed",
+    );
+    await expectJourneyProblem(
+      await http.request("/api/v1/journeys", {
+        headers: { ...cookie, "X-Expected-Account": "invalid" },
+      }),
+      400,
+      "invalid_request",
+    );
+    expect(operations.create).not.toHaveBeenCalled();
+    expect(operations.history).not.toHaveBeenCalled();
+    const unavailable = await expectJourneyProblem(
+      await http.request(`/api/v1/journeys/${randomUUID()}`, {
+        headers: cookie,
+      }),
+      404,
+      "not_found",
+    );
+    expect(Object.keys(unavailable).sort()).toEqual([
+      "code",
+      "requestId",
+      "status",
+      "title",
+      "type",
+    ]);
+  });
+
+  it("uses safe Problems for invalid forms, write origins, content limits and conflicts", async () => {
+    const { http, operations, headers, cookie } = journeyApiFixture();
+    const create = (body: string, extraHeaders?: Record<string, string>) =>
+      http.request("/api/v1/journeys", {
+        method: "POST",
+        headers: { ...headers, ...extraHeaders },
+        body,
+      });
+
+    await expectJourneyProblem(
+      await create(JSON.stringify(createInput), {
+        Origin: `${webOrigin}.example`,
+      }),
+      403,
+      "origin_rejected",
+    );
+    await expectJourneyProblem(
+      await create(JSON.stringify(createInput), {
+        "Sec-Fetch-Site": "same-origin",
+      }),
+      403,
+      "origin_rejected",
+    );
+    await expectJourneyProblem(
+      await create(JSON.stringify(createInput), {
+        "Content-Type": "text/plain",
+      }),
+      415,
+      "unsupported_media_type",
+    );
+    await expectJourneyProblem(
+      await create("x".repeat(4097)),
+      413,
+      "request_too_large",
+    );
+    const malformed = await expectJourneyProblem(
+      await create("{"),
+      400,
+      "invalid_request",
+    );
+    expect(malformed.issues).toEqual([
+      { field: "body", code: "invalid_value" },
+    ]);
+    const actor = await expectJourneyProblem(
+      await create(
+        JSON.stringify({ ...createInput, accountId: "private-input" }),
+      ),
+      400,
+      "invalid_request",
+    );
+    expect(actor.issues).toEqual([{ field: "body", code: "invalid_value" }]);
+    expect(operations.create).not.toHaveBeenCalled();
+    const time = await expectJourneyProblem(
+      await create(
+        JSON.stringify({
+          ...createInput,
+          intendedStart: "2026-11-01T01:30",
+          timeZone: "America/New_York",
+        }),
+      ),
+      400,
+      "invalid_request",
+    );
+    expect(time.issues).toEqual([
+      {
+        field: "intendedStart",
+        code: "ambiguous_time",
+        offsets: ["-04:00", "-05:00"],
+      },
+    ]);
+    operations.create.mockResolvedValue({ status: 409 });
+    await expectJourneyProblem(
+      await create(JSON.stringify(createInput)),
+      409,
+      "idempotency_conflict",
+    );
+    await expectJourneyProblem(
+      await http.request("/api/v1/journeys?section=recent", {
+        headers: cookie,
+      }),
+      400,
+      "invalid_request",
+    );
+    expect(operations.history).not.toHaveBeenCalled();
+    operations.history.mockResolvedValue({ status: 400 });
+    const cursor = await expectJourneyProblem(
+      await http.request("/api/v1/journeys?section=recent&cursor=wrong-scope", {
+        headers: cookie,
+      }),
+      400,
+      "invalid_request",
+    );
+    expect(cursor.issues).toEqual([
+      { field: "cursor", code: "invalid_cursor" },
+    ]);
+  });
+
+  it("preserves private caching and safe errors when an operation fails unexpectedly", async () => {
+    const { http, operations, cookie } = journeyApiFixture();
+    operations.history.mockRejectedValue(
+      new Error("private dependency details"),
+    );
+    const problem = await expectJourneyProblem(
+      await http.request("/api/v1/journeys", { headers: cookie }),
+      500,
+      "internal_error",
+    );
+    expect(problem.issues).toBeUndefined();
+    expect(problem.title).toBe("Internal Server Error");
   });
 });
 

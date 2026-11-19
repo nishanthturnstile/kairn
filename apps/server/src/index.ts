@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import {
   checkDatabaseReadiness,
+  checkJourneyReadiness,
   createAuth,
   initializeLocalIdentity,
   localRecoveryEpoch,
@@ -11,6 +12,7 @@ import {
   parseServerEnvironment,
 } from "@kairn/backend";
 import { createApp } from "./app.js";
+import { createJourneyOperations } from "./journey-operations.js";
 import { loadReader } from "./reader.js";
 
 const {
@@ -39,30 +41,38 @@ const journal =
 const reader = READER_BUILD_DIR
   ? await loadReader(READER_BUILD_DIR)
   : undefined;
-const auth = createAuth(db, {
+const identityConfig = {
   baseURL: BETTER_AUTH_URL,
   secret: BETTER_AUTH_SECRET,
   epoch,
   boss,
   mailKey: AUTH_MAIL_KEY,
   journal: journal || undefined,
-});
+};
+const auth = createAuth(db, identityConfig);
+const identityAvailable =
+  NODE_ENV !== "production" || Boolean(AUTH_RECOVERY_EPOCH && journal);
 const app = createApp({
-  authHandler:
-    NODE_ENV === "production" && (!AUTH_RECOVERY_EPOCH || !journal)
-      ? async () =>
-          Response.json(
-            {
-              code: "RECOVERY_REQUIRED",
-              message: "Account access is temporarily unavailable.",
-            },
-            {
-              status: 503,
-              headers: { "Cache-Control": "private, no-store" },
-            },
-          )
-      : auth.handler,
-  checkReadiness: () => checkDatabaseReadiness(db),
+  authHandler: identityAvailable
+    ? auth.handler
+    : async () =>
+        Response.json(
+          {
+            code: "RECOVERY_REQUIRED",
+            message: "Account access is temporarily unavailable.",
+          },
+          {
+            status: 503,
+            headers: { "Cache-Control": "private, no-store" },
+          },
+        ),
+  journeys: identityAvailable
+    ? createJourneyOperations(auth, identityConfig)
+    : undefined,
+  checkReadiness: async () => {
+    await checkDatabaseReadiness(db);
+    await checkJourneyReadiness(db);
+  },
   renderUnavailableReader: reader && (() => reader(null)),
 });
 serve({ fetch: app.fetch, hostname: HOST, port: PORT }, ({ port }) => {

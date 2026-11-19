@@ -16,6 +16,7 @@ import {
 } from "../../packages/backend/src/db/schema";
 import {
   checkDatabaseReadiness,
+  checkJourneyReadiness,
   openDatabase,
 } from "../../packages/backend/src/index";
 
@@ -33,17 +34,16 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       const { db, pool } = openDatabase(runtimeUrl);
       try {
         await expect(checkDatabaseReadiness(db)).resolves.toBeUndefined();
+        await expect(checkJourneyReadiness(db)).resolves.toBeUndefined();
         await expect(
           pool.query("SELECT id FROM kairn.accounts"),
         ).resolves.toMatchObject({ rows: [] });
-        for (const query of [
-          "SELECT id FROM kairn.journeys",
-          "SELECT revision FROM kairn.source_grants",
-        ]) {
-          await expect(pool.query(query)).rejects.toMatchObject({
-            code: "42501",
-          });
-        }
+        await expect(
+          pool.query("SELECT id FROM kairn.journeys"),
+        ).resolves.toMatchObject({ rows: [] });
+        await expect(
+          pool.query("SELECT revision FROM kairn.source_grants"),
+        ).rejects.toMatchObject({ code: "42501" });
       } finally {
         await pool.end();
       }

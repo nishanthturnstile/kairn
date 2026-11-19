@@ -40,6 +40,7 @@ jobs:
       - run: pnpm test:web:identity
       - run: pnpm test:integration
       - run: pnpm test:identity:recovery
+      - run: bash tests/integration/isolated-journeys.sh
       - name: Remove integration services
         if: always()
         run: docker compose -f infra/compose/dev.yml down -v

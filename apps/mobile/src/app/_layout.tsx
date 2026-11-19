@@ -1,27 +1,16 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { useEffect, useState } from "react";
-import { AccessibilityInfo } from "react-native";
 import { useUnistyles } from "react-native-unistyles";
 import { AppearanceProvider } from "../appearance";
-import { fonts } from "../components/ui";
+import { fonts, useReduceMotionPreference } from "../components/ui";
+import { MobileSessionProvider } from "../mobile-session";
 
 export default function RootLayout() {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-          mutations: { retry: false },
-        },
-      }),
-  );
   return (
-    <QueryClientProvider client={queryClient}>
+    <MobileSessionProvider>
       <AppearanceProvider>
         <Navigation />
       </AppearanceProvider>
-    </QueryClientProvider>
+    </MobileSessionProvider>
   );
 }
 
@@ -29,29 +18,7 @@ function Navigation() {
   const { theme, rt } = useUnistyles();
   const { color, fontSize } = theme.semantic;
   const dark = rt.themeName === "dark";
-  const [reduceMotion, setReduceMotion] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    let receivedChange = false;
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      (enabled) => {
-        receivedChange = true;
-        setReduceMotion(enabled);
-      },
-    );
-    void AccessibilityInfo.isReduceMotionEnabled().then(
-      (enabled) => {
-        if (active && !receivedChange) setReduceMotion(enabled);
-      },
-      () => {},
-    );
-    return () => {
-      active = false;
-      subscription.remove();
-    };
-  }, []);
+  const reduceMotion = useReduceMotionPreference();
 
   return (
     <ThemeProvider

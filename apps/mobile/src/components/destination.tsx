@@ -24,16 +24,7 @@ export function Destination({
       style={{ flex: 1, backgroundColor: theme.semantic.color.canvas }}
     >
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <View style={styles.topBar}>
-          <AppText
-            text={publicEnvironment.appName}
-            variant="label"
-            style={styles.brand}
-          />
-          <Link href="/account" asChild>
-            <Action accessibilityRole="link" label="Account" />
-          </Link>
-        </View>
+        <DestinationTopBar />
         <View style={styles.heading}>
           <AppText text={title} accessibilityRole="header" variant="title" />
           <AppText text={description} subdued />
@@ -48,6 +39,21 @@ export function Destination({
         </Panel>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+export function DestinationTopBar() {
+  return (
+    <View style={styles.topBar}>
+      <AppText
+        text={publicEnvironment.appName}
+        variant="label"
+        style={styles.brand}
+      />
+      <Link href="/account" asChild>
+        <Action accessibilityRole="link" label="Account" />
+      </Link>
+    </View>
   );
 }
 

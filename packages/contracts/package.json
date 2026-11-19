@@ -14,6 +14,13 @@
       "development": "./src/index.ts",
       "import": "./dist/index.js"
     },
+    "./journeys": {
+      "types": "./src/journeys.ts",
+      "react-native": "./src/journeys.ts",
+      "browser": "./src/journeys.ts",
+      "development": "./src/journeys.ts",
+      "import": "./dist/journeys.js"
+    },
     "./schemas": {
       "types": "./src/schemas.ts",
       "development": "./src/schemas.ts",

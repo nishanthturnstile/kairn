@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vite-plus/test";
+import { journeyReturnTo } from "../apps/web/src/lib/journey-return";
 import { createWebSession } from "../apps/web/src/lib/session";
 
 const baseUrl = "http://kairn.test";
 
 describe("creator account scope", () => {
+  it("binds Journey requests to the verified account even when a caller supplies a different header", async () => {
+    const session = createWebSession(baseUrl);
+    const accountId = "250dbeb0-da94-4de9-a164-cadaa8d2d6bd";
+    session.setVerifiedAccount(accountId);
+    const { api } = session.getSnapshot();
+    await api.GET("/api/v1/journeys", {
+      baseUrl,
+      headers: { "X-Expected-Account": "other" },
+      async fetch(request) {
+        expect(request.headers.get("X-Expected-Account")).toBe(accountId);
+        return Response.json({});
+      },
+    });
+  });
+
   it("cancels protected requests and clears state before exposing the next account", async () => {
     const session = createWebSession(baseUrl);
     session.setVerifiedAccount("account-a");
@@ -48,4 +64,19 @@ describe("creator account scope", () => {
       }),
     ).rejects.toThrow("application origin");
   });
+});
+
+it("accepts history and canonical journey detail as sign-in destinations", () => {
+  const detail = "/journeys/250dbeb0-da94-4de9-a164-cadaa8d2d6bd";
+  expect(journeyReturnTo("/journeys")).toBe("/journeys");
+  expect(journeyReturnTo(detail)).toBe(detail);
+  for (const unavailable of [
+    "//other.test/journeys",
+    "https://other.test/journeys",
+    "/journeys/new",
+    "/journeys/../account",
+    `${detail}?extra=1`,
+  ]) {
+    expect(journeyReturnTo(unavailable)).toBeUndefined();
+  }
 });

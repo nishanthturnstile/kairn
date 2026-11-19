@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.9 |
-| Date | 17 November 2026 |
+| Version | 1.10 |
+| Date | 19 November 2026 |
 | Status | Implementation architecture aligned with requirements 2.6 and unified experience 1.2. |
 | Product authority | [Product requirements](product-requirements.md), [product plan](product-plan.md), and [application design](application-design.md). Requirements take precedence. |
 | Confirmed platform choices | Vite+ with React and TanStack for web. Expo/React Native Android-phone and iPhone development on the MacBook with phone emulators/simulators now; Android public mobile distribution first. Apple enrollment and iOS public distribution deferred. No EAS subscription during development. |
@@ -670,6 +670,7 @@ This register selects responsibilities and libraries. Pin exact direct/transitiv
 | Collections/media UI | FlatList/SectionList, Expo Image/Audio/Video; web semantic lists/grids | Bounded mounted rows, sized thumbnails, one player, cache ownership and lifecycle. Add a recycler/virtualizer only for a measured bottleneck. |
 | Web editorial tables | TanStack Table, loaded with the relevant creator feature | Headless sorting/selection for structured review tables; semantic accessible rendering and bounded rows. Keep it out of initial reader delivery. |
 | HTTP/contracts | Node supported LTS, Hono, Zod/OpenAPI, generated openapi-typescript/openapi-fetch clients | Versioned phone/web contracts, small transport layer, explicit policy checks. Qualify actual schema generation and old-client compatibility. |
+| Journey time | Standard Temporal class API through FullCalendar's MIT-licensed `temporal-polyfill` 1.0.8 in the backend; built-in `Intl.DateTimeFormat` in shared display helpers | Explicit local-time, IANA zone, UTC instant and DST ambiguity handling. Use the local import without global installation; it uses native Temporal when available. Keep the polyfill out of client bundles and remove it after a qualified Node LTS upgrade passes the [schedule fixtures](../../tests/journey-time.test.ts). [Polyfill documentation](https://github.com/fullcalendar/temporal-polyfill/blob/main/polyfill/README.md). |
 | Web durable edits | Dexie/IndexedDB, account-partitioned | Persist unsent text commands and recoverable file selection state; keep ordinary fetched-data caching separate. Browser eviction limits remain visible. |
 | Identity | Better Auth with PostgreSQL sessions and Expo integration | Recovery and session controls, no extra journey-organisation abstraction. Current checks and recovery epochs override stale session state. |
 | Data | PostgreSQL, PostGIS, pgvector, native FTS; Drizzle and pg | One transactional authority, scoped lexical/exact-vector search and spatial operations. Index real query patterns; no separate search service. |

@@ -1,6 +1,12 @@
 import { themes } from "@kairn/design-tokens";
 import { getLoadedFonts } from "expo-font";
-import { type ReactNode, useEffect, useState } from "react";
+import {
+  type ComponentRef,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useState,
+} from "react";
 import {
   AccessibilityInfo,
   Platform,
@@ -35,6 +41,32 @@ export const fonts = {
 };
 
 export const touchTarget = Platform.OS === "android" ? 48 : 44;
+
+export function useReduceMotionPreference() {
+  const [reduced, setReduced] = useState(true);
+  useEffect(() => {
+    let active = true;
+    let changed = false;
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (enabled) => {
+        changed = true;
+        setReduced(enabled);
+      },
+    );
+    void AccessibilityInfo.isReduceMotionEnabled().then(
+      (enabled) => {
+        if (active && !changed) setReduced(enabled);
+      },
+      () => {},
+    );
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+  return reduced;
+}
 
 export const focusOutline = (color: string) => ({
   outlineColor: color,
@@ -121,7 +153,15 @@ export function Action({
   );
 }
 
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({
+  label,
+  error,
+  ...props
+}: TextInputProps & {
+  label: string;
+  error?: string;
+  ref?: Ref<ComponentRef<typeof TextInput>>;
+}) {
   const [focused, setFocused] = useState(false);
   const { theme, rt } = useUnistyles();
   const { color } = theme.semantic;
@@ -132,6 +172,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
       <TextInput
         {...props}
         accessibilityLabel={label}
+        accessibilityHint={error ?? props.accessibilityHint}
         keyboardAppearance={rt.themeName === "dark" ? "dark" : "light"}
         selectionColor={Platform.OS === "ios" ? color.action : color.actionWash}
         cursorColor={color.action}
@@ -139,8 +180,13 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
         underlineColorAndroid="transparent"
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        style={[styles.input, focused && styles.focused]}
+        style={[
+          styles.input,
+          error && styles.invalid,
+          focused && styles.focused,
+        ]}
       />
+      {error && <AppText text={error} style={styles.error} />}
     </View>
   );
 }
@@ -236,6 +282,7 @@ const styles = StyleSheet.create(
       borderColor: color.boundary,
     },
     focused: { ...focusOutline(color.information) },
+    invalid: { borderColor: color.error },
     field: { gap: space.step8 },
     input: {
       ...fonts.body,
