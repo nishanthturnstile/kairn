@@ -1,3 +1,4 @@
+import type { OnboardingIntent } from "@kairn/contracts";
 import {
   canReleaseJourneyAttempt,
   type FieldErrors,
@@ -8,6 +9,8 @@ import {
   type OffsetChoices,
   validateJourneyDraft,
 } from "@kairn/shared/journey-form";
+import { journeyIntentCopy } from "@kairn/shared/journey-intent-copy";
+import { formatJourneyLocalMinute } from "@kairn/shared/journey-time";
 import { useQuery } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -25,8 +28,10 @@ import {
   type Pressable,
   type ScrollView,
   type TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { StyleSheet } from "react-native-unistyles";
 import { ensureActive } from "../../api";
 import {
   historyKey,
@@ -37,6 +42,7 @@ import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import type { JourneyAttempt } from "../../storage/journey-attempt";
 import { openAccountWorkspace } from "../../storage/workspace";
+import { dashboardKey } from "../../workspace-keys";
 import { Action, AppText, Field, Panel, StatusNotice } from "../ui";
 import { SchedulePicker } from "./picker";
 import { JourneyRetry, JourneyScreen, journeyStyles } from "./states";
@@ -59,7 +65,13 @@ async function withAttempts<Result>(
   }
 }
 
-export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
+export function CreateJourney({
+  scope,
+  intent,
+}: {
+  scope: VerifiedMobileScope;
+  intent?: OnboardingIntent;
+}) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const pending = useQuery({
     queryKey: ["pending-journey"],
@@ -78,6 +90,10 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
         variant="title"
         accessibilityRole="header"
       />
+      <AppText
+        text="Give your journey a name and choose when it starts."
+        subdued
+      />
       {pending.isError ? (
         <JourneyRetry
           text="Couldn’t recover your saved attempt."
@@ -91,6 +107,7 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
       ) : (
         <JourneyForm
           scope={scope}
+          intent={intent}
           initialAttempt={pending.data}
           scroll={scroll}
         />
@@ -101,14 +118,18 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
 
 function JourneyForm({
   scope,
+  intent,
   initialAttempt,
   scroll,
 }: {
   scope: VerifiedMobileScope;
+  intent?: OnboardingIntent;
   initialAttempt: JourneyAttempt | null;
   scroll: RefObject<ComponentRef<typeof ScrollView> | null>;
 }) {
   const router = useRouter();
+  const { width, fontScale } = useWindowDimensions();
+  const compactPickers = width >= 365 && fontScale <= 1.35;
   const { refresh, canSubmit } = useMobileSession();
   const [draft, setDraft] = useState(() => journeyDraft(initialAttempt?.input));
   const [attempt, setAttempt] = useState(initialAttempt);
@@ -117,6 +138,7 @@ function JourneyForm({
   const [choices, setChoices] = useState<OffsetChoices>({});
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
+  const [addingEnd, setAddingEnd] = useState(false);
   const submitting = useRef(false);
   const mounted = useRef(false);
   const focused = useRef(false);
@@ -278,6 +300,7 @@ function JourneyForm({
         ) {
           setDraft(journeyDraft(submitted.input));
           setChoices({});
+          setAddingEnd(false);
           return;
         }
       }
@@ -293,6 +316,7 @@ function JourneyForm({
       );
       if (scope.signal.aborted) return;
       void scope.queryClient.invalidateQueries({ queryKey: historyKey });
+      void scope.queryClient.invalidateQueries({ queryKey: dashboardKey });
       if (visible()) {
         setConfirmed(saved.id);
         openJourney(saved.id);
@@ -337,6 +361,28 @@ function JourneyForm({
   }
 
   const locked = attempt !== null || saving || confirmed !== undefined;
+  const hasEnd = Boolean(
+    addingEnd ||
+      draft.endDate ||
+      draft.endTime ||
+      draft.endOffset ||
+      errors.endDate ||
+      errors.endTime ||
+      errors.endOffset ||
+      choices.endOffset,
+  );
+  const startPreview = previewMinute(draft.startDate, draft.startTime);
+  const endPreview = previewMinute(draft.endDate, draft.endTime);
+
+  function toggleEnd() {
+    if (locked || !canSubmit(scope)) return;
+    if (hasEnd) {
+      Keyboard.dismiss();
+      update("endDate", "");
+      update("endTime", "");
+    }
+    setAddingEnd(!hasEnd);
+  }
   const notice = saving
     ? { text: "Saving…", tone: "info" as const }
     : confirmed
@@ -350,59 +396,81 @@ function JourneyForm({
             }
           : null;
   return (
-    <>
+    <View style={styles.editor}>
       <Panel>
-        <View style={journeyStyles.contentHeader}>
+        <View style={styles.editor}>
           <Field
             label="Title"
             ref={editRef("title")}
             error={errors.title}
             value={draft.title}
             onChangeText={(value) => update("title", value)}
+            placeholder="e.g. A weekend in Coorg"
             maxLength={120}
             editable={!locked}
           />
+          <View style={styles.scheduleHeading}>
+            <AppText
+              text="Schedule"
+              variant="section"
+              accessibilityRole="header"
+            />
+            <AppText
+              text={
+                intent
+                  ? journeyIntentCopy[intent].guidance
+                  : "Enter the dates and times in the journey’s local time."
+              }
+              variant="caption"
+              subdued
+            />
+          </View>
           {(["start", "end"] as const).map((part) => {
             const label = part === "start" ? "Start" : "End";
             const offset = `${part}Offset` as const;
             return (
-              <View key={part} style={journeyStyles.group}>
-                <AppText
-                  text={
-                    part === "start"
-                      ? "Intended start"
-                      : "Intended end (optional)"
-                  }
-                  variant="section"
-                  accessibilityRole="header"
-                />
-                {(["Date", "Time"] as const).map((kind) => {
-                  const field = `${part}${kind}` as const;
-                  const format = kind === "Date" ? "YYYY-MM-DD" : "HH:mm";
-                  return (
-                    <View style={journeyStyles.group} key={field}>
-                      <Field
-                        label={`${label} ${kind.toLowerCase()}`}
-                        ref={editRef(field)}
-                        error={errors[field]}
-                        accessibilityHint={`Enter ${format}`}
-                        placeholder={format}
-                        value={draft[field]}
-                        onChangeText={(value) => update(field, value)}
-                        autoCorrect={false}
-                        autoCapitalize="none"
-                        editable={!locked}
-                      />
+              <View key={part} style={styles.scheduleFields}>
+                {part === "end" && (!locked || hasEnd) && (
+                  <View style={styles.optionalAction}>
+                    <Action
+                      label={hasEnd ? "Remove end date" : "Add end date"}
+                      accessibilityState={{ expanded: hasEnd }}
+                      disabled={locked}
+                      onPress={toggleEnd}
+                    />
+                  </View>
+                )}
+                {(part === "start" || hasEnd) &&
+                  (["Date", "Time"] as const).map((kind) => {
+                    const field = `${part}${kind}` as const;
+                    const format = kind === "Date" ? "YYYY-MM-DD" : "HH:mm";
+                    return (
                       <SchedulePicker
+                        key={field}
                         mode={kind === "Date" ? "date" : "time"}
                         label={`Pick ${label.toLowerCase()} ${kind.toLowerCase()}`}
                         value={draft[field]}
                         disabled={locked}
+                        compact={compactPickers}
+                        renderField={(trigger) => (
+                          <Field
+                            label={`${label} ${kind.toLowerCase()}`}
+                            ref={editRef(field)}
+                            error={errors[field]}
+                            accessibilityHint={`Enter ${format}`}
+                            placeholder={format}
+                            value={draft[field]}
+                            onChangeText={(value) => update(field, value)}
+                            autoCorrect={false}
+                            autoCapitalize="none"
+                            editable={!locked}
+                            suffix={trigger}
+                          />
+                        )}
                         onChange={(value) => update(field, value)}
                       />
-                    </View>
-                  );
-                })}
+                    );
+                  })}
                 {choices[offset] ? (
                   <View
                     ref={(node) => {
@@ -467,24 +535,89 @@ function JourneyForm({
             autoCapitalize="none"
             editable={!locked}
           />
+          {startPreview && (
+            <View style={styles.preview}>
+              <AppText text="Schedule preview" variant="caption" />
+              <AppText
+                text={`Start · ${startPreview}`}
+                variant="caption"
+                subdued
+              />
+              <AppText
+                text={`End · ${endPreview ?? (hasEnd ? "Not set" : "Open-ended")}`}
+                variant="caption"
+                subdued
+              />
+            </View>
+          )}
         </View>
       </Panel>
       <StatusNotice notice={notice} />
-      <Action
-        label={
-          confirmed
-            ? "Open journey"
-            : saving
-              ? "Saving…"
-              : attempt
-                ? "Retry save"
-                : "Save journey"
-        }
-        variant="primary"
-        accessibilityState={{ busy: saving }}
-        disabled={saving}
-        onPress={() => (confirmed ? openJourney(confirmed) : void submit())}
-      />
-    </>
+      <View
+        style={[
+          styles.saveArea,
+          compactPickers && !confirmed && styles.saveRow,
+        ]}
+      >
+        {!confirmed && (
+          <AppText
+            text="Only you can see this journey when you save it."
+            variant="caption"
+            subdued
+            style={compactPickers && styles.saveCopy}
+          />
+        )}
+        <Action
+          label={
+            confirmed
+              ? "Open journey"
+              : saving
+                ? "Saving…"
+                : attempt
+                  ? "Retry save"
+                  : "Save journey"
+          }
+          variant="primary"
+          accessibilityState={{ busy: saving }}
+          disabled={saving}
+          onPress={() => (confirmed ? openJourney(confirmed) : void submit())}
+        />
+      </View>
+    </View>
   );
 }
+
+function previewMinute(date: string, time: string) {
+  const local = `${date}T${time}`;
+  const instant = new Date(`${local}Z`);
+  if (
+    !Number.isFinite(instant.getTime()) ||
+    instant.toISOString().slice(0, 16) !== local
+  )
+    return null;
+  const shown = formatJourneyLocalMinute(local);
+  return `${shown.date} · ${shown.time}`;
+}
+
+const styles = StyleSheet.create(
+  ({ semantic: { color, border, radius, space } }) => ({
+    editor: { gap: space.step16 },
+    scheduleHeading: {
+      borderTopColor: color.boundary,
+      borderTopWidth: border.control,
+      paddingTop: space.step16,
+      gap: space.step4,
+    },
+    scheduleFields: { gap: space.step12 },
+    optionalAction: { alignItems: "flex-start" },
+    saveArea: { gap: space.step12 },
+    saveRow: { flexDirection: "row", alignItems: "center" },
+    saveCopy: { flex: 1, minWidth: 0 },
+    preview: {
+      borderRadius: radius.control,
+      backgroundColor: color.actionWash,
+      padding: space.step12,
+      gap: space.step4,
+    },
+  }),
+);

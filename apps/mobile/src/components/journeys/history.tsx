@@ -1,9 +1,19 @@
 import type { PrivateJourney } from "@kairn/contracts";
+import {
+  type JourneyTimelineSection,
+  journeyTimelineSections,
+} from "@kairn/contracts/journeys";
 import { formatJourneyLocalMinute } from "@kairn/shared/journey-time";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { Pressable, SectionList, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  SectionList,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import {
@@ -18,25 +28,31 @@ import {
   Action,
   AppText,
   focusOutline,
-  Panel,
   StatusNotice,
   touchTarget,
 } from "../ui";
 import { JourneyRetry, journeyStyles, useJourneyReentry } from "./states";
 
 const sectionInfo = {
+  active: {
+    title: "Active now",
+    more: "Load more active journeys",
+  },
   upcoming: {
     title: "Upcoming",
-    empty: "No upcoming journeys",
     more: "Load more upcoming journeys",
   },
-  recent: {
-    title: "Recent journeys",
-    empty: "No recent journeys",
-    more: "Load more recent journeys",
+  past: {
+    title: "Past journeys",
+    more: "Load more past journeys",
   },
-};
-type Section = keyof typeof sectionInfo;
+  incomplete: {
+    title: "Open-ended and undated",
+    more: "Load more journeys with incomplete dates",
+  },
+} satisfies Record<JourneyTimelineSection, { title: string; more: string }>;
+const beach = require("../../../assets/onboarding/beach.jpg");
+type Section = JourneyTimelineSection;
 type Page = { items: PrivateJourney[]; nextCursor: string | null };
 type Continuations = { asOf: string; pages: Partial<Record<Section, Page>> };
 
@@ -48,11 +64,13 @@ function rowDates(journey: PrivateJourney) {
     : null;
   return end
     ? `${start.date}, ${start.time} to ${end.date}, ${end.time}`
-    : `${start.date}, ${start.time} · End date unknown`;
+    : `${start.date}, ${start.time} · No end date`;
 }
 
 export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
   const router = useRouter();
+  const { width, fontScale } = useWindowDimensions();
+  const stackHeader = width < 365 || fontScale > 1.35;
   const { refresh, recheck } = useMobileSession();
   const [continuations, setContinuations] = useState<Continuations>();
   const [failed, setFailed] = useState<Section>();
@@ -64,12 +82,15 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
     refetchOnMount: "always",
     async queryFn({ signal }) {
       const result = journeyResult(
-        await scope.api.GET("/api/v1/journeys", { signal }),
+        await scope.api.GET("/api/v1/journeys", {
+          params: { query: { view: "timeline" } },
+          signal,
+        }),
         scope,
         refresh,
       );
-      if (!("upcoming" in result))
-        throw new Error("Expected initial journey history.");
+      if (!("timeline" in result))
+        throw new Error("Expected the journey timeline.");
       return result;
     },
   });
@@ -77,25 +98,27 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
     history.isFetchedAfterMount && !history.isError ? history.data : undefined;
   const pages =
     current && continuations?.asOf === current.asOf ? continuations.pages : {};
-  const sections =
-    current && (current.upcoming.items.length || current.recent.items.length)
-      ? (["upcoming", "recent"] as const).map((id) => {
-          const page = pages[id] ?? current[id];
-          return {
+  const sections = current
+    ? journeyTimelineSections.flatMap((id) => {
+        const page = pages[id] ?? current.timeline[id];
+        if (!page.items.length) return [];
+        return [
+          {
             id,
             ...sectionInfo[id],
             data: page.items,
             nextCursor: page.nextCursor,
-          };
-        })
-      : [];
+          },
+        ];
+      })
+    : [];
 
   async function loadMore(section: Section, cursor: string) {
     if (!current || inFlight.current || scope.signal.aborted) return;
     inFlight.current = true;
     setLoading(section);
     setFailed(undefined);
-    const initial = pages[section] ?? current[section];
+    const initial = pages[section] ?? current.timeline[section];
     try {
       const result = await scope.queryClient.fetchQuery({
         queryKey: ["journeys", "page", section, cursor],
@@ -143,12 +166,13 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
     }
   }
 
+  const create = () => router.push("/journeys/new");
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={journeyStyles.screen}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={journeyStyles.content}
+        contentContainerStyle={[journeyStyles.content, styles.list]}
         stickySectionHeadersEnabled={false}
         refreshing={history.isRefetching}
         onRefresh={() =>
@@ -159,16 +183,22 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
         ListHeaderComponent={
           <View style={journeyStyles.contentHeader}>
             <DestinationTopBar />
-            <AppText
-              text="Journeys"
-              variant="title"
-              accessibilityRole="header"
-            />
-            <Action
-              label="Create journey"
-              variant="primary"
-              onPress={() => router.push("/journeys/new")}
-            />
+            <View
+              style={[styles.heading, stackHeader && styles.stackedHeading]}
+            >
+              <AppText
+                text="Journeys"
+                variant="title"
+                accessibilityRole="header"
+              />
+              {(sections.length > 0 || history.isError) && (
+                <Action
+                  label="Create journey"
+                  variant="primary"
+                  onPress={create}
+                />
+              )}
+            </View>
             {history.isError ? (
               <JourneyRetry
                 text="Couldn’t load your journeys."
@@ -181,27 +211,44 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
               />
             ) : (
               sections.length === 0 && (
-                <Panel>
-                  <AppText
-                    text="No journeys yet"
-                    variant="section"
-                    accessibilityRole="header"
-                  />
-                </Panel>
+                <View style={styles.empty}>
+                  <Image source={beach} accessible={false} style={styles.art} />
+                  <View style={styles.emptyCopy}>
+                    <AppText
+                      text="No journeys yet"
+                      variant="section"
+                      accessibilityRole="header"
+                    />
+                    <AppText
+                      text="Plan somewhere you’re going or keep a private record of somewhere you’ve been."
+                      subdued
+                    />
+                    <Action
+                      label="Create journey"
+                      variant="primary"
+                      onPress={create}
+                    />
+                  </View>
+                </View>
               )
             )}
           </View>
         }
         renderSectionHeader={({ section }) => (
-          <AppText
-            text={section.title}
-            variant="section"
-            accessibilityRole="header"
-          />
+          <View style={styles.sectionHeading}>
+            <AppText
+              text={section.title}
+              variant="section"
+              accessibilityRole="header"
+            />
+          </View>
         )}
-        renderItem={({ item }) => (
+        renderItem={({ item, index, section }) => (
           <JourneyRow
             journey={item}
+            active={section.id === "active"}
+            first={index === 0}
+            last={index === section.data.length - 1}
             open={() =>
               router.push({
                 pathname: "/journeys/[journeyId]",
@@ -236,10 +283,6 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                 }}
               />
             </View>
-          ) : section.data.length === 0 ? (
-            <Panel>
-              <AppText text={section.empty} subdued />
-            </Panel>
           ) : null
         }
       />
@@ -249,9 +292,15 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
 
 function JourneyRow({
   journey,
+  active,
+  first,
+  last,
   open,
 }: {
   journey: PrivateJourney;
+  active: boolean;
+  first: boolean;
+  last: boolean;
   open: () => void;
 }) {
   const [focused, setFocused] = useState(false);
@@ -265,28 +314,77 @@ function JourneyRow({
       onBlur={() => setFocused(false)}
       style={({ pressed }) => [
         styles.row,
+        first && styles.first,
+        last && styles.last,
+        active && styles.active,
         pressed && styles.pressed,
         focused && styles.focused,
       ]}
     >
-      <AppText text={journey.title} variant="label" />
-      <AppText text={dates} subdued />
-      {journey.state === "archived" && <AppText text="Archived" subdued />}
+      <View style={styles.rowCopy}>
+        <AppText text={journey.title} variant={active ? "section" : "label"} />
+        <AppText text={dates} variant="caption" subdued />
+        {journey.state === "archived" && (
+          <AppText text="Archived" variant="caption" subdued />
+        )}
+      </View>
+      <View style={styles.chevron} accessible={false} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create(
   ({ semantic: { color, border, radius, space } }) => ({
-    row: {
-      minHeight: touchTarget,
-      marginTop: space.step8,
+    list: { gap: 0 },
+    heading: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: space.step12,
+    },
+    stackedHeading: { flexDirection: "column", alignItems: "stretch" },
+    empty: {
+      overflow: "hidden",
       borderRadius: radius.card,
-      backgroundColor: color.surface,
       borderColor: color.boundary,
       borderWidth: border.control,
+      backgroundColor: color.surface,
+    },
+    art: { width: "100%", height: 156 },
+    emptyCopy: { gap: space.step12, padding: space.step16 },
+    sectionHeading: { paddingBottom: space.step8 },
+    row: {
+      minHeight: touchTarget,
+      backgroundColor: color.surface,
+      borderColor: color.boundary,
+      borderTopWidth: border.control,
+      borderStartWidth: border.control,
+      borderEndWidth: border.control,
       padding: space.step16,
-      gap: space.step4,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: space.step12,
+    },
+    first: {
+      borderTopStartRadius: radius.card,
+      borderTopEndRadius: radius.card,
+    },
+    last: {
+      borderBottomStartRadius: radius.card,
+      borderBottomEndRadius: radius.card,
+      borderBottomWidth: border.control,
+      marginBottom: space.step12,
+    },
+    active: { backgroundColor: color.actionWash },
+    rowCopy: { flex: 1, minWidth: 0, gap: space.step4 },
+    chevron: {
+      width: space.step8,
+      height: space.step8,
+      borderTopWidth: 2,
+      borderRightWidth: 2,
+      borderColor: color.secondaryText,
+      transform: [{ rotate: "45deg" }],
     },
     pressed: { backgroundColor: color.actionWash },
     focused: focusOutline(color.information),

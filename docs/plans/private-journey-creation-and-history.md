@@ -30,7 +30,7 @@ The journey ID will also be the destination for future invitations. A companion 
 
 ## Screen flow and states
 
-1. **Journeys.** Keep the stable Journeys, Discover and Saved destinations. Put **Create journey** directly below the Journeys heading for a verified account. Below it, show **Upcoming** and then **Recent journeys**. Each entry is one link or press target with its title and intended dates.
+1. **Journeys.** Keep the stable Journeys, Discover and Saved destinations. Show **Create journey** in the illustrated empty state or near the heading when journeys exist. Show populated groups in this order. **Active now**, **Upcoming**, **Past journeys**, then **Open-ended and undated**. Each entry has one link or press target with its title and intended dates.
 2. **Create journey.** Use a dedicated form for **Title**, **Intended start**, **Intended end (optional)** and **Timezone**. Intended start and end each use a calendar date and a local clock time to the minute. Suggest the device IANA timezone when supported and let the person change it. Changing it leaves their entered clock values intact. An entirely blank end means unknown. Validate partial date/time pairs, calendar values, unsupported zones and end before start. Equal start and end is valid. Ask for a different time in a daylight-saving gap. If an entered minute occurs twice, ask the person which occurrence they meant and show the two offsets.
 3. **Save and open.** Show field errors next to their inputs and focus the first invalid field. Announce **Saving…** and disable repeat submission. On confirmed save, replace the form with a private detail route for the returned ID. Show the title, **Private**, and intended dates with the journey timezone. Render stored local values in Indian English so that **9:00 am · Asia/Kolkata** reads the same on a phone set to London. Show **End date unknown** for an open end and **Dates unavailable** for an undated legacy journey.
 4. **Back and reopen.** Back goes to Journeys, restores list position where possible and refreshes history. The new row opens the same detail route. Support direct detail links and allowlisted return targets through sign-in. A saved journey whose detail fails to load offers a detail retry.
@@ -39,7 +39,7 @@ The journey ID will also be the destination for future invitations. A companion 
 | --- | --- |
 | Checking session or loading data | Distinguish session checking from history or detail loading. Announce meaningful progress once and hide protected content while a new account is being verified. |
 | Signed out | Offer **Sign in** through Account. Resume the allowlisted Journeys or detail destination after verification and load it under the current account. |
-| Empty history | Keep the create action visible. If both sections are empty, show one **No journeys yet** state. If only one is empty, keep its heading and show **No upcoming journeys** or **No recent journeys**. |
+| Empty history | Keep the create action visible. Show an illustrated **No journeys yet** state when all timeline groups are empty. Once a journey exists, display the populated groups. |
 | History or detail unavailable temporarily | Show the appropriate retry action. Leave Create journey available on history for a verified account. |
 | Missing or inaccessible detail | Show **This journey is unavailable** with a way back. Exclude the title, dates, and member data from the message and announcement. |
 | Invalid form or definite failure | Keep the inputs and explain what to correct or retry. A rejected attempt can be corrected and submitted with a fresh key. |
@@ -48,7 +48,9 @@ The journey ID will also be the destination for future invitations. A companion 
 
 ### Section placement and sorting
 
-Use one server `asOf` instant for both sections. **Upcoming** holds journeys whose intended start is after `asOf`, soonest start first. **Recent journeys** holds every journey whose intended start has been reached, newest start first. That includes underway trips, past trips, and started trips with an unknown end. A future trip with an unknown end stays in Upcoming until its start. Undated legacy journeys follow dated Recent rows, newest creation first. Break ties by journey ID in ascending order. Refresh the grouping when returning to Journeys or foregrounding the app. An intended date passing has no effect on archive state, membership, or editing authority.
+The default history API uses one server `asOf` instant for both sections. **Upcoming** holds journeys whose intended start is after `asOf`, soonest start first. **Recent journeys** holds every journey whose intended start has been reached, newest start first. That includes underway trips, past trips, and started trips with an unknown end. A future trip with an unknown end stays in Upcoming until its start. Undated legacy journeys follow dated Recent rows, newest creation first. Break ties by journey ID in ascending order. Refresh the grouping when returning to Journeys or foregrounding the app. An intended date passing has no effect on archive state, membership, or editing authority.
+
+The timeline on web, iPhone and Android uses the same server clock and resolved UTC instants. **Active now** includes journeys from their scheduled start through their scheduled end, inclusive. **Upcoming** starts after that clock, and **Past journeys** have an end before it. **Open-ended and undated** contains started journeys without an end and legacy journeys without dates. Active and past rows use newest start first. Each group has its own cursor, so an active journey can appear even if its start predates many finished journeys.
 
 ### Design-system use
 
@@ -59,8 +61,8 @@ Use the existing web shell and `PageHeading`, `Button`, `Field`, `Input`, `Alert
 | Operation | Contract |
 | --- | --- |
 | `POST /api/v1/journeys` | Require a UUID `Idempotency-Key`. Accept strict JSON with a trimmed, nonempty title (proposed maximum 120 characters), `intendedStart` in `YYYY-MM-DDTHH:mm`, optional or null `intendedEnd` in the same format, and an IANA `timeZone`. Accept `startOffset` or `endOffset` to disambiguate a repeated minute. Return `201 { id }` and a detail `Location` on commit. Return `200 { id }` on a matching replay with current access. |
-| `GET /api/v1/journeys` | Initial response includes `asOf` and an Upcoming and Recent page, each with `items` and nullable `nextCursor`. Each follow-up requests one section with its cursor. Use bounded pages and validate the opaque cursor against the account, section, original `asOf` and sort position. Recheck current membership for every page. A refreshed history starts at a new `asOf`. |
-| `GET /api/v1/journeys/{journeyId}` | Return the same private metadata projection as a history row. Include ID, title, intended local times and their resolved UTC instants, timezone, draft or archived state, and the caller's capabilities. Legacy schedule fields may be null. Current membership gates the metadata. Existing capability rules govern future draft content. |
+| `GET /api/v1/journeys` | The default response includes `asOf` and Upcoming and Recent pages. With `view=timeline`, the initial response includes Active, Upcoming, Past and Incomplete pages under `timeline`. Each page has `items` and a nullable `nextCursor`. Each follow-up requests one section with its cursor. Use bounded pages and validate the opaque cursor against the account, section, original `asOf` and sort position. Recheck current membership for every page. A refreshed history starts at a new `asOf`. |
+| `GET /api/v1/journeys/{journeyId}` | Return the same private metadata projection as a history row. Include ID, title, intended local times and their resolved UTC instants, timezone, draft or archived state, and the caller's capabilities. Legacy schedule fields may be null. Successful responses include the server evaluation time in `X-Kairn-As-Of`. Current membership gates the metadata. Existing capability rules govern future draft content. |
 
 Use the existing Problem Details shape and `X-Request-Id`. Return safe field codes on `400`, `401` for an absent or invalid session, and a common `404` for a missing journey or one outside current membership. Document distinct `409` codes for an idempotency key reused with changed input and a changed account precondition. Use `403` for rejected browser write origins and `503` for a closed recovery gate or temporary dependency failure. All protected responses use `Cache-Control: private, no-store`.
 
@@ -115,6 +117,24 @@ Use the existing Problem Details shape and `X-Request-Id`. Return safe field cod
 
 **Step 3 verified locally · 19 November 2026.** Playwright 1.65.1 ran both Journey flows and the account regression against isolated PostgreSQL 17.12 on Chromium and WebKit. All three web surfaces use the approved design system. The create form passed 320 CSS px at 200% text, 44 CSS px control height in Light, Dark and Outdoor, and the automated accessibility scan. Workspace and OpenAPI checks, 51 unit tests, 15 baseline browser tests, builds, and web, Android and iOS bundle scans passed. Firefox and device acceptance remain in Steps 4 and 5. [Browser harness](../../tests/operations/browser-identity.sh) · [Isolated database harness](../../tests/integration/isolated-journeys.sh)
 
+### Create journey redesign
+
+The web form groups the title and schedule, opens the optional end date on request, and puts the privacy message beside Save journey. The desktop preview reflects the draft title, local start and end, and timezone. The form stacks on narrow screens. A recovered attempt opens with its stored dates visible and locked for retry. [Create form](../../apps/web/src/components/journeys/create.tsx)
+
+Eight service-backed browser tests passed in each of Chromium and WebKit. The checks covered keyboard disclosure, clearing an end date, recovery with a stored end date, onboarding handoff and 320 CSS px reflow at 200% text in Light, Dark and Outdoor. A separate desktop check verified the live preview and passed the automated accessibility scan. The production web build and workspace checks passed. [Journey browser tests](../../tests/web/journeys.playwright.ts) · [Onboarding browser tests](../../tests/web/onboarding.playwright.ts)
+
+### Journeys timeline redesign
+
+The illustrated empty page has one Create journey action. With journeys present, the web timeline highlights Active now before Upcoming and Past journeys. Open-ended and undated journeys get their own group. Each section uses independent server paging and retains the link to the original journey. [Web timeline](../../apps/web/src/components/journeys/history.tsx) · [Journey history service](../../packages/backend/src/modules/journeys/service.ts)
+
+Twelve isolated database checks passed, including exact start and end boundaries, an active journey that started before a full page of past journeys, and account-bound timeline cursors. Chromium and WebKit each passed eight service-backed checks covering refresh, navigation, paging and save recovery. Separate browser checks covered the empty and populated layouts, automated accessibility and 320 CSS px reflow at 200% text. Workspace checks, OpenAPI parity, 62 unit tests and production builds passed. [Database checks](../../tests/integration/journeys.test.ts) · [Browser checks](../../tests/web/journeys.playwright.ts)
+
+### Journey detail redesign
+
+The web detail page groups the title, privacy, archive state and schedule status in its header. The schedule groups the intended start, intended end and timezone. Its date markers line up horizontally on wide screens and stack on narrow screens. The page evaluates status from the server time and the same inclusive start and end rules as the Journeys timeline. It refreshes on reentry or when the window regains focus. [Web detail](../../apps/web/src/routes/journeys_.$journeyId.tsx)
+
+Chromium and WebKit each passed eight service-backed checks, including detail recovery, server-clock status, and 320 CSS px reflow at 200% text. Visual and automated accessibility checks covered dated, open-ended, undated, and archived states. Twelve isolated database checks, 62 unit tests, OpenAPI parity, workspace checks, and builds passed. [Browser checks](../../tests/web/journeys.playwright.ts) · [Database checks](../../tests/integration/journeys.test.ts)
+
 ## Step 4 · Native Android and iOS
 
 ### Implementation sequence
@@ -127,7 +147,7 @@ Use the existing Problem Details shape and `X-Request-Id`. Return safe field cod
 
 ### Implementation checkpoints
 
-- [x] History, create and detail use the existing tabs, native stack and design system. History has separate Upcoming and Recent continuations and detail renders the recorded local schedule, optional end and generic unavailable state. [Native routes](../../apps/mobile/src/app/(tabs)/journeys/) · [Journey components](../../apps/mobile/src/components/journeys/)
+- [x] History, create and detail use the existing tabs, native stack and design system. History uses independent timeline pages and detail renders the recorded local schedule, optional end and generic unavailable state. [Native routes](../../apps/mobile/src/app/(tabs)/journeys/) · [Journey components](../../apps/mobile/src/components/journeys/)
 - [x] Verified identity owns the query cache and request lifetime. The Expo transport awaits the SecureStore cookie, checks the active account and rejects cross-origin dispatch and redirects. Foreground and route focus recheck session and private data. [Session provider](../../apps/mobile/src/mobile-session.tsx) · [Transport](../../apps/mobile/src/api.ts)
 - [x] Account SQLite upgrades the existing workspace to version 2 and claims the pending attempt before dispatch. Retries reuse the payload and key, and confirmation opens the returned ID. The form shares validation with web, and the formatter uses the same day-period text across JavaScript engines. [Workspace migration](../../apps/mobile/src/storage/workspace.ts) · [Attempt store](../../apps/mobile/src/storage/journey-attempt.ts) · [Shared validation](../../packages/shared/src/journey-form.ts)
 - [x] Build and install both native development clients against an isolated backend shared with Chromium. Open the same synthetic records by canonical ID. Check the account request lifetime, SQLite migration and restart, and regressions in the web account and Journey flows. [Native regressions](../../tests/mobile-journeys.test.ts) · [Isolated database harness](../../tests/integration/isolated-journeys.sh) · [Browser harness](../../tests/operations/browser-identity.sh)
@@ -147,6 +167,12 @@ Both apps showed empty history after switching accounts and the generic unavaila
 Native session and SQLite regressions, eight isolated database checks, three service-backed Chromium checks, all 55 unit tests, workspace and OpenAPI checks, production builds and client bundle scans passed. Manual TalkBack and VoiceOver, native repeated-minute and time-picker interactions, and a delayed response during a live native account switch remain in Step 5. [Native regressions](../../tests/mobile-journeys.test.ts) · [Browser regressions](../../tests/web/journeys.playwright.ts) · [Client bundle scan](../../tests/operations/client-bundles.sh)
 
 **Done when** both platforms can create and reopen the same server records as web, retry safely, and isolate identities across sign-out and account switching. [Native setup](../../README.md#native-development-checks) · [Expo custom authenticated requests](https://better-auth.com/docs/integrations/expo)
+
+### Native Journeys redesign
+
+iPhone and Android use the illustrated empty state, the four server-paged schedule groups, and the private detail status used on web. Create journey groups the schedule with native date and time pickers and typed entry. End fields open on request or when restored values need them. A compact preview shows the entered local times before saving. The detail timeline stacks its date markers and uses the same shared status rules and server time as web. [Native Journey components](../../apps/mobile/src/components/journeys/) · [Shared status rules](../../packages/shared/src/journey-time.ts)
+
+The iPhone 17 Simulator and Android API 37 emulator verified the empty state, native date-picker entry point, typed creation with an end date, private detail, and all four timeline groups. Android retried a dropped save response and the server returned one saved entry. The timeline, detail, and optional end fields passed at the largest iOS Dynamic Type size and 200% Android text. Native bundle exports, workspace checks, client bundle scans, 63 unit tests and eight Chromium web regressions passed. [Shared timing tests](../../tests/journey-time.test.ts) · [Web regression harness](../../tests/operations/browser-identity.sh)
 
 ## Step 5 · Verify and record acceptance
 

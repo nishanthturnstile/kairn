@@ -2,19 +2,23 @@ import { DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { useUnistyles } from "react-native-unistyles";
 import { AppearanceProvider } from "../appearance";
 import { fonts, useReduceMotionPreference } from "../components/ui";
-import { MobileSessionProvider } from "../mobile-session";
+import { MobileSessionProvider, useMobileSession } from "../mobile-session";
+import { WorkspaceProvider } from "../workspace";
 
 export default function RootLayout() {
   return (
     <MobileSessionProvider>
       <AppearanceProvider>
-        <Navigation />
+        <WorkspaceProvider>
+          <Navigation />
+        </WorkspaceProvider>
       </AppearanceProvider>
     </MobileSessionProvider>
   );
 }
 
 function Navigation() {
+  const { scope } = useMobileSession();
   const { theme, rt } = useUnistyles();
   const { color, fontSize } = theme.semantic;
   const dark = rt.themeName === "dark";
@@ -52,7 +56,14 @@ function Navigation() {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="account" options={{ title: "Account" }} />
+        <Stack.Screen
+          name="account"
+          options={{ title: "Account", headerShown: Boolean(scope) }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
       </Stack>
     </ThemeProvider>
   );

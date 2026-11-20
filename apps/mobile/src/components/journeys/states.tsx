@@ -39,6 +39,7 @@ export function JourneyScreen({
     >
       <ScrollView
         ref={scrollRef}
+        contentInsetAdjustmentBehavior={top ? "never" : "automatic"}
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"

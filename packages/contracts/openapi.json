@@ -607,6 +607,42 @@
           "capabilities"
         ]
       },
+      "JourneyTimelineV1": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeline": {
+            "type": "object",
+            "properties": {
+              "active": {
+                "$ref": "#/components/schemas/JourneyHistoryPageV1"
+              },
+              "upcoming": {
+                "$ref": "#/components/schemas/JourneyHistoryPageV1"
+              },
+              "past": {
+                "$ref": "#/components/schemas/JourneyHistoryPageV1"
+              },
+              "incomplete": {
+                "$ref": "#/components/schemas/JourneyHistoryPageV1"
+              }
+            },
+            "required": [
+              "active",
+              "upcoming",
+              "past",
+              "incomplete"
+            ]
+          }
+        },
+        "required": [
+          "asOf",
+          "timeline"
+        ]
+      },
       "ContinuedJourneyHistoryV1": {
         "type": "object",
         "properties": {
@@ -617,7 +653,10 @@
           "section": {
             "type": "string",
             "enum": [
+              "active",
               "upcoming",
+              "past",
+              "incomplete",
               "recent"
             ]
           },
@@ -1431,7 +1470,7 @@
       },
       "get": {
         "operationId": "listJourneys",
-        "description": "Omit section and cursor for initial history. Supply both to continue one section.",
+        "description": "Omit section and cursor for initial history. Use view=timeline to group journeys by schedule. Supply section and cursor to continue one section.",
         "parameters": [
           {
             "schema": {
@@ -1448,12 +1487,26 @@
             "schema": {
               "type": "string",
               "enum": [
+                "active",
                 "upcoming",
+                "past",
+                "incomplete",
                 "recent"
               ]
             },
             "required": false,
             "name": "section",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "timeline"
+              ]
+            },
+            "required": false,
+            "name": "view",
             "in": "query"
           },
           {
@@ -1492,6 +1545,9 @@
                   "anyOf": [
                     {
                       "$ref": "#/components/schemas/InitialJourneyHistoryV1"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JourneyTimelineV1"
                     },
                     {
                       "$ref": "#/components/schemas/ContinuedJourneyHistoryV1"
@@ -1706,6 +1762,14 @@
                 "schema": {
                   "type": "string",
                   "const": "private, no-store"
+                }
+              },
+              "X-Kairn-As-Of": {
+                "description": "Server time used to evaluate the journey schedule.",
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
                 }
               }
             },

@@ -357,6 +357,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
         await expectHistory("2026-06-13T06:30:00.001Z", [], [second, first]);
         const ended = await detail(account, coonoorId);
         expect(ended.status).toBe(200);
+        expect(ended.headers.get("X-Kairn-As-Of")).toBe(currentTime);
         expect(privateJourney.parse(await ended.json())).toEqual(first);
       } finally {
         currentTime = initialTime;
@@ -500,6 +501,112 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
           id: startedId,
           state: "draft",
           capabilities,
+        });
+      } finally {
+        currentTime = initialTime;
+      }
+    });
+
+    it("pages a schedule timeline without losing older active journeys or assuming an end", async () => {
+      const account = await member();
+      async function add(title: string, start: string, end?: string) {
+        const response = await create(account, randomUUID(), {
+          title,
+          intendedStart: start,
+          intendedEnd: end,
+          timeZone: "Asia/Kolkata",
+        });
+        expect(response.status).toBe(201);
+        return String((await response.json()).id);
+      }
+      const underway = await add(
+        "Long-running journey",
+        "2026-06-01T09:00",
+        "2026-06-14T09:00",
+      );
+      const atEnd = await add(
+        "Ending now",
+        "2026-06-11T09:00",
+        "2026-06-12T09:00",
+      );
+      const atStart = await add(
+        "Starting now",
+        "2026-06-12T09:00",
+        "2026-06-12T10:00",
+      );
+      const future = await add("Future open-ended", "2026-06-13T09:00");
+      const open = await add("Started open-ended", "2026-06-10T09:00");
+      const undated = randomUUID();
+      const pastIds = Array.from({ length: 26 }, () => randomUUID()).sort();
+      await owner.pool.query(
+        `insert into kairn.journeys (id, title, created_by) values ($1, 'Undated', $2)`,
+        [undated, account.id],
+      );
+      await owner.pool.query(
+        `insert into kairn.journeys (
+           id, title, created_by, time_zone, intended_start_local,
+           intended_start_at, start_offset, intended_end_local, intended_end_at, end_offset
+         )
+         select id, 'Past fixture', $1, 'UTC', '2026-06-12T00:00',
+           '2026-06-12T00:00:00Z', '+00:00', '2026-06-12T01:00',
+           '2026-06-12T01:00:00Z', '+00:00'
+         from unnest($2::uuid[]) as id`,
+        [account.id, pastIds],
+      );
+      await owner.pool.query(
+        `insert into kairn.journey_memberships (journey_id, account_id)
+         select id, $1 from unnest($2::uuid[]) as id`,
+        [account.id, [undated, ...pastIds]],
+      );
+
+      const query = "?view=timeline";
+      const response = await history(account, query);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      const result = journeyHistory.parse(await response.json());
+      if (!("timeline" in result))
+        throw new Error("Expected journey timeline.");
+      expect(result.asOf).toBe(initialTime);
+      const ids = (page: { items: PrivateJourney[] }) =>
+        page.items.map(({ id }) => id);
+      expect(ids(result.timeline.active)).toEqual([atStart, atEnd, underway]);
+      expect(ids(result.timeline.upcoming)).toEqual([future]);
+      expect(ids(result.timeline.past)).toEqual(pastIds.slice(0, 25));
+      expect(ids(result.timeline.incomplete)).toEqual([open, undated]);
+      const cursor = result.timeline.past.nextCursor;
+      expect(cursor).toBeTruthy();
+      const nextPast = `?section=past&cursor=${cursor}`;
+      expect((await history(accountB, nextPast)).status).toBe(400);
+      expect(
+        (await history(account, `?section=active&cursor=${cursor}`)).status,
+      ).toBe(400);
+      expect((await history(account, `${nextPast}&view=timeline`)).status).toBe(
+        400,
+      );
+
+      currentTime = "2026-06-12T03:30:00.001Z";
+      try {
+        expect(await (await history(account, nextPast)).json()).toMatchObject({
+          asOf: initialTime,
+          section: "past",
+          page: { items: [{ id: pastIds[25] }], nextCursor: null },
+        });
+        const refreshed = journeyHistory.parse(
+          await (await history(account, query)).json(),
+        );
+        if (!("timeline" in refreshed))
+          throw new Error("Expected journey timeline.");
+        expect(ids(refreshed.timeline.active)).toEqual([atStart, underway]);
+        const next = await history(
+          account,
+          `?section=past&cursor=${refreshed.timeline.past.nextCursor}`,
+        );
+        expect(await next.json()).toMatchObject({
+          asOf: currentTime,
+          page: {
+            items: [{ id: pastIds[25] }, { id: atEnd }],
+            nextCursor: null,
+          },
         });
       } finally {
         currentTime = initialTime;

@@ -7,6 +7,7 @@ import { openAccount } from "./workspace-fixture";
 
 const password = "Synthetic-journeys-browser-password";
 const endpoint = "**/api/v1/journeys";
+const timelineEndpoint = `${endpoint}?view=timeline`;
 
 function identityHeaders() {
   return { "X-Forwarded-For": `198.51.100.${(test.info().line % 253) + 1}` };
@@ -81,7 +82,9 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await page.goto(`${site}/journeys`);
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   const email = await verifiedEmail(page, true);
-  await page.route(endpoint, (route) => route.abort("failed"), { times: 1 });
+  await page.route(timelineEndpoint, (route) => route.abort("failed"), {
+    times: 1,
+  });
   await signIn(page, email);
   await expect(page.getByText("Couldn’t load your journeys")).toBeVisible();
   await expect(
@@ -91,6 +94,9 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect(
     page.getByRole("heading", { name: "No journeys yet" }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create journey" })).toHaveCount(
+    1,
+  );
 
   await page.getByRole("link", { name: "Create journey" }).click();
   await expect(
@@ -100,10 +106,19 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
   await expect(page.getByText("Enter a start date.")).toBeVisible();
   await fillJourney(page, "Coorg trip");
+  await expect(page.getByLabel("End date", { exact: true })).toBeHidden();
+  await page.getByRole("button", { name: "Add end date" }).press("Enter");
+  const removeEnd = page.getByRole("button", { name: "Remove end date" });
+  await expect(removeEnd).toHaveAttribute("aria-expanded", "true");
   await page.getByLabel("End time", { exact: true }).fill("10:30");
   await page.getByRole("button", { name: "Save journey" }).click();
   await expect(page.getByLabel("End date", { exact: true })).toBeFocused();
-  await page.getByLabel("End time", { exact: true }).fill("");
+  await removeEnd.click();
+  await expect(page.getByLabel("End time", { exact: true })).toBeHidden();
+  await expect(page.getByText("Enter an end date.")).toBeHidden();
+  await page.getByRole("button", { name: "Add end date" }).click();
+  await expect(page.getByLabel("End time", { exact: true })).toHaveValue("");
+  await removeEnd.click();
 
   const committed = Promise.withResolvers<{ id: string; key: string }>();
   let createRequests = 0;
@@ -220,7 +235,7 @@ test("creates and reopens one journey after the committed reply is lost", async 
     .toBeGreaterThan(0);
 });
 
-test("refreshes fresh history after a brief tab switch and recovers a failed sign-out", async ({
+test("refreshes the journey timeline after a brief tab switch and recovers a failed sign-out", async ({
   page,
 }) => {
   const email = await verifiedEmail(page);
@@ -233,6 +248,7 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
     data: {
       title: "Focus boundary fixture",
       intendedStart: "2035-05-12T09:00",
+      intendedEnd: "2035-05-12T10:00",
       timeZone: "UTC",
     },
   });
@@ -241,13 +257,31 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
   const detail = await page.request.get(`${site}/api/v1/journeys/${id}`);
   expect(detail.ok()).toBe(true);
   const journey = await detail.json();
-  let started = false;
-  await page.route(endpoint, (route) =>
+  const times = {
+    upcoming: "2035-05-12T08:59:59.999Z",
+    active: "2035-05-12T09:00:00.000Z",
+    past: "2035-05-12T10:00:00.001Z",
+  };
+  let section: keyof typeof times = "upcoming";
+  await page.route(timelineEndpoint, (route) =>
     route.fulfill({
       json: {
-        asOf: started ? "2035-05-12T09:00:00.000Z" : "2035-05-12T08:59:59.999Z",
-        upcoming: { items: started ? [] : [journey], nextCursor: null },
-        recent: { items: started ? [journey] : [], nextCursor: null },
+        asOf: times[section],
+        timeline: {
+          upcoming: {
+            items: section === "upcoming" ? [journey] : [],
+            nextCursor: null,
+          },
+          active: {
+            items: section === "active" ? [journey] : [],
+            nextCursor: null,
+          },
+          past: {
+            items: section === "past" ? [journey] : [],
+            nextCursor: null,
+          },
+          incomplete: { items: [], nextCursor: null },
+        },
       },
     }),
   );
@@ -257,24 +291,44 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
       .getByRole("region", { name: "Upcoming" })
       .getByRole("link", { name: /Focus boundary fixture/ }),
   ).toHaveAttribute("href", `/journeys/${id}`);
-  started = true;
-  await page.evaluate(() => {
-    for (const value of ["hidden", "visible"]) {
-      Object.defineProperty(document, "visibilityState", {
-        configurable: true,
-        value,
-      });
-      document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
-    }
-  });
+  for (const [group, title] of [
+    ["active", "Active now"],
+    ["past", "Past journeys"],
+  ] as const) {
+    section = group;
+    await page.evaluate(() => {
+      for (const value of ["hidden", "visible"]) {
+        Object.defineProperty(document, "visibilityState", {
+          configurable: true,
+          value,
+        });
+        document.dispatchEvent(
+          new Event("visibilitychange", { bubbles: true }),
+        );
+      }
+    });
+    await expect(
+      page
+        .getByRole("region", { name: title })
+        .getByRole("link", { name: /Focus boundary fixture/ }),
+    ).toHaveAttribute("href", `/journeys/${id}`);
+    await expect(
+      page.getByRole("link", { name: /Focus boundary fixture/ }),
+    ).toHaveCount(1);
+  }
+
+  await page.route(`${site}/api/v1/journeys/${id}`, (route) =>
+    route.fulfill({
+      json: journey,
+      headers: { "X-Kairn-As-Of": times.past },
+    }),
+  );
+  await page.getByRole("link", { name: /Focus boundary fixture/ }).click();
   await expect(
-    page
-      .getByRole("region", { name: "Recent journeys" })
-      .getByRole("link", { name: /Focus boundary fixture/ }),
-  ).toHaveAttribute("href", `/journeys/${id}`);
-  await expect(
-    page.getByRole("region", { name: "Upcoming" }).getByRole("link"),
-  ).toHaveCount(0);
+    page.getByRole("heading", { name: "Focus boundary fixture" }),
+  ).toBeVisible();
+  await expect(page.getByText("Past journey", { exact: true })).toBeVisible();
+  await expect(page.getByText("Private", { exact: true })).toBeVisible();
 
   await openAccount(page);
   await page.route(
@@ -312,6 +366,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
   await page.getByRole("link", { name: "Create journey" }).click();
   await page.setViewportSize({ width: 320, height: 860 });
   await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add end date" }).click();
   for (const appearance of ["Dark", "Outdoor", "Light"]) {
     await chooseAppearance(page, appearance);
     const width = await page.evaluate(async () => {
@@ -344,6 +399,8 @@ test("renders the form at 320px and keeps a pending save bound to the original a
   const choice = page.getByLabel("Start time occurrence");
   await expect(choice).toBeFocused();
   await choice.selectOption("-05:00");
+  await page.getByLabel("End date", { exact: true }).fill("2027-11-07");
+  await page.getByLabel("End time", { exact: true }).fill("03:15");
 
   const waiting = Promise.withResolvers<string>();
   const release = Promise.withResolvers<void>();
@@ -390,12 +447,31 @@ test("renders the form at 320px and keeps a pending save bound to the original a
     await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
       "Private Coonoor",
     );
+    await expect(page.getByLabel("End date", { exact: true })).toHaveValue(
+      "2027-11-07",
+    );
+    const restoredEndTime = page.getByLabel("End time", { exact: true });
+    await expect(restoredEndTime).toHaveValue("03:15");
+    await expect(restoredEndTime).toBeDisabled();
     await page.getByRole("button", { name: "Retry save" }).click();
     await expect(page).toHaveURL(`${site}/journeys/${id}`);
     await expect(
       page.getByRole("heading", { name: "Private Coonoor" }),
     ).toBeVisible();
     await expect(page.getByText("7 Nov 2027 · 1:30 am")).toBeVisible();
+    const width = await page.evaluate(async () => {
+      document.documentElement.style.fontSize = "200%";
+      await document.fonts.ready;
+      return document.documentElement.scrollWidth;
+    });
+    expect(width).toBeLessThanOrEqual(320);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
   } finally {
     release.resolve();
   }

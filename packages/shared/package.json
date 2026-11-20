@@ -13,6 +13,13 @@
       "development": "./src/journey-form.ts",
       "import": "./dist/journey-form.js"
     },
+    "./journey-intent-copy": {
+      "types": "./src/journey-intent-copy.ts",
+      "react-native": "./src/journey-intent-copy.ts",
+      "browser": "./src/journey-intent-copy.ts",
+      "development": "./src/journey-intent-copy.ts",
+      "import": "./dist/journey-intent-copy.js"
+    },
     "./journey-time": {
       "types": "./src/journey-time.ts",
       "react-native": "./src/journey-time.ts",

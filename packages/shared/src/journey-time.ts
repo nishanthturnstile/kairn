@@ -1,3 +1,25 @@
+import type { JourneySchedule } from "@kairn/contracts";
+
+export const journeyStatusLabels = {
+  active: "Active now",
+  upcoming: "Upcoming",
+  past: "Past journey",
+  openEnded: "Open-ended",
+} as const;
+
+export function journeyScheduleStatus(schedule: JourneySchedule, asOf: number) {
+  if (Date.parse(schedule.intendedStart.instant) > asOf) return "upcoming";
+  if (!schedule.intendedEnd) return "openEnded";
+  return Date.parse(schedule.intendedEnd.instant) < asOf ? "past" : "active";
+}
+
+export function journeyScheduleAsOf(headers: {
+  get(name: string): string | null;
+}) {
+  const instant = Date.parse(headers.get("X-Kairn-As-Of") ?? "");
+  return Number.isFinite(instant) ? instant : Date.now();
+}
+
 const journeyDateFormat = new Intl.DateTimeFormat("en-IN", {
   calendar: "gregory",
   timeZone: "UTC",

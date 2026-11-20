@@ -6,7 +6,11 @@ import {
   journeyDraft,
   validateJourneyDraft,
 } from "../packages/shared/src/journey-form";
-import { formatJourneyLocalMinute } from "../packages/shared/src/journey-time";
+import {
+  formatJourneyLocalMinute,
+  journeyScheduleAsOf,
+  journeyScheduleStatus,
+} from "../packages/shared/src/journey-time";
 
 const input = {
   title: "Coorg",
@@ -50,6 +54,31 @@ describe("journey form", () => {
 });
 
 describe("journey schedule", () => {
+  it("keeps web and native detail status on the server timeline boundaries", () => {
+    const result = resolveJourneySchedule({
+      ...input,
+      intendedEnd: "2026-06-12T10:00",
+    });
+    if (!("schedule" in result) || !result.schedule?.intendedEnd)
+      throw new Error("Expected a dated schedule.");
+    const schedule = result.schedule;
+    const start = Date.parse(schedule.intendedStart.instant);
+    const end = Date.parse(result.schedule.intendedEnd.instant);
+    const asOf = journeyScheduleAsOf({
+      get: (name) =>
+        name === "X-Kairn-As-Of" ? "2026-06-12T04:30:00.001Z" : null,
+    });
+
+    expect(journeyScheduleStatus(schedule, start - 1)).toBe("upcoming");
+    expect(journeyScheduleStatus(schedule, start)).toBe("active");
+    expect(journeyScheduleStatus(schedule, end)).toBe("active");
+    expect(asOf).toBe(end + 1);
+    expect(journeyScheduleStatus(schedule, asOf)).toBe("past");
+    const openEnded = { ...schedule, intendedEnd: null };
+    expect(journeyScheduleStatus(openEnded, start - 1)).toBe("upcoming");
+    expect(journeyScheduleStatus(openEnded, asOf)).toBe("openEnded");
+  });
+
   it.each([
     ["UTC", "2026-06-12T09:00", "+00:00:00", "2026-06-12T09:00:00Z", "+00:00"],
     [

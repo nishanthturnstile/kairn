@@ -19,6 +19,8 @@ import {
   type VerifiedMobileScope,
 } from "./session";
 
+import { dashboardKey, onboardingKey, profileKey } from "./workspace-keys";
+
 const client = mobileAuth;
 const store = createMobileSession(
   client && authOrigin
@@ -88,9 +90,20 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
           void recheck()
             .then(async () => {
               if (!active.signal.aborted)
-                await active.queryClient.invalidateQueries({
-                  queryKey: ["journeys"],
-                });
+                await Promise.all([
+                  active.queryClient.invalidateQueries({
+                    queryKey: ["journeys"],
+                  }),
+                  active.queryClient.invalidateQueries({
+                    queryKey: dashboardKey,
+                  }),
+                  active.queryClient.invalidateQueries({
+                    queryKey: onboardingKey,
+                  }),
+                  active.queryClient.invalidateQueries({
+                    queryKey: profileKey,
+                  }),
+                ]);
             })
             .finally(() => {
               if (finish()) setRevalidating(false);
@@ -102,16 +115,19 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [recheck]);
 
-  function refresh(rejectedScope?: MobileAccountScope) {
-    if (
-      signingOut.current ||
-      (rejectedScope && rejectedScope !== store.getSnapshot())
-    )
-      return;
-    setChecking(true);
-    store.setVerifiedAccount(null);
-    void recheck().finally(() => setChecking(false));
-  }
+  const refresh = useCallback(
+    (rejectedScope?: MobileAccountScope) => {
+      if (
+        signingOut.current ||
+        (rejectedScope && rejectedScope !== store.getSnapshot())
+      )
+        return;
+      setChecking(true);
+      store.setVerifiedAccount(null);
+      void recheck().finally(() => setChecking(false));
+    },
+    [recheck],
+  );
 
   async function signOut() {
     if (!client || signingOut.current) return false;

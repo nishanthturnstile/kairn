@@ -39,13 +39,26 @@ export const createdJourney = z
   .object({ id: z.uuid() })
   .meta({ id: "CreatedJourneyV1" });
 
-export const historySection = z.enum(["upcoming", "recent"]);
+export const journeyTimelineSections = [
+  "active",
+  "upcoming",
+  "past",
+  "incomplete",
+] as const;
+export type JourneyTimelineSection = (typeof journeyTimelineSections)[number];
+
+export const historySection = z.enum([...journeyTimelineSections, "recent"]);
 export const journeyHistoryQuery = cursorQuery
   .pick({ cursor: true })
-  .extend({ section: historySection.optional() })
+  .extend({
+    section: historySection.optional(),
+    view: z.literal("timeline").optional(),
+  })
   .strict()
   .refine(
-    ({ section, cursor }) => (section === undefined) === (cursor === undefined),
+    ({ section, cursor, view }) =>
+      (section === undefined) === (cursor === undefined) &&
+      (view === undefined || cursor === undefined),
     {
       path: ["cursor"],
     },
@@ -93,6 +106,17 @@ const initialJourneyHistory = z
     recent: historyPage,
   })
   .meta({ id: "InitialJourneyHistoryV1" });
+const journeyTimeline = z
+  .object({
+    asOf: z.iso.datetime(),
+    timeline: z.object({
+      active: historyPage,
+      upcoming: historyPage,
+      past: historyPage,
+      incomplete: historyPage,
+    }),
+  })
+  .meta({ id: "JourneyTimelineV1" });
 const continuedJourneyHistory = z
   .object({
     asOf: z.iso.datetime(),
@@ -102,6 +126,7 @@ const continuedJourneyHistory = z
   .meta({ id: "ContinuedJourneyHistoryV1" });
 export const journeyHistory = z.union([
   initialJourneyHistory,
+  journeyTimeline,
   continuedJourneyHistory,
 ]);
 

@@ -59,7 +59,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Omit section and cursor for initial history. Supply both to continue one section. */
+        /** @description Omit section and cursor for initial history. Use view=timeline to group journeys by schedule. Supply section and cursor to continue one section. */
         get: operations["listJourneys"];
         put?: never;
         post: operations["createJourney"];
@@ -281,11 +281,21 @@ export interface components {
             } | null;
             capabilities: ("administrator" | "coauthor" | "publisher")[];
         };
+        JourneyTimelineV1: {
+            /** Format: date-time */
+            asOf: string;
+            timeline: {
+                active: components["schemas"]["JourneyHistoryPageV1"];
+                upcoming: components["schemas"]["JourneyHistoryPageV1"];
+                past: components["schemas"]["JourneyHistoryPageV1"];
+                incomplete: components["schemas"]["JourneyHistoryPageV1"];
+            };
+        };
         ContinuedJourneyHistoryV1: {
             /** Format: date-time */
             asOf: string;
             /** @enum {string} */
-            section: "upcoming" | "recent";
+            section: "active" | "upcoming" | "past" | "incomplete" | "recent";
             page: components["schemas"]["JourneyHistoryPageV1"];
         };
         OnboardingProgressV1: {
@@ -462,7 +472,8 @@ export interface operations {
         parameters: {
             query?: {
                 cursor?: string;
-                section?: "upcoming" | "recent";
+                section?: "active" | "upcoming" | "past" | "incomplete" | "recent";
+                view?: "timeline";
             };
             header?: {
                 "x-expected-account"?: string;
@@ -481,7 +492,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InitialJourneyHistoryV1"] | components["schemas"]["ContinuedJourneyHistoryV1"];
+                    "application/json": components["schemas"]["InitialJourneyHistoryV1"] | components["schemas"]["JourneyTimelineV1"] | components["schemas"]["ContinuedJourneyHistoryV1"];
                 };
             };
             /** @description Invalid input. Issues identify fields and safe validation codes. */
@@ -729,6 +740,8 @@ export interface operations {
                     /** @description Server-generated request ID */
                     "X-Request-Id": string;
                     "Cache-Control": "private, no-store";
+                    /** @description Server time used to evaluate the journey schedule. */
+                    "X-Kairn-As-Of": string;
                     [name: string]: unknown;
                 };
                 content: {

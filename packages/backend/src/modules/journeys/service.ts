@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import type { DatabaseTransaction } from "../../db/index.js";
 import type { createAuth, VerifiedSession } from "../identity/auth.js";
 import {
@@ -20,7 +20,11 @@ type CreateInput = Parameters<typeof resolveJourneySchedule>[0] & {
   title: string;
   intendedEnd: string | null;
 };
-type HistoryQuery = { section?: HistorySection; cursor?: string };
+type HistoryQuery = {
+  section?: HistorySection;
+  cursor?: string;
+  view?: "timeline";
+};
 
 const pageSize = 25;
 
@@ -156,6 +160,23 @@ function afterCursor(cursor?: HistoryCursor) {
   );
 }
 
+function historyWindow(section: HistorySection, asOf: Date) {
+  const start = journeys.intendedStartAt;
+  const end = journeys.intendedEndAt;
+  switch (section) {
+    case "upcoming":
+      return gt(start, asOf);
+    case "recent":
+      return or(lte(start, asOf), isNull(start));
+    case "active":
+      return and(lte(start, asOf), gte(end, asOf));
+    case "past":
+      return lt(end, asOf);
+    case "incomplete":
+      return or(isNull(start), and(lte(start, asOf), isNull(end)));
+  }
+}
+
 async function createPrivateJourney(
   tx: DatabaseTransaction,
   accountId: string,
@@ -240,16 +261,8 @@ export function createJourneyService(
     cursor?: HistoryCursor,
   ) {
     const start = journeys.intendedStartAt;
-    const asOfDate = new Date(asOf);
     const rows = await selectMemberJourneys(tx, accountId)
-      .where(
-        and(
-          section === "upcoming"
-            ? gt(start, asOfDate)
-            : or(lte(start, asOfDate), isNull(start)),
-          afterCursor(cursor),
-        ),
-      )
+      .where(and(historyWindow(section, new Date(asOf)), afterCursor(cursor)))
       .orderBy(
         ...(section === "upcoming"
           ? [asc(start)]
@@ -393,6 +406,25 @@ export function createJourneyService(
           } as const;
         }
         const asOf = now().toISOString();
+        if (query.view === "timeline") {
+          return {
+            status: 200,
+            history: {
+              asOf,
+              timeline: {
+                active: await historyPage(tx, accountId, asOf, "active"),
+                upcoming: await historyPage(tx, accountId, asOf, "upcoming"),
+                past: await historyPage(tx, accountId, asOf, "past"),
+                incomplete: await historyPage(
+                  tx,
+                  accountId,
+                  asOf,
+                  "incomplete",
+                ),
+              },
+            },
+          } as const;
+        }
         const upcoming = await historyPage(tx, accountId, asOf, "upcoming");
         const recent = await historyPage(tx, accountId, asOf, "recent");
         return { status: 200, history: { asOf, upcoming, recent } } as const;
@@ -402,7 +434,7 @@ export function createJourneyService(
       return withJourneyScope(session, async (tx, accountId) => {
         const journey = await findJourney(tx, accountId, journeyId);
         return journey
-          ? ({ status: 200, journey } as const)
+          ? ({ status: 200, journey, asOf: now().toISOString() } as const)
           : ({ status: 404 } as const);
       });
     },

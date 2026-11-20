@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import type { journeyReturnTo } from "../../lib/journey-return";
 import { useSessionAccess } from "../../lib/session-access";
@@ -80,8 +81,11 @@ export function JourneyGate({
 
 export function JourneyBackLink() {
   return (
-    <Button asChild variant="outline" className="justify-self-start">
-      <Link to="/journeys">Back to Journeys</Link>
+    <Button asChild variant="ghost" size="sm" className="justify-self-start">
+      <Link to="/journeys">
+        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+        Back to Journeys
+      </Link>
     </Button>
   );
 }

@@ -1,7 +1,7 @@
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from "@react-native-community/datetimepicker";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Keyboard, Platform, View } from "react-native";
 import { useUnistyles } from "react-native-unistyles";
 import { Action } from "../ui";
@@ -12,12 +12,16 @@ export function SchedulePicker({
   label,
   value,
   disabled,
+  compact,
+  renderField,
   onChange,
 }: {
   mode: "date" | "time";
   label: string;
   value: string;
   disabled: boolean;
+  compact: boolean;
+  renderField: (trigger?: ReactNode) => ReactNode;
   onChange: (value: string) => void;
 }) {
   const { rt } = useUnistyles();
@@ -51,28 +55,44 @@ export function SchedulePicker({
     }
   }
 
-  if (Platform.OS === "ios" && selection && !disabled) {
-    return (
-      <View style={journeyStyles.group}>
-        <DateTimePicker
-          mode={mode}
-          display="spinner"
-          value={selection}
-          timeZoneName="UTC"
-          themeVariant={rt.themeName === "dark" ? "dark" : "light"}
-          onValueChange={(_, date) => setSelection(date)}
-        />
-        <Action
-          label={mode === "date" ? "Use date" : "Use time"}
-          variant="primary"
-          onPress={() => {
-            commit(selection);
-            setSelection(null);
-          }}
-        />
-        <Action label="Cancel" onPress={() => setSelection(null)} />
-      </View>
-    );
-  }
-  return <Action label={label} disabled={disabled} onPress={open} />;
+  const expanded = Platform.OS === "ios" && !!selection && !disabled;
+  const trigger = disabled ? undefined : (
+    <Action
+      label={compact ? "Pick" : label}
+      accessibilityLabel={label}
+      accessibilityState={Platform.OS === "ios" ? { expanded } : undefined}
+      variant="text"
+      onPress={() => {
+        if (expanded) setSelection(null);
+        else open();
+      }}
+    />
+  );
+  return (
+    <View style={journeyStyles.group}>
+      {renderField(compact ? trigger : undefined)}
+      {!compact && trigger}
+      {expanded && selection && (
+        <>
+          <DateTimePicker
+            mode={mode}
+            display="spinner"
+            value={selection}
+            timeZoneName="UTC"
+            themeVariant={rt.themeName === "dark" ? "dark" : "light"}
+            onValueChange={(_, date) => setSelection(date)}
+          />
+          <Action
+            label={mode === "date" ? "Use date" : "Use time"}
+            variant="primary"
+            onPress={() => {
+              commit(selection);
+              setSelection(null);
+            }}
+          />
+          <Action label="Cancel" onPress={() => setSelection(null)} />
+        </>
+      )}
+    </View>
+  );
 }

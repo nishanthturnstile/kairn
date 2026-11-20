@@ -57,7 +57,7 @@ export interface JourneyOperations {
     session: VerifiedSession,
     journeyId: string,
   ): Promise<
-    | { status: 200; journey: PrivateJourney }
+    | { status: 200; journey: PrivateJourney; asOf: string }
     | { status: 401 | 404 }
     | Unavailable
   >;
@@ -234,7 +234,7 @@ export function createJourneysApi(operations?: JourneyOperations) {
       path: journeysPath,
       operationId: "listJourneys",
       description:
-        "Omit section and cursor for initial history. Supply both to continue one section.",
+        "Omit section and cursor for initial history. Use view=timeline to group journeys by schedule. Supply section and cursor to continue one section.",
       middleware: [protect, authenticate] as const,
       request: { headers: journeyHeaders, query: journeyHistoryQuery },
       responses: {
@@ -273,7 +273,14 @@ export function createJourneysApi(operations?: JourneyOperations) {
         200: {
           description:
             "Private metadata for a journey the caller is a current member of.",
-          headers: privateHeaders,
+          headers: {
+            ...privateHeaders,
+            "X-Kairn-As-Of": {
+              description: "Server time used to evaluate the journey schedule.",
+              required: true,
+              schema: { type: "string", format: "date-time" },
+            },
+          },
           content: { "application/json": { schema: privateJourney } },
         },
       },
@@ -285,6 +292,7 @@ export function createJourneysApi(operations?: JourneyOperations) {
         context.req.valid("param").journeyId,
       );
       if (result.status !== 200) return problem(context, result.status);
+      context.header("X-Kairn-As-Of", result.asOf);
       return context.json(privateJourney.parse(result.journey), 200);
     },
   );

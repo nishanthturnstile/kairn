@@ -11,6 +11,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { AppText, focusOutline, touchTarget } from "./ui";
 
 const icons: Record<string, ImageSourcePropType> = {
+  dashboard: require("../../assets/icons/dashboard.png"),
   journeys: require("../../assets/icons/book-open.png"),
   discover: require("../../assets/icons/compass.png"),
   saved: require("../../assets/icons/bookmark.png"),
@@ -25,39 +26,49 @@ export function DestinationTabs({
 }: BottomTabBarProps) {
   const { fontScale } = useWindowDimensions();
   const stacked = fontScale >= 1.5;
+  const rows =
+    fontScale >= 2.6
+      ? state.routes.map((route) => [route])
+      : stacked
+        ? [state.routes.slice(0, 2), state.routes.slice(2)]
+        : [state.routes];
+
   return (
     <View
       role="tablist"
-      style={[
-        styles.bar(insets.left, insets.right, insets.bottom),
-        stacked && styles.stackedBar,
-      ]}
+      style={styles.bar(insets.left, insets.right, insets.bottom)}
     >
-      {state.routes.map((route, index) => {
-        const selected = state.index === index;
-        const { options } = descriptors[route.key];
-        return (
-          <DestinationTab
-            key={route.key}
-            label={options.title ?? route.name}
-            icon={icons[route.name]}
-            selected={selected}
-            stacked={stacked}
-            onPress={() => {
-              const event = emitter.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!selected && !event.defaultPrevented)
-                navigateToTab(route.key);
-            }}
-            onLongPress={() => {
-              emitter.emit({ type: "tabLongPress", target: route.key });
-            }}
-          />
-        );
-      })}
+      {rows
+        .filter((row) => row.length > 0)
+        .map((row) => (
+          <View key={row[0].key} style={styles.tabRow}>
+            {row.map((route) => {
+              const selected = state.routes[state.index]?.key === route.key;
+              const { options } = descriptors[route.key];
+              return (
+                <DestinationTab
+                  key={route.key}
+                  label={options.title ?? route.name}
+                  icon={icons[route.name]}
+                  selected={selected}
+                  stacked={stacked}
+                  onPress={() => {
+                    const event = emitter.emit({
+                      type: "tabPress",
+                      target: route.key,
+                      canPreventDefault: true,
+                    });
+                    if (!selected && !event.defaultPrevented)
+                      navigateToTab(route.key);
+                  }}
+                  onLongPress={() => {
+                    emitter.emit({ type: "tabLongPress", target: route.key });
+                  }}
+                />
+              );
+            })}
+          </View>
+        ))}
     </View>
   );
 }
@@ -89,17 +100,18 @@ function DestinationTab({
       onBlur={() => setFocused(false)}
       style={({ pressed }) => [
         styles.tab,
-        stacked && styles.stackedTab,
         selected && styles.selected,
         pressed && styles.pressed,
         focused && styles.focused,
       ]}
     >
-      <Image
-        accessible={false}
-        source={icon}
-        style={[styles.icon, selected && styles.selectedIcon]}
-      />
+      {!stacked && (
+        <Image
+          accessible={false}
+          source={icon}
+          style={[styles.icon, selected && styles.selectedIcon]}
+        />
+      )}
       <AppText
         text={label}
         variant="caption"
@@ -116,7 +128,6 @@ function DestinationTab({
 const styles = StyleSheet.create(
   ({ semantic: { border, color, icon, radius, space } }) => ({
     bar: (left: number, right: number, bottom: number) => ({
-      flexDirection: "row",
       backgroundColor: color.surface,
       borderTopColor: color.boundary,
       borderTopWidth: border.control,
@@ -126,7 +137,7 @@ const styles = StyleSheet.create(
       paddingLeft: left + space.step12,
       paddingRight: right + space.step12,
     }),
-    stackedBar: { flexDirection: "column" },
+    tabRow: { flexDirection: "row", gap: space.step8 },
     tab: {
       flex: 1,
       minWidth: touchTarget,
@@ -140,13 +151,6 @@ const styles = StyleSheet.create(
       borderRadius: radius.control,
       borderColor: color.surface,
     },
-    stackedTab: {
-      flex: 0,
-      flexDirection: "row",
-      justifyContent: "flex-start",
-      gap: space.step12,
-      paddingHorizontal: space.step12,
-    },
     pressed: {
       backgroundColor: color.actionWash,
       borderColor: color.information,
@@ -154,7 +158,7 @@ const styles = StyleSheet.create(
     selected: { backgroundColor: color.actionWash, borderColor: color.action },
     focused: { ...focusOutline(color.information) },
     label: { color: color.secondaryText, textAlign: "center" },
-    stackedLabel: { flexShrink: 1, textAlign: "auto" },
+    stackedLabel: { flexShrink: 1 },
     selectedLabel: { color: color.action },
     icon: {
       width: icon.size,

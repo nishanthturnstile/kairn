@@ -117,7 +117,7 @@ export function Action({
   ...props
 }: Omit<PressableProps, "style" | "children"> & {
   label: string;
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "danger" | "text";
   ref?: Ref<ComponentRef<typeof Pressable>>;
 }) {
   const [focused, setFocused] = useState(false);
@@ -125,6 +125,7 @@ export function Action({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       {...props}
       accessibilityState={{ ...accessibilityState, disabled }}
       disabled={disabled}
@@ -134,7 +135,7 @@ export function Action({
         styles.action,
         styles[variant],
         pressed && styles.pressed,
-        disabled && styles.disabled,
+        disabled && variant !== "text" && styles.disabled,
         focused && styles.focused,
       ]}
     >
@@ -157,36 +158,60 @@ export function Action({
 export function Field({
   label,
   error,
+  labelAction,
+  suffix,
   ...props
 }: TextInputProps & {
   label: string;
   error?: string;
+  labelAction?: ReactNode;
+  suffix?: ReactNode;
   ref?: Ref<ComponentRef<typeof TextInput>>;
 }) {
   const [focused, setFocused] = useState(false);
   const { theme, rt } = useUnistyles();
   const { color } = theme.semantic;
 
+  const inputSurface = [
+    styles.inputSurface,
+    error && styles.invalid,
+    focused && styles.focused,
+  ];
+  const input = (
+    <TextInput
+      {...props}
+      accessibilityLabel={label}
+      accessibilityHint={error ?? props.accessibilityHint}
+      keyboardAppearance={rt.themeName === "dark" ? "dark" : "light"}
+      placeholderTextColor={props.placeholderTextColor ?? color.secondaryText}
+      selectionColor={Platform.OS === "ios" ? color.action : color.actionWash}
+      cursorColor={color.action}
+      selectionHandleColor={color.action}
+      underlineColorAndroid="transparent"
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.input, suffix ? styles.inlineInput : inputSurface]}
+    />
+  );
+
   return (
     <View style={styles.field}>
-      <AppText text={label} variant="label" />
-      <TextInput
-        {...props}
-        accessibilityLabel={label}
-        accessibilityHint={error ?? props.accessibilityHint}
-        keyboardAppearance={rt.themeName === "dark" ? "dark" : "light"}
-        selectionColor={Platform.OS === "ios" ? color.action : color.actionWash}
-        cursorColor={color.action}
-        selectionHandleColor={color.action}
-        underlineColorAndroid="transparent"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[
-          styles.input,
-          error && styles.invalid,
-          focused && styles.focused,
-        ]}
-      />
+      {labelAction ? (
+        <View style={styles.fieldLabelRow}>
+          <AppText text={label} variant="label" />
+          {labelAction}
+        </View>
+      ) : (
+        <AppText text={label} variant="label" />
+      )}
+      {suffix ? (
+        <View style={[inputSurface, styles.inputRow]}>
+          {input}
+          {suffix}
+        </View>
+      ) : (
+        input
+      )}
       {error && <AppText text={error} style={styles.error} />}
     </View>
   );
@@ -277,6 +302,12 @@ const styles = StyleSheet.create(
     secondaryLabel: { color: color.action },
     danger: { backgroundColor: color.surface, borderColor: color.error },
     dangerLabel: { color: color.error },
+    text: {
+      alignSelf: "flex-start",
+      borderColor: "transparent",
+      paddingHorizontal: 0,
+    },
+    textLabel: { color: color.action, textDecorationLine: "underline" },
     pressed: { backgroundColor: color.actionWash },
     disabled: {
       backgroundColor: color.canvas,
@@ -285,15 +316,30 @@ const styles = StyleSheet.create(
     focused: { ...focusOutline(color.information) },
     invalid: { borderColor: color.error },
     field: { gap: space.step8 },
+    fieldLabelRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "center",
+      columnGap: space.step12,
+    },
+    inputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingRight: space.step4,
+    },
+    inlineInput: { flex: 1, minWidth: 0 },
+    inputSurface: {
+      backgroundColor: color.surface,
+      borderColor: color.boundary,
+      borderWidth: border.control,
+      borderRadius: radius.control,
+    },
     input: {
       ...fonts.body,
       minHeight: touchTarget,
       fontSize: fontSize.body,
       color: color.ink,
-      backgroundColor: color.surface,
-      borderColor: color.boundary,
-      borderWidth: border.control,
-      borderRadius: radius.control,
       paddingVertical: space.step8,
       paddingHorizontal: space.step12,
     },

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const historyCursor = z.object({
   version: z.literal(1),
-  section: z.enum(["upcoming", "recent"]),
+  section: z.enum(["upcoming", "recent", "active", "past", "incomplete"]),
   asOf: z.iso.datetime(),
   at: z.iso.datetime(),
   journeyId: z.uuid(),
