@@ -7,7 +7,7 @@ import {
   freshSessionMiddleware,
   sensitiveSessionMiddleware,
 } from "better-auth/api";
-import { and, count, eq, exists, gt, isNull, like } from "drizzle-orm";
+import { and, count, eq, exists, gt, isNull, like, sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
@@ -74,6 +74,7 @@ interface AuthConfiguration {
   boss: PgBoss;
   mailKey?: string;
   journal?: RestrictionJournal;
+  onboardingStartsAt?: Date;
 }
 
 export interface VerifiedSession {
@@ -200,6 +201,12 @@ export function createAuth(db: Database, config: AuthConfiguration) {
           () => {
             mailFailed = true;
           },
+          path === "/sign-in/email"
+            ? {
+                supportsOnboarding:
+                  request.headers.get("x-kairn-onboarding") === "1",
+              }
+            : undefined,
         );
         const response = await auth.handler(request);
         if (mailFailed) {
@@ -276,6 +283,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
     tx: DatabaseTransaction,
     onRestriction: (event: IdentityRestriction) => void,
     onMailFailure: () => void,
+    signIn?: { supportsOnboarding: boolean },
   ) {
     const saveLink = async (
       kind: "verify" | "reset",
@@ -457,6 +465,18 @@ export function createAuth(db: Database, config: AuthConfiguration) {
         autoSignInAfterVerification: false,
         sendVerificationEmail: async ({ user, url, token }) =>
           saveLink("verify", user, { url, token }),
+        beforeEmailVerification: async (user) => {
+          await identityAccount(tx, user.id);
+        },
+        afterEmailVerification: async (user) => {
+          await scopeIdentity(tx, user.id);
+          await tx
+            .update(accounts)
+            .set({ firstVerifiedAt: sql`clock_timestamp()` })
+            .where(
+              and(eq(accounts.id, user.id), isNull(accounts.firstVerifiedAt)),
+            );
+        },
       },
       databaseHooks: {
         user: {
@@ -473,7 +493,24 @@ export function createAuth(db: Database, config: AuthConfiguration) {
         session: {
           create: {
             before: async (session) => {
-              await requireActiveIdentity(tx, session.userId);
+              const account = await requireActiveIdentity(tx, session.userId);
+              const cutoff = config.onboardingStartsAt;
+              if (
+                signIn &&
+                cutoff &&
+                new Date() >= cutoff &&
+                account.onboardingStep === null
+              ) {
+                const eligible =
+                  account.firstVerifiedAt && account.firstVerifiedAt >= cutoff;
+                await tx
+                  .update(accounts)
+                  .set({
+                    onboardingStep:
+                      eligible && signIn.supportsOnboarding ? 1 : 0,
+                  })
+                  .where(eq(accounts.id, session.userId));
+              }
             },
           },
         },
@@ -571,6 +608,7 @@ async function requireActiveIdentity(tx: DatabaseTransaction, id: string) {
     throw new APIError("FORBIDDEN", {
       message: "Account access is unavailable.",
     });
+  return account;
 }
 
 async function identitySessionIsCurrent(

@@ -1,6 +1,6 @@
 import { journeyPath } from "@kairn/contracts/journeys";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { JourneyDate } from "../components/journeys/dates";
 import {
   JourneyBackLink,
@@ -10,6 +10,7 @@ import {
 } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 import { historyKey, journeyResult } from "../lib/journey-api";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
@@ -37,7 +38,12 @@ function UnavailableJourney() {
       <Alert>
         <AlertTitle>This journey is unavailable</AlertTitle>
       </Alert>
-      <JourneyBackLink />
+      <div className="flex flex-wrap gap-2">
+        <JourneyBackLink />
+        <Button asChild variant="ghost">
+          <Link to="/dashboard">Go to Dashboard</Link>
+        </Button>
+      </div>
     </section>
   );
 }

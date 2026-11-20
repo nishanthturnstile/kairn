@@ -85,6 +85,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOnboarding"];
+        put?: never;
+        post: operations["confirmOnboardingStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAccountProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAccountProfile"];
+        trace?: never;
+    };
+    "/api/v1/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -169,7 +217,7 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
+            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "checkpoint_changed" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
             /** Format: uuid */
             requestId: string;
             issues?: ({
@@ -239,6 +287,67 @@ export interface components {
             /** @enum {string} */
             section: "upcoming" | "recent";
             page: components["schemas"]["JourneyHistoryPageV1"];
+        };
+        OnboardingProgressV1: {
+            /** @enum {string} */
+            state: "pending";
+            step: 1 | 2;
+        } | {
+            /** @enum {string} */
+            state: "completed";
+            /** @enum {string} */
+            intent?: "plan" | "record";
+        } | {
+            /** @enum {string} */
+            state: "exempt";
+        };
+        AdvanceOnboardingV1: {
+            /** @enum {number} */
+            step: 1;
+        } | {
+            /** @enum {number} */
+            step: 2;
+            /** @enum {string} */
+            intent?: "plan" | "record";
+        } | {
+            /** @enum {number} */
+            step: 3;
+        };
+        AccountProfileV1: {
+            displayName: string;
+        };
+        UpdateProfileV1: {
+            displayName: string;
+        };
+        DashboardSummaryV1: {
+            /** Format: date-time */
+            asOf: string;
+            journeyCount: number;
+            upcomingCount: number;
+            nextJourney: components["schemas"]["DashboardJourneyV1"] | null;
+            recentJourneys: components["schemas"]["DashboardJourneyV1"][];
+        };
+        DashboardJourneyV1: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** @enum {string} */
+            state: "draft" | "archived";
+            schedule: {
+                timeZone: string;
+                intendedStart: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                };
+                intendedEnd: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                } | null;
+            } | null;
         };
     };
     responses: never;
@@ -687,6 +796,451 @@ export interface operations {
                 };
             };
             /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getOnboarding: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified account’s current onboarding checkpoint. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingProgressV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    confirmOnboardingStep: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvanceOnboardingV1"];
+            };
+        };
+        responses: {
+            /** @description The verified account’s current onboarding checkpoint. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingProgressV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds 1024 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getAccountProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current account’s display profile. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfileV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    updateAccountProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileV1"];
+            };
+        };
+        responses: {
+            /** @description The current account’s display profile. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountProfileV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds 1024 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded overview of the verified account’s journeys. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardSummaryV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
             503: {
                 headers: {
                     /** @description Server-generated request ID */

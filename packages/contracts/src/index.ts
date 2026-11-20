@@ -4,6 +4,8 @@ import type { paths } from "./generated/api.js";
 export type { components, paths } from "./generated/api.js";
 export type {
   CreateJourney,
+  DashboardJourney,
+  DashboardSummary,
   JourneyHistory,
   JourneyHistoryQuery,
   JourneyInputField,
@@ -16,4 +18,10 @@ export type { ReaderStory } from "./reader.js";
 export function createApiClient(options?: ClientOptions): Client<paths> {
   return createClient<paths>(options);
 }
-export type { IdentityDevices, RestrictionConfirmation } from "./identity.js";
+export type {
+  AdvanceOnboarding,
+  IdentityDevices,
+  OnboardingIntent,
+  OnboardingProgress,
+  RestrictionConfirmation,
+} from "./identity.js";

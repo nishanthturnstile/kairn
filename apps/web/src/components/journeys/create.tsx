@@ -1,3 +1,4 @@
+import type { OnboardingIntent } from "@kairn/contracts";
 import {
   canReleaseJourneyAttempt,
   type FieldErrors,
@@ -42,6 +43,7 @@ const zones = new Set(["UTC", ...(Intl.supportedValuesOf?.("timeZone") ?? [])]);
 interface CreatePageProps {
   scope: AccountScope;
   accountId: string;
+  intent?: OnboardingIntent;
   openJourney: (journeyId: string) => void;
 }
 
@@ -55,7 +57,16 @@ export function CreateJourneyPage(props: CreatePageProps) {
   return (
     <section className="grid max-w-xl gap-6 sm:gap-8">
       <JourneyBackLink />
-      <PageHeading title="Create journey" />
+      <PageHeading
+        title="Create journey"
+        description={
+          props.intent === "plan"
+            ? "Enter your planned start in the trip’s local time. You can leave the end date open."
+            : props.intent === "record"
+              ? "Use the start date and local time from the trip you took. Add the end if you know it."
+              : undefined
+        }
+      />
       {pending.isError ? (
         <JourneyRetry
           title="Couldn’t recover your saved attempt"
@@ -304,9 +315,19 @@ function JourneyForm({
         )
       )}
       {saving && <output className="sr-only">Saving…</output>}
-      <Button type="submit" className="justify-self-start" disabled={saving}>
-        {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
-      </Button>
+      <div className="grid gap-2">
+        <p id="journey-visibility" className="text-sm text-muted-foreground">
+          Only you can see this journey when you save it.
+        </p>
+        <Button
+          type="submit"
+          className="justify-self-start"
+          disabled={saving}
+          aria-describedby="journey-visibility"
+        >
+          {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
+        </Button>
+      </div>
     </form>
   );
 }

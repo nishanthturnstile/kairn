@@ -3,6 +3,7 @@ import * as schemas from "@kairn/contracts/schemas";
 import { createJourneysApi, type JourneyOperations } from "./journeys.js";
 import { errorResponse, requestIdHeader } from "./openapi.js";
 import { problem, type RequestEnvironment } from "./problem.js";
+import { createWorkspaceApi, type WorkspaceOperations } from "./workspace.js";
 
 const documentOptions = {
   openapi: "3.1.0",
@@ -56,6 +57,7 @@ const protocolRoute = createRoute({
 export function createV1Api(
   checkReadiness: () => Promise<void>,
   journeys?: JourneyOperations,
+  workspace?: WorkspaceOperations,
 ) {
   const api = new OpenAPIHono<RequestEnvironment>({
     defaultHook: (result, context) => {
@@ -106,7 +108,9 @@ export function createV1Api(
     );
   });
 
-  return api.route("/", createJourneysApi(journeys));
+  return api
+    .route("/", createJourneysApi(journeys))
+    .route("/", createWorkspaceApi(workspace));
 }
 
 export function getOpenApiDocument(api: ReturnType<typeof createV1Api>) {

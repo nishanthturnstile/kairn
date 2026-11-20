@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
 
 const password = "Synthetic-journeys-browser-password";
@@ -47,6 +48,12 @@ async function signIn(page: Page, email: string) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
+async function openSignedInAccount(page: Page, email: string) {
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await expect(page.getByText(email)).toBeVisible();
+}
+
 async function fillJourney(
   page: Page,
   title: string,
@@ -74,7 +81,7 @@ test("creates and reopens one journey after the committed reply is lost", async 
 }) => {
   test.setTimeout(80_000);
   await page.goto(`${site}/journeys`);
-  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   const email = await verifiedEmail(page, true);
   await page.route(endpoint, (route) => route.abort("failed"), { times: 1 });
   await signIn(page, email);
@@ -173,7 +180,6 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect(page.getByRole("link", { name: /Coorg trip/ })).toBeVisible();
   await signOut(page);
   await page.goto(`${site}/journeys/${id}`);
-  await page.getByRole("link", { name: "Sign in", exact: true }).click();
   await signIn(page, email);
   await expect(page).toHaveURL(`${site}/journeys/${id}`);
   await expect(page.getByRole("heading", { name: "Coorg trip" })).toBeVisible();
@@ -222,7 +228,7 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
   const email = await verifiedEmail(page);
   await page.goto(`${site}/account`);
   await signIn(page, email);
-  await expect(page.getByText(email)).toBeVisible();
+  await openSignedInAccount(page, email);
 
   const created = await page.request.post(`${site}/api/v1/journeys`, {
     headers: { Origin: site, "Idempotency-Key": randomUUID() },
@@ -286,9 +292,9 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
   await expect(page.getByText("Couldn’t sign out. Try again.")).toBeVisible();
   await expect(page.getByText(email)).toBeVisible();
   await signOut(page);
-  await page.getByRole("link", { name: "Journeys", exact: true }).click();
+  await page.goto(`${site}/journeys`);
   await expect(
-    page.getByRole("link", { name: "Sign in", exact: true }),
+    page.getByRole("button", { name: "Sign in", exact: true }),
   ).toBeVisible();
 });
 
@@ -300,7 +306,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
   const accountB = await verifiedEmail(page);
   await page.goto(`${site}/account`);
   await signIn(page, accountA);
-  await expect(page.getByText(accountA)).toBeVisible();
+  await openSignedInAccount(page, accountA);
   await page
     .getByRole("navigation", { name: "Main" })
     .getByRole("link", { name: "Journeys" })
@@ -309,9 +315,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
   await page.setViewportSize({ width: 320, height: 860 });
   await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
   for (const appearance of ["Dark", "Outdoor", "Light"]) {
-    await page
-      .getByRole("combobox", { name: "Appearance" })
-      .selectOption({ label: appearance });
+    await chooseAppearance(page, appearance);
     const width = await page.evaluate(async () => {
       document.documentElement.style.fontSize = "200%";
       await document.fonts.ready;
@@ -361,7 +365,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
     const id = await waiting.promise;
     await signOut(page);
     await signIn(page, accountB);
-    await expect(page.getByText(accountB)).toBeVisible();
+    await openSignedInAccount(page, accountB);
     const accountDestination = page.url();
     release.resolve();
     await released.promise;
@@ -383,7 +387,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
 
     await signOut(page);
     await signIn(page, accountA);
-    await expect(page.getByText(accountA)).toBeVisible();
+    await openSignedInAccount(page, accountA);
     await page.goto(`${site}/journeys/new`);
     await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
       "Private Coonoor",

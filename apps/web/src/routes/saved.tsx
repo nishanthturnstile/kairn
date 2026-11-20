@@ -10,6 +10,7 @@ function Saved() {
       title="Saved"
       description="Stories and research you want to return to."
       accountRequired={scope.accountId === null}
+      returnTo="/saved"
       emptyTitle="Nothing saved yet"
       emptyDescription="Journeys you save from Discover will appear here."
     />

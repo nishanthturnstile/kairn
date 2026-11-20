@@ -24,6 +24,14 @@ type HistoryQuery = { section?: HistorySection; cursor?: string };
 
 const pageSize = 25;
 
+function activeMembership(accountId: string) {
+  return and(
+    eq(journeyMemberships.journeyId, journeys.id),
+    eq(journeyMemberships.accountId, accountId),
+    isNull(journeyMemberships.revokedAt),
+  );
+}
+
 function selectMemberJourneys(tx: DatabaseTransaction, accountId: string) {
   return tx
     .select({
@@ -52,14 +60,7 @@ function selectMemberJourneys(tx: DatabaseTransaction, accountId: string) {
       )`,
     })
     .from(journeys)
-    .innerJoin(
-      journeyMemberships,
-      and(
-        eq(journeyMemberships.journeyId, journeys.id),
-        eq(journeyMemberships.accountId, accountId),
-        isNull(journeyMemberships.revokedAt),
-      ),
-    );
+    .innerJoin(journeyMemberships, activeMembership(accountId));
 }
 
 type JourneyRow = Awaited<ReturnType<typeof selectMemberJourneys>>[number];
@@ -74,6 +75,35 @@ function projectedMinute(
     : null;
 }
 
+function projectedSchedule(
+  row: Pick<
+    JourneyRow,
+    | "timeZone"
+    | "intendedStartLocal"
+    | "intendedStartAt"
+    | "startOffset"
+    | "intendedEndLocal"
+    | "intendedEndAt"
+    | "endOffset"
+  >,
+) {
+  const start = projectedMinute(
+    row.intendedStartLocal,
+    row.intendedStartAt,
+    row.startOffset,
+  );
+  if (row.timeZone === null || !start) return null;
+  return {
+    timeZone: row.timeZone,
+    intendedStart: start,
+    intendedEnd: projectedMinute(
+      row.intendedEndLocal,
+      row.intendedEndAt,
+      row.endOffset,
+    ),
+  };
+}
+
 function privateJourney(row: JourneyRow, accountId: string) {
   const membership = { ...row, journeyId: row.id };
   if (
@@ -82,28 +112,12 @@ function privateJourney(row: JourneyRow, accountId: string) {
   ) {
     throw new Error("Journey membership scope does not match the actor.");
   }
-  const start = projectedMinute(
-    row.intendedStartLocal,
-    row.intendedStartAt,
-    row.startOffset,
-  );
   return {
     id: row.id,
     title: row.title,
     state: row.archivedAt ? ("archived" as const) : ("draft" as const),
     capabilities: row.capabilities,
-    schedule:
-      row.timeZone !== null && start
-        ? {
-            timeZone: row.timeZone,
-            intendedStart: start,
-            intendedEnd: projectedMinute(
-              row.intendedEndLocal,
-              row.intendedEndAt,
-              row.endOffset,
-            ),
-          }
-        : null,
+    schedule: projectedSchedule(row),
   };
 }
 
@@ -266,6 +280,96 @@ export function createJourneyService(
   }
 
   return {
+    dashboard(session: VerifiedSession) {
+      return withJourneyScope(session, async (tx, accountId) => {
+        const asOf = now().toISOString();
+        const result = await tx.execute<
+          Pick<
+            JourneyRow,
+            | "title"
+            | "archivedAt"
+            | "timeZone"
+            | "intendedStartLocal"
+            | "startOffset"
+            | "intendedEndLocal"
+            | "endOffset"
+          > & {
+            id: string | null;
+            upcoming: boolean | null;
+            intendedStartAt: string | null;
+            intendedEndAt: string | null;
+            journeyCount: string;
+            upcomingCount: string;
+          }
+        >(sql`
+          with eligible as (
+            select ${journeys}.*, (${journeys.archivedAt} is null and
+              ${journeys.intendedStartAt} > ${asOf}::timestamptz) as upcoming
+            from ${journeys}
+            join ${journeyMemberships} on ${activeMembership(accountId)}
+          ), stats as (
+            select count(*) as journey_count,
+              count(*) filter (where upcoming) as upcoming_count
+            from eligible
+          ), picks as (
+            (select * from eligible where upcoming
+             order by intended_start_at, id limit 1)
+            union all
+            (select * from eligible where intended_start_at <= ${asOf}::timestamptz or intended_start_at is null
+             order by intended_start_at desc nulls last,
+               case when intended_start_at is null then created_at end desc, id limit 3)
+          )
+          select picks.id, picks.title, picks.upcoming, picks.archived_at as "archivedAt",
+            picks.time_zone as "timeZone", picks.intended_start_local as "intendedStartLocal",
+            picks.intended_start_at as "intendedStartAt", picks.start_offset as "startOffset",
+            picks.intended_end_local as "intendedEndLocal", picks.intended_end_at as "intendedEndAt",
+            picks.end_offset as "endOffset", stats.journey_count as "journeyCount",
+            stats.upcoming_count as "upcomingCount"
+          from stats left join picks on true
+          order by (picks.upcoming is true) desc, picks.intended_start_at desc nulls last,
+            case when picks.intended_start_at is null then picks.created_at end desc, picks.id
+        `);
+        const first = result.rows[0];
+        if (!first) throw new Error("Dashboard totals are missing.");
+        const selected = result.rows.flatMap((row) =>
+          row.id
+            ? [
+                {
+                  upcoming: row.upcoming === true,
+                  journey: {
+                    id: row.id,
+                    title: row.title,
+                    state: row.archivedAt
+                      ? ("archived" as const)
+                      : ("draft" as const),
+                    schedule: projectedSchedule({
+                      ...row,
+                      intendedStartAt: row.intendedStartAt
+                        ? new Date(row.intendedStartAt)
+                        : null,
+                      intendedEndAt: row.intendedEndAt
+                        ? new Date(row.intendedEndAt)
+                        : null,
+                    }),
+                  },
+                },
+              ]
+            : [],
+        );
+        return {
+          status: 200,
+          summary: {
+            asOf,
+            journeyCount: Number(first.journeyCount),
+            upcomingCount: Number(first.upcomingCount),
+            nextJourney: selected.find((row) => row.upcoming)?.journey ?? null,
+            recentJourneys: selected
+              .filter((row) => !row.upcoming)
+              .map((row) => row.journey),
+          },
+        } as const;
+      });
+    },
     create(session: VerifiedSession, key: string, input: CreateInput) {
       return withJourneyScope(session, (tx, accountId) =>
         createPrivateJourney(tx, accountId, key, input),

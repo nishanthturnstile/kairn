@@ -1,10 +1,16 @@
 # Implementation progress
 
-Updated 2026-11-19. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
+Updated 2026-11-20. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
 
 ## Next milestone
 
-**In progress · R1 workstream 1, private journeys and membership.** The first slice lets a verified account create a private journey and see one reference to the same ID in history. This gives capture and offline sync a stable account and journey destination. [TRP-01, TRP-02 and TRP-06](core/product-requirements.md#4-create-or-join-a-journey) · [PRO-02 and OWN-06](core/product-requirements.md#3-account-profile-and-private-history)
+**Verified locally · Web account access.** Sign in and Create account share an aligned layout with a new ferry illustration, in-field password visibility and a round appearance control. Browser checks covered 320 CSS px reflow, keyboard theme selection, wordmark destinations, registration, password reset, cross-tab sign-out and onboarding return. Next, implement native onboarding and Dashboard using the shared account contracts. [Design and verification](plans/web-account-access.md)
+
+**Web setup ready for review · First-run onboarding and Dashboard.** Two steps reuse the display name and carry the plan, record or look-around choice into the actual Dashboard. The new migration is applied locally. Chromium and WebKit passed all three onboarding tests, Linux Firefox passed the large-text and appearance check, and 11 isolated database checks passed. Next, review the verified web flow before adapting it for native. [Web evidence](plans/first-run-onboarding-and-dashboard.md#web-implementation)
+
+## Private journey creation and history
+
+**First slice verified · R1 workstream 1, private journeys and membership.** A verified account can create a private journey and see one reference to the same ID in history. This gives capture and offline sync a stable account and journey destination. [TRP-01, TRP-02 and TRP-06](core/product-requirements.md#4-create-or-join-a-journey) · [PRO-02 and OWN-06](core/product-requirements.md#3-account-profile-and-private-history)
 
 **Step 1 verified locally.** Shared creation, history, detail and date contracts passed `pnpm check`, `pnpm api:check`, 49 unit tests, production builds and web, Android and iOS client-bundle scans. Journey scheduling now uses FullCalendar's `temporal-polyfill` 1.0.8 in the backend; shared formatting stays on built-in `Intl`. The 19 date fixtures and frozen install passed on Node 24.22.3. Upcoming starts after the server's `asOf`. Recent includes all started journeys, followed by undated legacy rows. Title and date editing remains open for the detail screens. [Step 1 plan and migration evidence](plans/private-journey-creation-and-history.md#step-1--shared-contracts-and-date-rules)
 
@@ -18,13 +24,13 @@ Updated 2026-11-19. Baseline [bootstrap PR #1](https://github.com/nishanthturnst
 
 **Post-acceptance review verified locally.** Fixed uncertain-save retries, foreground privacy and refresh, native validation focus and failed web sign-out recovery. The complete local checks passed, including the three browser engines, Android revocation and TalkBack, iPhone Simulator and Linux ARM64 coordinated restore. [Review results](plans/private-journey-creation-and-history.md#post-acceptance-review--19-november-2026)
 
-Next, add invitations into the same journey and verify membership revocation before expanding into source and export grants. This first slice covers part of workstream 1. The complete scope is in the [requirements sequence](core/product-requirements.md#182-dependency-aware-implementation-sequence).
+After onboarding and Dashboard, add invitations into the same journey and verify membership revocation before expanding into source and export grants. The complete workstream scope is in the [requirements sequence](core/product-requirements.md#182-dependency-aware-implementation-sequence).
 
 ## Design review
 
-**PR #5 CI repair verified.** The [failed foundation job](https://github.com/nishanthturnstile/kairn/actions/runs/44361573931/job/135004090260) stopped because [workspace settings](../.vscode/settings.json) lacked a final newline. Restored it and reconciled the web-shell conflict with `development`, retaining the equivalent `max-w-248` utility. Both `foundation` and `release-smoke` passed in the [hosted validation run](https://github.com/nishanthturnstile/kairn/actions/runs/44362384404), including browser, integration, identity-recovery, and coordinated restore checks. Local formatting/types, API parity, 25 unit tests, builds, client-bundle scans, Expo dependency checks, and 15 browser tests also passed. The next feature milestone remains private journey creation and history above.
+**PR #5 CI repair verified.** The [failed foundation job](https://github.com/nishanthturnstile/kairn/actions/runs/44361573931/job/135004090260) stopped because [workspace settings](../.vscode/settings.json) lacked a final newline. Restored it and reconciled the web-shell conflict with `development`, retaining the equivalent `max-w-248` utility. Both `foundation` and `release-smoke` passed in the [hosted validation run](https://github.com/nishanthturnstile/kairn/actions/runs/44362384404), including browser, integration, identity-recovery, and coordinated restore checks. Local formatting/types, API parity, 25 unit tests, builds, client-bundle scans, Expo dependency checks, and 15 browser tests also passed.
 
-The founder approved all seven design-system phases, including [governance and rollout](core/design-system/design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system. Private journey creation and history are the next feature surfaces.
+The founder approved all seven design-system phases, including [governance and rollout](core/design-system/design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system.
 
 | Existing surface | Where to change it | Coverage |
 | --- | --- | --- |

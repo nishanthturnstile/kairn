@@ -6,6 +6,9 @@ export const SessionAccess = createContext<{
   refresh: (rejectedScope?: AccountScope) => void;
   signOut: () => void;
   signOutFailed: boolean;
+  signOutPending: boolean;
+  signInAccount: string | null;
+  setSignInAccount: (accountId: string | null) => void;
 } | null>(null);
 
 export function useSessionAccess() {

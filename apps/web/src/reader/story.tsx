@@ -1,6 +1,6 @@
 import type { ReaderStory } from "@kairn/contracts";
 import { useState } from "react";
-import { AppearanceSelect } from "../components/appearance-select";
+import { AppearanceSwitcher } from "../components/appearance-switcher";
 import { Button } from "../components/ui/button";
 
 export const unavailableTitle = "Story unavailable";
@@ -12,10 +12,10 @@ export function Story({ story }: { story: ReaderStory | null }) {
   return (
     <main className="story-reader">
       <div className="story-tools">
-        <a className="story-wordmark" href="/discover">
+        <a className="story-wordmark" href="/dashboard">
           Kairn
         </a>
-        <AppearanceSelect />
+        <AppearanceSwitcher />
       </div>
       <header className="story-intro">
         <h1 className="story-heading">{story?.title ?? unavailableTitle}</h1>
@@ -62,7 +62,7 @@ export function Story({ story }: { story: ReaderStory | null }) {
         </>
       ) : (
         <a className="story-link" href="/discover">
-          Explore public journeys
+          Browse journeys
         </a>
       )}
     </main>

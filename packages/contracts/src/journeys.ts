@@ -70,6 +70,19 @@ export const privateJourney = createdJourney
   })
   .meta({ id: "PrivateJourneyV1" });
 
+const dashboardJourney = privateJourney
+  .omit({ capabilities: true })
+  .meta({ id: "DashboardJourneyV1" });
+export const dashboardSummary = z
+  .object({
+    asOf: z.iso.datetime(),
+    journeyCount: z.int().nonnegative(),
+    upcomingCount: z.int().nonnegative(),
+    nextJourney: z.union([dashboardJourney, z.null()]),
+    recentJourneys: z.array(dashboardJourney).max(3),
+  })
+  .meta({ id: "DashboardSummaryV1" });
+
 const historyPage = cursorPage
   .extend({ items: z.array(privateJourney) })
   .meta({ id: "JourneyHistoryPageV1" });
@@ -135,3 +148,5 @@ export type JourneyInputIssue = z.infer<typeof journeyInputIssue>;
 export type JourneyHistoryQuery = z.infer<typeof journeyHistoryQuery>;
 export type JourneyHistory = z.infer<typeof journeyHistory>;
 export type PrivateJourney = z.infer<typeof privateJourney>;
+export type DashboardJourney = z.infer<typeof dashboardJourney>;
+export type DashboardSummary = z.infer<typeof dashboardSummary>;

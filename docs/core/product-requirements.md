@@ -83,7 +83,7 @@ Creators and visitors enter through different paths. Capture and import are alte
 
 | Creator order | User goal | Requirement sections |
 |---|---|---|
-| 1 | Sign in and see a private profile and journey history. | 3 |
+| 1 | Sign in, finish first-run setup if eligible, and see Dashboard. | 3 |
 | 2 | Create one journey or join the existing group event. | 4 |
 | 3 | Capture and save offline, import existing sources, or do both. | 5 and 6 |
 | 4 | Contribute selected sources and collaborate with explicit rights. | 7 |
@@ -217,18 +217,20 @@ The service checks the grant, active recipient membership, source revision, and 
 
 ## 3. Account, profile, and private history
 
-The person creates an account or signs in, can recover access, and opens a profile and private journey history. Public reading and discovery remain available without sign-in. Creation, contribution, coauthoring, publication, personal-share creation, saved references, private history, and question sessions require an account.
+The person creates an account or signs in, can recover access, and opens their workspace. The current web release requires verified sign-in for every application screen, including Discover and Story. Public reading without sign-in belongs to a later publication release. Creation, contribution, coauthoring, publication, personal-share creation, saved references, private history, and question sessions require an account.
 
 | ID | Requirement | Scope | Acceptance evidence |
 |---|---|---|---|
 | OWN-01 | Provide account creation and sign-in for history, collaboration, publishing, personal share creation, saved references, and questions. | R1 | A person can recover access and see only their permitted private resources. |
+| OWN-08 | Introduce eligible new verified accounts to Kairn through a short walkthrough with account-level resume. | R1 | An interrupted user returns to the first unfinished step. Completed and established accounts enter the workspace directly. |
 | OWN-06 | Isolate local files, caches, commands and upload sessions by immutable account identity across logout/account switching. | R1 | Account B cannot view or replay account A work; A can recover unsent originals after reauthentication. |
 | PRO-01 | Create an account profile with display name and optional avatar or bio. | R1 | Private account details and email are not automatically public fields. |
 | PRO-02 | Show one private history reference per created or joined journey. | R1 | Five participants open the same journey identifier from their own histories. |
 | PRO-03 | Filter history by role, status, year, and available journey category. | R1 | Several roles or personal shares do not inflate the all-journey count. |
 | PRO-04 | Separate saved research journeys from recorded or participated journeys. | R1 | Saving another group's trip never marks it as the person's completed activity. |
+| PRO-07 | Open Dashboard by default after sign-in and show a bounded overview of the person's accessible journeys. | R1 | Upcoming plans, recent journeys and totals reflect current memberships. An explicit sign-in link still resumes its authorised destination. |
 
-After sign-in, a person sees their account profile and a private history of journeys created or joined. The same journey appears once even when the person is creator, coauthor, contributor, and sharer. Filters can show role, status, year, or trip category without duplicating the underlying entry.
+After onboarding, ordinary sign-in opens Dashboard. Journeys provides the person's private history of journeys created or joined. The same journey appears once even when the person is creator, coauthor, contributor, and sharer. Filters can show role, status, year, or trip category without duplicating the underlying entry.
 
 History contains journeys recorded in or explicitly imported into this product. It does not imply automatic import of the entire Strava or watch-account history. Saved journeys from other groups belong in a separate research collection and never count as completed personal activities.
 
@@ -1064,7 +1066,7 @@ The register states the product decisions and their governing requirements. Scop
 | D-21 | Coauthors can edit the common draft. Administration, publication, source ownership, and personal sharing are separate permissions. | Required R1 behavior. Section 2.5 and COL-06, COL-09, COL-10. |
 | D-22 | Personal highlight defaults use the sharer's approved contributions, not face recognition or all coauthors' media. | Required R1 default. SHR-02 and SHR-04. |
 | D-23 | Public discovery lists one canonical record regardless of profile references, authors, or share presentations. | R1 identity rule. TRP-02 and DIS-03. |
-| D-24 | Public reading and discovery remain account-free. Sign-in enables history, contribution, sharing creation, saving, and question sessions. | Required R1 access model. OWN-01, VWR-01, DIS-01, ASK-09. |
+| D-24 | The current web release requires verified sign-in for every application screen. Public reading and discovery are planned for publication. | OWN-01, VWR-01, DIS-01, ASK-09. [Current web workflow](../plans/web-account-access.md) |
 | D-25 | Build the complete agreed product directly. Development and release testing exercise that implementation rather than a preliminary reduced-scope product. | Current delivery commitment. Sections 18 and 20. |
 
 The [architecture](architecture.md#14-canonical-stack-and-dependency-register) defines the selected technologies and version qualification. Section 19 identifies release configuration and integration evidence still needed. Subscription pricing remains later commercial work.

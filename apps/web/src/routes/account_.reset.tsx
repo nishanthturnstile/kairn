@@ -2,11 +2,11 @@ import type { RestrictionConfirmation } from "@kairn/contracts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { type SubmitEvent, useEffect, useState } from "react";
 import { PageHeading } from "../components/page-heading";
+import { PasswordField } from "../components/password-field";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
-import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth";
+import { useSessionAccess } from "../lib/session-access";
 
 export const Route = createFileRoute("/account_/reset")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -24,6 +24,7 @@ function ResetPassword() {
     variant: "destructive" | "success" | "warning";
   }>();
   const [busy, setBusy] = useState(false);
+  const { refresh, state } = useSessionAccess();
 
   useEffect(() => {
     if (search.token)
@@ -50,6 +51,15 @@ function ResetPassword() {
       }
       setToken(undefined);
       const pending = data?.confirmation === "pending";
+      if (state === "verified") {
+        await navigate({
+          to: "/account",
+          search: { passwordReset: pending ? "pending" : "complete" },
+          replace: true,
+        });
+        refresh();
+        return;
+      }
       setFeedback({
         variant: pending ? "warning" : "success",
         text: pending
@@ -68,33 +78,14 @@ function ResetPassword() {
 
   return (
     <section className="grid max-w-lg gap-6">
-      <PageHeading title="Set a new password" />
+      <PageHeading
+        title="Set a new password"
+        description="Use it the next time you sign in to Kairn."
+      />
       {token && (
-        <form
-          className="grid gap-4 rounded-card control-border bg-card p-4"
-          onSubmit={(event) => void reset(event)}
-        >
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="reset-password">New password</FieldLabel>
-              <Input
-                id="reset-password"
-                required
-                minLength={12}
-                type="password"
-                name="password"
-                autoComplete="new-password"
-                aria-describedby="reset-password-hint"
-              />
-              <p
-                id="reset-password-hint"
-                className="text-sm text-muted-foreground"
-              >
-                Use at least 12 characters.
-              </p>
-            </Field>
-          </FieldGroup>
-          <Button type="submit" className="justify-self-start" disabled={busy}>
+        <form className="grid gap-4" onSubmit={(event) => void reset(event)}>
+          <PasswordField id="reset-password" label="New password" isNew />
+          <Button type="submit" disabled={busy}>
             {busy ? "Saving password…" : "Save password"}
           </Button>
         </form>
@@ -105,14 +96,21 @@ function ResetPassword() {
         </Alert>
       )}
       {!token && !feedback && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role="alert">
           <AlertDescription>
             This reset link is invalid or has expired.
           </AlertDescription>
         </Alert>
       )}
+      {!token && !feedback && (
+        <Button asChild variant="outline" className="justify-self-start">
+          <Link to="/account" search={{ mode: "recover" }}>
+            Request a new link
+          </Link>
+        </Button>
+      )}
       <Button asChild variant="link" className="justify-self-start">
-        <Link to="/account">Go to account</Link>
+        <Link to="/account">Back to sign in</Link>
       </Button>
     </section>
   );

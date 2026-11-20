@@ -15,6 +15,10 @@ export { openMailTransport } from "./mail.js";
 export { createAuth, type VerifiedSession } from "./modules/identity/auth.js";
 export { registerIdentityMail } from "./modules/identity/email.js";
 export {
+  createOnboardingService,
+  createProfileService,
+} from "./modules/identity/onboarding.js";
+export {
   initializeLocalIdentity,
   localRecoveryEpoch,
 } from "./modules/identity/state.js";
@@ -57,6 +61,10 @@ const serverEnvironment = z
     BETTER_AUTH_URL: authOrigin,
     BETTER_AUTH_SECRET: z.string().min(32),
     AUTH_RECOVERY_EPOCH: z.string().min(32).optional(),
+    ONBOARDING_STARTS_AT: z.iso
+      .datetime()
+      .transform((value) => new Date(value))
+      .optional(),
     READER_BUILD_DIR: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])

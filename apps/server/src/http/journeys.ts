@@ -21,7 +21,7 @@ import {
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { errorResponse, requestIdHeader } from "./openapi.js";
+import { allowsWriteOrigin, errorResponse, privateHeaders } from "./openapi.js";
 import { problem, type RequestEnvironment } from "./problem.js";
 
 interface Unavailable {
@@ -70,13 +70,6 @@ type JourneyEnvironment = {
 };
 
 const journeysPath = "/api/v1/journeys";
-const privateHeaders = {
-  ...requestIdHeader,
-  "Cache-Control": {
-    required: true,
-    schema: { type: "string", const: "private, no-store" },
-  },
-} as const;
 
 const errors = {
   400: errorResponse(
@@ -159,12 +152,13 @@ export function createJourneysApi(operations?: JourneyOperations) {
   );
   const enforceWriteOrigin = createMiddleware<JourneyEnvironment>(
     async (context, next) => {
-      const origin = context.req.header("origin");
-      const rejected =
-        origin === undefined
-          ? context.req.header("sec-fetch-site") !== undefined
-          : !context.var.journeys.operations.writeOrigins.includes(origin);
-      if (rejected) return problem(context, 403);
+      if (
+        !allowsWriteOrigin(
+          context.req.raw.headers,
+          context.var.journeys.operations.writeOrigins,
+        )
+      )
+        return problem(context, 403);
       await next();
     },
   );

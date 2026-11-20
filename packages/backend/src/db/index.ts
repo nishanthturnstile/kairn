@@ -30,7 +30,7 @@ export async function checkDatabaseReadiness(
 ) {
   await db.execute(sql`
     select 1 from ${user} limit 0;
-    select credential_recovery from ${accounts} limit 0;
+    select credential_recovery, first_verified_at, onboarding_step, onboarding_intent from ${accounts} limit 0;
     select epoch_digest from ${identityRecovery} limit 0;
     select state from ${identityMail} limit 0
   `);

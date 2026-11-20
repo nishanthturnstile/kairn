@@ -66,14 +66,15 @@ describe("creator account scope", () => {
   });
 });
 
-it("accepts history and canonical journey detail as sign-in destinations", () => {
+it("accepts allowlisted workspace destinations after sign-in", () => {
   const detail = "/journeys/250dbeb0-da94-4de9-a164-cadaa8d2d6bd";
   expect(journeyReturnTo("/journeys")).toBe("/journeys");
+  expect(journeyReturnTo("/journeys/new")).toBe("/journeys/new");
+  expect(journeyReturnTo("/saved")).toBe("/saved");
   expect(journeyReturnTo(detail)).toBe(detail);
   for (const unavailable of [
     "//other.test/journeys",
     "https://other.test/journeys",
-    "/journeys/new",
     "/journeys/../account",
     `${detail}?extra=1`,
   ]) {

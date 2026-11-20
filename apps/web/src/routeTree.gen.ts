@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as JourneysRouteImport } from './routes/journeys'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as AccountResetRouteImport } from './routes/account_.reset'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys_.$journeyId'
@@ -28,6 +30,11 @@ const AccountRoute = AccountRouteImport.update({
   path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiscoverRoute = DiscoverRouteImport.update({
   id: '/discover',
   path: '/discover',
@@ -38,6 +45,11 @@ const JourneysRoute = JourneysRouteImport.update({
   path: '/journeys',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/onboarding.lazy').then((d) => d.Route))
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -62,8 +74,10 @@ const JourneysNewRoute = JourneysNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
@@ -72,8 +86,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
@@ -83,8 +99,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account_/reset': typeof AccountResetRoute
   '/journeys_/$journeyId': typeof JourneysJourneyIdRoute
@@ -95,8 +113,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/dashboard'
     | '/discover'
     | '/journeys'
+    | '/onboarding'
     | '/saved'
     | '/account/reset'
     | '/journeys/$journeyId'
@@ -105,8 +125,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/account'
+    | '/dashboard'
     | '/discover'
     | '/journeys'
+    | '/onboarding'
     | '/saved'
     | '/account/reset'
     | '/journeys/$journeyId'
@@ -115,8 +137,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account'
+    | '/dashboard'
     | '/discover'
     | '/journeys'
+    | '/onboarding'
     | '/saved'
     | '/account_/reset'
     | '/journeys_/$journeyId'
@@ -126,8 +150,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  DashboardRoute: typeof DashboardRoute
   DiscoverRoute: typeof DiscoverRoute
   JourneysRoute: typeof JourneysRoute
+  OnboardingRoute: typeof OnboardingRoute
   SavedRoute: typeof SavedRoute
   AccountResetRoute: typeof AccountResetRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
@@ -150,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/discover': {
       id: '/discover'
       path: '/discover'
@@ -162,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/journeys'
       fullPath: '/journeys'
       preLoaderRoute: typeof JourneysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/saved': {
@@ -198,8 +238,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  DashboardRoute: DashboardRoute,
   DiscoverRoute: DiscoverRoute,
   JourneysRoute: JourneysRoute,
+  OnboardingRoute: OnboardingRoute,
   SavedRoute: SavedRoute,
   AccountResetRoute: AccountResetRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,

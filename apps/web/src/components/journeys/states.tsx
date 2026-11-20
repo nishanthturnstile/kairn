@@ -44,7 +44,7 @@ export function JourneyGate({
   children,
 }: {
   title: string;
-  returnTo?: ReturnType<typeof journeyReturnTo>;
+  returnTo?: ReturnType<typeof journeyReturnTo> | null;
   children: ReactNode;
 }) {
   const access = useSessionAccess();
@@ -67,7 +67,7 @@ export function JourneyGate({
           <AlertDescription>Your journeys are private.</AlertDescription>
           <AlertAction>
             <Button asChild>
-              <Link to="/account" search={{ returnTo }}>
+              <Link to="/account" search={{ returnTo: returnTo ?? undefined }}>
                 Sign in
               </Link>
             </Button>

@@ -5,6 +5,8 @@ import { createJourneyOperations } from "../../apps/server/src/journey-operation
 import {
   checkJourneyReadiness,
   createAuth,
+  createOnboardingService,
+  createProfileService,
   openDatabase,
   openJobQueue,
 } from "../../packages/backend/src/index";
@@ -62,7 +64,15 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       authHandler: auth.handler,
       checkReadiness: () => checkJourneyReadiness(runtime.db),
     };
-    const app = createApp({ ...dependencies, journeys: operations });
+    const app = createApp({
+      ...dependencies,
+      journeys: operations,
+      workspace: {
+        ...operations,
+        onboarding: createOnboardingService(auth),
+        profile: createProfileService(auth),
+      },
+    });
     let accountA: TestMember;
     let accountB: TestMember;
     let requestNumber = 0;
@@ -126,6 +136,12 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
     function detail(account: TestMember, id: string) {
       return app.request(`${path}/${id}`, {
         headers: { Cookie: account.cookie },
+      });
+    }
+
+    function dashboard(account: TestMember) {
+      return app.request("/api/v1/dashboard", {
+        headers: { Cookie: account.cookie, "X-Expected-Account": account.id },
       });
     }
 
@@ -417,9 +433,37 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       expect(result.recent.nextCursor).toBeTruthy();
 
       await owner.pool.query(
+        "update kairn.journeys set archived_at = now() where id = $1",
+        [upcomingIds[0]],
+      );
+      const overview = await dashboard(account);
+      expect(overview.status).toBe(200);
+      expect(overview.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(await overview.json()).toMatchObject({
+        asOf: initialTime,
+        journeyCount: 53,
+        upcomingCount: 25,
+        nextJourney: { id: upcomingIds[1] },
+        recentJourneys: [
+          { id: startedId },
+          { id: undatedIds.at(-1) },
+          { id: undatedIds.at(-2) },
+        ],
+      });
+      expect(await (await dashboard(accountB)).json()).toMatchObject({
+        journeyCount: 0,
+        nextJourney: null,
+        recentJourneys: [],
+      });
+
+      await owner.pool.query(
         "update kairn.journey_memberships set revoked_at = now() where journey_id = $1",
         [undatedIds[1]],
       );
+      expect(await (await dashboard(account)).json()).toMatchObject({
+        journeyCount: 52,
+        upcomingCount: 25,
+      });
       currentTime = "2026-06-14T00:00:00.000Z";
       try {
         expect(
@@ -460,6 +504,146 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       } finally {
         currentTime = initialTime;
       }
+    });
+
+    it("advances an account checkpoint once and rejects jumps and incompatible accounts", async () => {
+      const account = await member();
+      await owner.pool.query(
+        "update kairn.accounts set onboarding_step = 1 where id = $1",
+        [account.id],
+      );
+      const checkpoint = (
+        step: number,
+        expectedAccount = account.id,
+        writeOrigin = origin,
+        intent?: string,
+      ) =>
+        app.request("/api/v1/onboarding", {
+          method: "POST",
+          headers: {
+            Cookie: account.cookie,
+            Origin: writeOrigin,
+            "X-Expected-Account": expectedAccount,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ step, intent }),
+        });
+      expect((await checkpoint(1, accountB.id)).status).toBe(409);
+      expect(
+        (await checkpoint(1, account.id, "http://other.test")).status,
+      ).toBe(403);
+      expect(await (await checkpoint(3)).json()).toMatchObject({
+        code: "checkpoint_changed",
+      });
+      expect((await checkpoint(1, account.id, origin, "plan")).status).toBe(
+        400,
+      );
+      const responses = await Promise.all([checkpoint(1), checkpoint(1)]);
+      for (const response of responses) {
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({ state: "pending", step: 2 });
+      }
+      expect(await (await checkpoint(3)).json()).toMatchObject({
+        code: "checkpoint_changed",
+      });
+      expect(
+        (await checkpoint(2, account.id, origin, "unexpected")).status,
+      ).toBe(400);
+      const completed = { state: "completed", intent: "plan" };
+      for (const response of await Promise.all([
+        checkpoint(2, account.id, origin, "plan"),
+        checkpoint(2, account.id, origin, "plan"),
+      ]))
+        expect(await response.json()).toEqual(completed);
+      expect(
+        await (await checkpoint(2, account.id, origin, "record")).json(),
+      ).toEqual(completed);
+      expect(await (await checkpoint(1)).json()).toEqual(completed);
+
+      const priorVersion = await member();
+      await owner.pool.query(
+        "update kairn.accounts set onboarding_step = 3 where id = $1",
+        [priorVersion.id],
+      );
+      const request = (method: "GET" | "POST", body?: object) =>
+        app.request("/api/v1/onboarding", {
+          method,
+          headers: {
+            Cookie: priorVersion.cookie,
+            Origin: origin,
+            "X-Expected-Account": priorVersion.id,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      expect(await (await request("GET")).json()).toEqual({
+        state: "pending",
+        step: 2,
+      });
+      expect(
+        await (await request("POST", { step: 2, intent: "record" })).json(),
+      ).toEqual({ state: "completed", intent: "record" });
+    });
+
+    it("reads and updates the verified account’s display name only", async () => {
+      const path = "/api/v1/profile";
+      const headers = {
+        Cookie: accountA.cookie,
+        "X-Expected-Account": accountA.id,
+      };
+      const update = (body: object, overrides: Record<string, string> = {}) =>
+        app.request(path, {
+          method: "PATCH",
+          headers: {
+            ...headers,
+            Origin: origin,
+            "Content-Type": "application/json",
+            ...overrides,
+          },
+          body: JSON.stringify(body),
+        });
+      expect((await app.request(path)).status).toBe(401);
+      expect(await (await app.request(path, { headers })).json()).toEqual({
+        displayName: "Journey test account",
+      });
+      expect(
+        (
+          await update(
+            { displayName: "Someone else" },
+            { "X-Expected-Account": accountB.id },
+          )
+        ).status,
+      ).toBe(409);
+      expect(
+        (
+          await update(
+            { displayName: "Invalid origin" },
+            { Origin: "http://other.test" },
+          )
+        ).status,
+      ).toBe(403);
+      expect((await update({ displayName: "   " })).status).toBe(400);
+      expect(
+        (await update({ displayName: "New name", email: "other@example.test" }))
+          .status,
+      ).toBe(400);
+      const changed = await update({ displayName: "  ಅನು Rao  " });
+      expect(changed.status).toBe(200);
+      expect(changed.headers.get("cache-control")).toBe("private, no-store");
+      expect(await changed.json()).toEqual({ displayName: "ಅನು Rao" });
+      expect(await (await app.request(path, { headers })).json()).toEqual({
+        displayName: "ಅನು Rao",
+      });
+      expect(
+        await (
+          await app.request(path, {
+            headers: {
+              Cookie: accountB.cookie,
+              "X-Expected-Account": accountB.id,
+            },
+          })
+        ).json(),
+      ).toEqual({ displayName: "Journey test account" });
     });
 
     it("rejects incompatible actors and rechecks the current session inside the operation", async () => {

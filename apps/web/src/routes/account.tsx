@@ -3,45 +3,46 @@ import type {
   RestrictionConfirmation,
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { type SubmitEvent, useEffect, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { AuthForm, type AuthMode } from "../components/auth-form";
+import { JourneyLoading } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
+import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
-import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth";
-import {
-  journeyReturnTo,
-  savedJourneyReturnTo,
-  saveJourneyReturnTo,
-} from "../lib/journey-return";
+import { journeyReturnTo, saveJourneyReturnTo } from "../lib/journey-return";
+import { useOnboarding } from "../lib/onboarding";
 import { useSessionAccess } from "../lib/session-access";
 
 export const Route = createFileRoute("/account")({
   validateSearch: (
     search: Record<string, unknown>,
   ): {
+    mode?: AuthMode;
     verification?: "confirmed";
+    passwordReset?: "complete" | "pending";
     error?: string;
     returnTo?: ReturnType<typeof journeyReturnTo>;
   } => ({
+    mode:
+      search.mode === "sign-up" ||
+      search.mode === "recover" ||
+      search.mode === "resend"
+        ? search.mode
+        : undefined,
     verification:
       search.verification === "confirmed" ? ("confirmed" as const) : undefined,
+    passwordReset:
+      search.passwordReset === "complete" || search.passwordReset === "pending"
+        ? search.passwordReset
+        : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
     returnTo: journeyReturnTo(search.returnTo),
   }),
   component: AccountPage,
 });
-
-type FormMode = "sign-in" | "sign-up" | "recover" | "resend";
-
-const modeLabels = {
-  "sign-in": "Sign in",
-  "sign-up": "Create account",
-  recover: "Reset password",
-  resend: "Resend verification",
-};
 
 type Feedback = {
   text: string;
@@ -57,225 +58,130 @@ const feedbackTextClass = {
 
 function AccountPage() {
   const { data } = authClient.useSession();
+  const { scope } = Route.useRouteContext();
   const verification = Route.useSearch();
   const navigate = Route.useNavigate();
-  const { state, refresh, signOutFailed } = useSessionAccess();
+  const {
+    state,
+    refresh,
+    signOutFailed,
+    signOutPending,
+    signInAccount,
+    setSignInAccount,
+  } = useSessionAccess();
   const { returnTo, verification: confirmed } = verification;
+  const progress = useOnboarding();
+  const [hadGuestForm, setHadGuestForm] = useState(state === "signed-out");
   useEffect(() => {
-    if (returnTo) saveJourneyReturnTo(returnTo);
-  }, [returnTo]);
+    if (state === "signed-out") setHadGuestForm(true);
+  }, [state]);
   useEffect(() => {
-    if (state !== "verified") return;
-    const destination =
-      returnTo ?? (confirmed ? savedJourneyReturnTo() : undefined);
-    if (!destination) return;
-    saveJourneyReturnTo(undefined);
-    if (destination === "/journeys")
-      void navigate({ to: "/journeys", replace: true });
-    else
-      void navigate({
-        to: "/journeys/$journeyId",
-        params: { journeyId: destination.slice("/journeys/".length) },
-        replace: true,
-      });
-  }, [confirmed, navigate, returnTo, state]);
+    const accountId = state === "verified" ? scope.accountId : null;
+    if (returnTo && state !== "checking")
+      saveJourneyReturnTo(returnTo, accountId ?? undefined);
+    if (!accountId || (!returnTo && signInAccount !== accountId)) return;
+    setSignInAccount(null);
+    void navigate({ to: "/", replace: true });
+  }, [
+    navigate,
+    returnTo,
+    scope.accountId,
+    setSignInAccount,
+    signInAccount,
+    state,
+  ]);
+  if (state === "checking" && (!hadGuestForm || signOutPending))
+    return (
+      <JourneyLoading
+        label={signOutPending ? "Signing out" : "Checking your session"}
+      />
+    );
+  if (state === "unavailable")
+    return (
+      <section className="grid gap-4 rounded-card control-border bg-card p-4 sm:p-8">
+        <PageHeading title="Sign in" />
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>
+            Account access is temporarily unavailable.
+          </AlertDescription>
+        </Alert>
+        <Button
+          variant="outline"
+          className="justify-self-start"
+          onClick={() => refresh()}
+        >
+          Try again
+        </Button>
+      </section>
+    );
+  if (
+    state === "verified" &&
+    scope.accountId &&
+    data?.user.id === scope.accountId
+  ) {
+    if (returnTo || signInAccount === scope.accountId)
+      return <output className="text-muted-foreground">Opening Kairn</output>;
+    return (
+      <section className="grid max-w-lg gap-6">
+        <PageHeading
+          title="Account"
+          description="Manage your profile, current session and signed-in devices."
+        />
+        {signOutFailed && (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>Couldn’t sign out. Try again.</AlertDescription>
+          </Alert>
+        )}
+        {progress.data?.state === "pending" && (
+          <Button asChild className="justify-self-start">
+            <Link to="/onboarding">Resume setup</Link>
+          </Button>
+        )}
+        <ProfileName accountId={scope.accountId} scope={scope} />
+        <SignedInAccount email={data.user.email} id={scope.accountId} />
+      </section>
+    );
+  }
   return (
-    <section className="grid max-w-lg gap-6">
-      <PageHeading title="Account" />
+    <div className="grid gap-4">
       {verification.error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role="alert">
           <AlertDescription>
             That verification link is invalid or has expired.
           </AlertDescription>
         </Alert>
       )}
-      {verification.verification && !verification.error && (
-        <Alert variant="success" role="status">
-          <AlertDescription>
-            Your email is verified. You can sign in now.
-          </AlertDescription>
-        </Alert>
-      )}
-      {state === "checking" && (
-        <output className="text-muted-foreground">Checking your session</output>
-      )}
-      {state === "unavailable" && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            Account access is temporarily unavailable.
-          </AlertDescription>
-          <Button variant="outline" onClick={() => refresh()}>
-            Try again
-          </Button>
-        </Alert>
-      )}
-      {signOutFailed && state === "verified" && (
-        <p className="text-destructive" role="status">
-          Couldn’t sign out. Try again.
-        </p>
-      )}
-      {state === "verified" && data?.user && (
-        <SignedInAccount email={data.user.email} id={data.user.id} />
-      )}
-      {(!data?.user || state === "signed-out") && <AccountForm />}
-    </section>
-  );
-}
-
-function AccountForm() {
-  const [mode, setMode] = useState<FormMode>("sign-in");
-  const [feedback, setFeedback] = useState<Feedback>();
-  const [busy, setBusy] = useState(false);
-  const focusHeading = useRef(false);
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const input = new FormData(event.currentTarget);
-    const email = String(input.get("email")).trim();
-    const password = String(input.get("password") ?? "");
-    setBusy(true);
-    setFeedback(undefined);
-    try {
-      if (mode === "sign-in") {
-        const { error } = await authClient.signIn.email({ email, password });
-        if (error)
-          setFeedback({
-            variant: "destructive",
-            text:
-              error.code === "EMAIL_NOT_VERIFIED"
-                ? "Verify your email before signing in."
-                : "Couldn’t sign in. Check your email and password.",
-          });
-      } else if (mode === "sign-up") {
-        const { error } = await authClient.signUp.email({
-          email,
-          password,
-          name: String(input.get("name")).trim(),
-        });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t register. Check your details and try again."
-            : "Check your inbox for a verification link.",
-        });
-      } else if (mode === "recover") {
-        const { error } = await authClient.requestPasswordReset({ email });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t request a reset email. Try again later."
-            : "If that account can receive a reset email, check your inbox.",
-        });
-      } else {
-        const { error } = await authClient.sendVerificationEmail({ email });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t request a verification email. Try again later."
-            : "If that email still needs verification, check your inbox.",
-        });
-      }
-    } catch {
-      setFeedback({
-        variant: "destructive",
-        text: "Couldn’t connect to Kairn. Try again.",
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form
-      className="grid gap-4 rounded-card control-border bg-card p-4"
-      onSubmit={(event) => void submit(event)}
-    >
-      <h2
-        className="text-xl font-semibold"
-        ref={(heading) => {
-          if (heading && focusHeading.current) {
-            heading.focus();
-            focusHeading.current = false;
+      {verification.passwordReset && (
+        <Alert
+          variant={
+            verification.passwordReset === "pending" ? "warning" : "success"
           }
-        }}
-        tabIndex={-1}
-      >
-        {modeLabels[mode]}
-      </h2>
-      <FieldGroup>
-        {mode === "sign-up" && (
-          <Field>
-            <FieldLabel htmlFor="account-name">Name</FieldLabel>
-            <Input id="account-name" name="name" autoComplete="name" required />
-          </Field>
-        )}
-        <Field>
-          <FieldLabel htmlFor="account-email">Email</FieldLabel>
-          <Input
-            id="account-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-          />
-        </Field>
-        {(mode === "sign-in" || mode === "sign-up") && (
-          <Field>
-            <FieldLabel htmlFor="account-password">Password</FieldLabel>
-            <Input
-              key={mode}
-              id="account-password"
-              name="password"
-              type="password"
-              autoComplete={
-                mode === "sign-up" ? "new-password" : "current-password"
-              }
-              minLength={mode === "sign-up" ? 12 : undefined}
-              aria-describedby={
-                mode === "sign-up" ? "account-password-hint" : undefined
-              }
-              required
-            />
-            {mode === "sign-up" && (
-              <p
-                id="account-password-hint"
-                className="text-sm text-muted-foreground"
-              >
-                Use at least 12 characters.
-              </p>
-            )}
-          </Field>
-        )}
-      </FieldGroup>
-      <Button type="submit" className="justify-self-start" disabled={busy}>
-        {busy ? "Please wait…" : modeLabels[mode]}
-      </Button>
-      {feedback && (
-        <p className={feedbackTextClass[feedback.variant]} role="status">
-          {feedback.text}
-        </p>
+          role="status"
+        >
+          <AlertDescription>
+            {verification.passwordReset === "pending"
+              ? "Password changed and devices signed out. Recovery confirmation is pending."
+              : "Password changed. Sign in with your new password."}
+          </AlertDescription>
+        </Alert>
       )}
-      <div className="flex flex-wrap gap-1 border-t pt-2">
-        {(Object.keys(modeLabels) as FormMode[])
-          .filter((option) => option !== mode)
-          .map((option) => (
-            <Button
-              key={option}
-              type="button"
-              variant="link"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                focusHeading.current = true;
-                setMode(option);
-                setFeedback(undefined);
-              }}
-            >
-              {modeLabels[option]}
-            </Button>
-          ))}
-      </div>
-    </form>
+      <AuthForm
+        mode={verification.mode ?? "sign-in"}
+        canResumeUnbound={Boolean(returnTo || confirmed)}
+        emailVerificationConfirmed={
+          confirmed === "confirmed" && !verification.error
+        }
+        showResend={Boolean(verification.error)}
+        onModeChange={(mode) =>
+          void navigate({
+            search: (previous) => ({
+              ...previous,
+              mode: mode === "sign-in" ? undefined : mode,
+            }),
+          })
+        }
+      />
+    </div>
   );
 }
 

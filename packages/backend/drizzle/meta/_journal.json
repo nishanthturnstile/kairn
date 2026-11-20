@@ -36,6 +36,20 @@
       "when": 1795061536061,
       "tag": "0004_private_journey_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795180305295,
+      "tag": "0005_first_run_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795185913178,
+      "tag": "0006_onboarding_intent",
+      "breakpoints": true
     }
   ]
 }

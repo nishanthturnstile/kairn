@@ -1,0 +1,33 @@
+# Web account access and sign-out
+
+## Design and entry points
+
+The current web release requires a verified session for every application screen. Sign in, Create account, email verification, password reset and verification resend are the signed-out entry points. The same rule applies to direct Story requests. A future public release can revisit guest reading as part of the publication workstream.
+
+The account layout uses Kairn’s Source Sans 3 typography, paper and action colours, and shared controls. On wide screens the wordmark and form align in one column beside a full-height [Konkan ferry illustration](../../apps/web/src/assets/konkan-ferry.webp). Narrow screens load the form and header directly. The round appearance control opens a labelled palette for System, Light, Dark and Outdoor. An accent outline, a circled checkmark and an accessible pressed state mark the selected tile. Passwords start masked and use an eye button inside the trailing edge of the field. The label, autocomplete attributes and keyboard focus remain available. Account feedback uses accessible status announcements.
+
+The wordmark opens Sign in when signed out and Dashboard when signed in. An unfinished account still resumes onboarding before it can enter Dashboard.
+
+| Entry or action | What the person sees | Data and routing |
+| --- | --- | --- |
+| Open a workspace URL without a session | **Sign in**, with Create account and password reset available | Resolve the session before mounting workspace content. An allowlisted destination remains available through the sign-in handoff. |
+| Create an account | Display name, email and a password of at least 12 characters, then **Check your email** | Registration uses the identity service and existing mail queue. Verification confirms the address and returns to sign-in. The name is reused in onboarding and editable in Account. |
+| Email needs verification | Sign-in feedback and **Resend verification**. After verification, a success line under **Sign in** stays visible while the person enters their credentials. | The verification link returns to the fixed Account callback. Resend responses use neutral wording. |
+| Successful sign-in | The first unfinished onboarding step, Dashboard, or the intended destination | Bind pending return context to the verified account. Eligible accounts finish the persisted walkthrough before entering the workspace. A completed or exempt account opens Dashboard by default. |
+| Request or follow a password reset | A generic inbox confirmation, then **Set a new password** | The reset link token stays in the reset form and is removed from the visible URL. The identity service revokes existing sessions as part of reset. |
+| Sign out from Account | **Signing out**, followed by **Sign in** with a confirmation toast in the bottom corner for five seconds | Dispose the account cache and abort protected requests before sending sign-out. Recheck the server session. If the session remains valid after a failed request, restore access with a retry message. |
+| Open a direct Story URL | Sign-in without a verified session, onboarding for accounts still in setup, and the generic Story response for other verified accounts. | The server checks the verified session and onboarding checkpoint before rendering HTML. Publication entitlement remains a separate check when story data is introduced. |
+
+The [auth layout](../../apps/web/src/components/auth-layout.tsx), [sign-in and registration form](../../apps/web/src/components/auth-form.tsx), [account and sign-out screen](../../apps/web/src/routes/account.tsx), [workspace gate](../../apps/web/src/routes/__root.tsx) and [Story server gate](../../apps/server/src/app.ts) implement the current web release. [Onboarding progress and enrollment](first-run-onboarding-and-dashboard.md#web-implementation) use the existing account checkpoint.
+
+## Local verification
+
+Sixteen baseline browser checks passed, including direct signed-out workspace routes and account form reflow plus axe at 320 CSS px and 200% text. Four service-backed Chromium identity and journey checks passed, covering email verification, verified and signed-out Story requests, cross-tab sign-out, recovery after a failed sign-out and password reset followed by sign-in with the new password. Three service-backed onboarding checks passed in both Chromium and WebKit, including the Story redirect during incomplete setup, checkpoint resume, and deep-link return. Workspace checks, OpenAPI parity, 58 unit tests and web, server and worker builds passed. [Browser account flow](../../tests/web/identity.playwright.ts) · [Workspace and renderer checks](../../tests/web/reader.playwright.ts) · [Onboarding checks](../../tests/web/onboarding.playwright.ts)
+
+The redesign was inspected at 1440 × 900 and 390 × 844. The narrow layout made no artwork request. The browser regressions cover keyboard dismissal of the appearance palette, password masking and reveal, and wordmark destinations in both session states. The latest Chromium checks passed for toast appearance and dismissal, failed sign-out recovery, and theme switching at 200% text size. [Browser account flow](../../tests/web/identity.playwright.ts) · [Appearance checks](../../tests/web/reader.playwright.ts)
+
+## Illustration provenance
+
+Created with the built-in ImageGen tool and compressed to WebP for the web bundle. It depicts an imagined crossing and serves as decorative artwork.
+
+> Create a single portrait 4:5 raster editorial illustration for the visual half of Kairn, a private travel journal web app. This is illustration artwork only, no interface, no lettering or numbers or labels, no frame, no logo. A close shore-level view along a quiet Konkan coast estuary, a small warm ivory and ochre passenger ferry in the middle distance heading left-to-right, a delicate pale wake on dark teal water, one richly forested headland on the right and hazy layered coastal hills upper left. A restrained warm early morning sunlight, soft mineral cream sky, deep pine, ink teal, blue sage and warm sand. An artist-made modern travel-book cover, fine dry-brush gouache, subtle textured pigment, confident natural shapes, carefully observed landscape and modest atmospheric perspective. A little warm sienna material accent on the ferry. Soft light with rich dark foreground. Composition fully bleeds, main ferry roughly centered 55 percent down, ample scene above and below, strong recognizable coastal silhouette. Avoid stock vector aesthetic, gradient blobs, topographic graphics, busy collage, exaggerated cartoony proportions or photorealism. Keep it calm, tactile, and specific to western India's coast.

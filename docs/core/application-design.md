@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Version | 1.2 |
-| Date | 17 November 2026 |
+| Version | 1.3 |
+| Date | 20 November 2026 |
 | Scope | Android phones, iPhone, and responsive web. No dedicated iPad, tablet, desktop-native, watch, or television application. |
 | Authority | [Requirements](product-requirements.md) own behaviour and release scope; this document owns navigation, interaction, and experience budgets. [Architecture](architecture.md) owns implementation. |
 | Status | Implementation brief with interaction rules and acceptance targets. |
@@ -16,17 +16,17 @@ The creator is completing a task; the recipient is experiencing a story; the lea
 
 ## 2. Navigation and entry points
 
-Phone navigation has three stable, labelled destinations: **Journeys**, **Discover**, and **Saved**. Account, help, privacy, and usage are available from the account control. Create journey is an action in Journeys; Capture/Add is a prominent action inside the selected journey, not a destination that silently assumes a trip. A capture outside a journey defaults to personal material and can be assigned later.
+The web workspace offers **Dashboard**, **Journeys**, **Discover**, **Saved**, and **Account**. Dashboard is the default signed-in home. The native rollout adds Dashboard alongside the existing three tabs and keeps Account in the account control. Help, privacy, and usage are available from Account. Create journey is available from Dashboard and Journeys. Capture/Add is an action inside the selected journey. A capture outside a journey defaults to personal material and can be assigned later.
 
 Journeys opens the most recently active journey when explicitly resumed; otherwise it shows history and an obvious create/join action. A journey opens its current useful state: capture/contribution during a trip, draft review during preparation, and approved Story for a completed publication. Status never moves someone automatically while they are editing.
 
-Journeys also contains a clearly labelled **Personal moments** entry with an Unassigned filter and Capture/Import actions. These items default to Only me. Account-owned saved items and unsent work are recoverable here after restart or signing back into the same account, subject to the documented device/browser storage limits. Assigning an item to a journey requires an explicit destination and source grant; placement alone never grants group access. No fourth global tab is needed.
+Journeys also contains a clearly labelled **Personal moments** entry with an Unassigned filter and Capture/Import actions. These items default to Only me. Account-owned saved items and unsent work are recoverable here after restart or signing back into the same account, subject to the documented device/browser storage limits. Assigning an item to a journey requires an explicit destination and source grant; placement alone never grants group access.
 
 Within a journey, **Story**, **Explore**, and **Learn** are views of the same record. The top-level Discover catalog is never labelled Explore. Contributor tools appear through an explicit Edit action and contextual Add, People, Review, and Share controls. Do not expose all domain modules as tabs. On narrow screens, use one primary work surface at a time; on desktop, a chapter rail, work area, and optional inspector may coexist.
 
-Direct links preserve journey, permitted view, chapter, moment, and pending action through sign-in. Validate return destinations against an allowlist; never accept arbitrary redirect URLs. Back restores list filters, scroll position, selection, and unsent edits. Public visitors enter Story or a linked source directly without onboarding or account creation. Save and Ask explain why sign-in is needed and return to the same context afterward.
+The current web release uses a dedicated account layout for signed-out visitors, including visitors opening Story. Direct workspace links preserve their intended destination through verified sign-in and any required onboarding. Broader publication links can preserve the permitted view, chapter, moment, and pending action as those surfaces are implemented. Validate return destinations against an allowlist. Back restores list filters, scroll position, selection, and unsent edits. [Web account access](../plans/web-account-access.md)
 
-Apple distinguishes destinations from actions in its [tab-bar guidance](https://developer.apple.com/design/human-interface-guidelines/tab-bars). The specific three-destination structure above is this product's decision.
+Eligible accounts see a welcome with their display name and a choice of first action after the first verified sign-in. They resume at the first unfinished step after interruption. On completion the person can open Dashboard or continue to an explicit, validated destination. Dashboard offers a planning or recording action when the person chose one and has no journeys yet. See the [onboarding and Dashboard implementation plan](../plans/first-run-onboarding-and-dashboard.md).
 
 ## 3. Create and contribute
 

@@ -8,6 +8,11 @@ export const credentialRecoveryState = kairn.enum("credential_recovery_state", [
   "approved",
 ]);
 
+export const onboardingIntent = kairn.enum("onboarding_intent", [
+  "plan",
+  "record",
+]);
+
 export const accounts = kairn
   .table(
     "accounts",
@@ -21,11 +26,18 @@ export const accounts = kairn
       restrictedAt: timestamp("restricted_at", { withTimezone: true }),
       credentialRecovery: credentialRecoveryState("credential_recovery"),
       securityGeneration: integer("security_generation").default(1).notNull(),
+      firstVerifiedAt: timestamp("first_verified_at", { withTimezone: true }),
+      onboardingStep: integer("onboarding_step"),
+      onboardingIntent: onboardingIntent("onboarding_intent"),
     },
     (account) => [
       check(
         "accounts_security_generation_positive",
         sql`${account.securityGeneration} > 0`,
+      ),
+      check(
+        "accounts_onboarding_step_range",
+        sql`${account.onboardingStep} between 0 and 4`,
       ),
       check(
         "accounts_credential_recovery_restricted",

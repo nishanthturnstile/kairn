@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { loadReader } from "../../apps/server/src/reader";
+import { chooseAppearance } from "./appearance-fixture";
 
 const buildDir = resolve("apps/web/dist");
 const origin = "http://kairn.test";
@@ -39,6 +40,7 @@ const coast = {
 async function serveFixture(
   page: Page,
   readiness: () => Promise<number> = async () => 200,
+  signedIn = false,
 ) {
   const render = await loadReader(buildDir);
   await page.route(`${origin}/**`, async (route) => {
@@ -56,7 +58,19 @@ async function serveFixture(
         body: render(story),
       });
     } else if (pathname === "/api/auth/get-session") {
-      await route.fulfill({ contentType: "application/json", body: "null" });
+      await route.fulfill({
+        json: signedIn
+          ? {
+              user: {
+                id: "250dbeb0-da94-4de9-a164-cadaa8d2d6bd",
+                email: "reader@example.test",
+                emailVerified: true,
+              },
+            }
+          : null,
+      });
+    } else if (pathname === "/api/v1/onboarding") {
+      await route.fulfill({ json: { state: "exempt" } });
     } else if (pathname === "/api/v1/ready") {
       const status = await readiness();
       await route.fulfill({
@@ -141,18 +155,45 @@ test("unavailable reader metadata contains only the generic projection", async (
   expect(await response?.text()).not.toContain("private-journey");
 });
 
-test("creator displays unavailable, loading, error, and empty states through the main destinations", async ({
+test("signed-out routes render only account access", async ({ page }) => {
+  const protectedReads: string[] = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/v1/")) protectedReads.push(path);
+  });
+  await serveFixture(page);
+  for (const path of [
+    "/",
+    "/dashboard",
+    "/discover",
+    "/saved",
+    "/journeys",
+    "/journeys/new",
+    "/journeys/250dbeb0-da94-4de9-a164-cadaa8d2d6bd",
+    "/onboarding",
+    "/unknown",
+  ]) {
+    await page.goto(origin + path);
+    await expect(
+      page.getByRole("heading", { name: "Sign in", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe("/account");
+  }
+  expect(protectedReads).toEqual([]);
+});
+
+test("signed-in discovery displays loading, retry, and empty states", async ({
   page,
 }) => {
   const first = Promise.withResolvers<number>();
   let requests = 0;
-  await serveFixture(page, () =>
-    requests++ === 0 ? first.promise : Promise.resolve(200),
+  await serveFixture(
+    page,
+    () => (requests++ === 0 ? first.promise : Promise.resolve(200)),
+    true,
   );
-  await page.goto(origin);
-  await expect(page.getByRole("heading", { name: "Journeys" })).toBeVisible();
-  await expect(page.getByText("Sign in to continue")).toBeVisible();
-  await page.getByRole("link", { name: "Discover" }).click();
+  await page.goto(`${origin}/discover`);
   await expect(page.getByText("Checking availability")).toBeVisible();
   first.resolve(503);
   await expect(page.getByRole("alert")).toContainText(
@@ -161,7 +202,9 @@ test("creator displays unavailable, loading, error, and empty states through the
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByText("No published journeys yet")).toBeVisible();
   await page.getByRole("link", { name: "Saved" }).click();
-  await expect(page.getByRole("heading", { name: "Saved" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Saved", exact: true }),
+  ).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
@@ -176,21 +219,32 @@ test("appearance carries across workspace, account and story at large text sizes
     "background-color",
     "rgb(17, 28, 27)",
   );
-  await page
-    .getByRole("combobox", { name: "Appearance" })
-    .selectOption({ label: "Light" });
+  const appearance = page.getByRole("button", {
+    name: "Appearance",
+    exact: true,
+  });
+  await appearance.press("Enter");
+  const palette = page.getByRole("dialog", { name: "Appearance" });
+  await expect(palette.getByRole("button", { name: "System" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.keyboard.press("Escape");
+  await expect(appearance).toBeFocused();
+  await chooseAppearance(page, "Light");
   await expect(page.locator("body")).toHaveCSS(
     "background-color",
     "rgb(246, 243, 235)",
   );
-  await page
-    .getByRole("combobox", { name: "Appearance" })
-    .selectOption({ label: "Outdoor" });
+  await chooseAppearance(page, "Outdoor");
   for (const path of [
     "/journeys",
     "/discover",
     "/saved",
     "/account",
+    "/account?verification=confirmed",
+    "/account?mode=sign-up",
+    "/account?mode=recover",
     "/account/reset",
     "/account/reset?token=fixture",
     "/read/creek",
@@ -231,9 +285,7 @@ test("appearance carries across workspace, account and story at large text sizes
       [],
     );
   }
-  await page
-    .getByRole("combobox", { name: "Appearance" })
-    .selectOption({ label: "System" });
+  await chooseAppearance(page, "System");
   await expect(page.locator("body")).toHaveCSS(
     "background-color",
     "rgb(17, 28, 27)",

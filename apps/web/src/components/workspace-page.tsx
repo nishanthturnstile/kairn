@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouteContext } from "@tanstack/react-router";
+import type { journeyReturnTo } from "../lib/journey-return";
 import { PageHeading } from "./page-heading";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -10,6 +11,7 @@ interface WorkspacePageProps {
   title: string;
   description: string;
   accountRequired?: boolean;
+  returnTo?: ReturnType<typeof journeyReturnTo>;
   emptyTitle: string;
   emptyDescription: string;
 }
@@ -18,6 +20,7 @@ export function WorkspacePage({
   title,
   description,
   accountRequired = false,
+  returnTo,
   emptyTitle,
   emptyDescription,
 }: WorkspacePageProps) {
@@ -29,7 +32,9 @@ export function WorkspacePage({
           <AlertTitle>Sign in to continue</AlertTitle>
           <AlertAction>
             <Button asChild variant="outline">
-              <Link to="/account">Open your account</Link>
+              <Link to="/account" search={{ returnTo }}>
+                Open your account
+              </Link>
             </Button>
           </AlertAction>
         </Alert>
