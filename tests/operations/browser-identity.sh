@@ -24,7 +24,7 @@ BETTER_AUTH_SECRET=$(openssl rand -hex 32)
 AUTH_MAIL_KEY=$(openssl rand -hex 32)
 export BETTER_AUTH_SECRET AUTH_MAIL_KEY
 
-suites=(tests/web/identity.playwright.ts tests/web/journeys.playwright.ts)
+suites=(tests/web/identity.playwright.ts tests/web/journeys.playwright.ts tests/web/workspace-sidebar.playwright.ts)
 if [[ "${KAIRN_WEB_ONBOARDING:-0}" == 1 ]]; then
   export ONBOARDING_STARTS_AT=2000-01-01T00:00:00Z
   suites=(tests/web/onboarding.playwright.ts)

@@ -18,6 +18,12 @@
   --color-foreground: var(--kairn-semantic-color-ink);
   --color-card: var(--kairn-semantic-color-surface);
   --color-card-foreground: var(--kairn-semantic-color-ink);
+  --color-popover: var(--color-card);
+  --color-popover-foreground: var(--color-foreground);
+  --color-sidebar: var(--color-card);
+  --color-sidebar-foreground: var(--color-foreground);
+  --color-sidebar-accent: var(--color-accent);
+  --color-sidebar-accent-foreground: var(--color-accent-foreground);
   --color-primary: var(--kairn-semantic-color-action);
   --color-primary-foreground: var(--kairn-semantic-color-on-action);
   --color-muted: var(--kairn-semantic-color-action-wash);

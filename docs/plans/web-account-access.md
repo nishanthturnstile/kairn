@@ -8,6 +8,8 @@ The account layout uses Kairn’s Source Sans 3 typography, paper and action col
 
 The wordmark opens Sign in when signed out and Dashboard when signed in. An unfinished account still resumes onboarding before it can enter Dashboard.
 
+The signed-in Account screen puts the editable display name and verified email in **Profile**. **Signed-in devices** highlights the current session, shows when each session started, and keeps **Sign out** and device revocation with those controls. The panels sit side by side when space allows and stack in reading order on narrow screens. The sidebar account menu uses a compact grid for the four appearances and stacks the options at large text sizes.
+
 | Entry or action | What the person sees | Data and routing |
 | --- | --- | --- |
 | Open a workspace URL without a session | **Sign in**, with Create account and password reset available | Resolve the session before mounting workspace content. An allowlisted destination remains available through the sign-in handoff. |

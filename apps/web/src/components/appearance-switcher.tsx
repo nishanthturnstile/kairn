@@ -10,7 +10,7 @@ import {
 } from "../lib/appearance";
 import { Button } from "./ui/button";
 
-const labels = {
+export const appearanceLabels = {
   system: "System",
   light: "Light",
   dark: "Dark",
@@ -35,8 +35,8 @@ export function AppearanceSwitcher() {
           variant="outline"
           className="rounded-full"
           aria-label="Appearance"
-          aria-description={`Current appearance: ${labels[appearance]}`}
-          title={`Appearance: ${labels[appearance]}`}
+          aria-description={`Current appearance: ${appearanceLabels[appearance]}`}
+          title={`Appearance: ${appearanceLabels[appearance]}`}
         >
           <span
             aria-hidden="true"
@@ -80,7 +80,7 @@ export function AppearanceSwitcher() {
                     <span className="confirmation-check" />
                   </span>
                 )}
-                {labels[option]}
+                {appearanceLabels[option]}
               </Button>
             ))}
           </div>

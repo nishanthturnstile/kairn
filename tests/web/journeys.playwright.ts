@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
+import { openAccount } from "./workspace-fixture";
 
 const password = "Synthetic-journeys-browser-password";
 const endpoint = "**/api/v1/journeys";
@@ -50,8 +51,8 @@ async function signIn(page: Page, email: string) {
 
 async function openSignedInAccount(page: Page, email: string) {
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
-  await page.getByRole("link", { name: "Account", exact: true }).click();
-  await expect(page.getByText(email)).toBeVisible();
+  await openAccount(page);
+  await expect(page.getByRole("main").getByText(email)).toBeVisible();
 }
 
 async function fillJourney(
@@ -68,10 +69,7 @@ async function fillJourney(
 }
 
 async function signOut(page: Page) {
-  await page
-    .getByRole("navigation", { name: "Main" })
-    .getByRole("link", { name: "Account" })
-    .click();
+  await openAccount(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
 }
@@ -278,7 +276,7 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
     page.getByRole("region", { name: "Upcoming" }).getByRole("link"),
   ).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await openAccount(page);
   await page.route(
     "**/api/auth/sign-out",
     (route) =>
@@ -290,7 +288,7 @@ test("refreshes fresh history after a brief tab switch and recovers a failed sig
   );
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByText("Couldn’t sign out. Try again.")).toBeVisible();
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page.getByRole("main").getByText(email)).toBeVisible();
   await signOut(page);
   await page.goto(`${site}/journeys`);
   await expect(
@@ -371,7 +369,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
     await released.promise;
     await page.unroute(endpoint);
     await expect(page).toHaveURL(accountDestination);
-    await expect(page.getByText(accountB)).toBeVisible();
+    await expect(page.getByRole("main").getByText(accountB)).toBeVisible();
     await expect(page.getByText("Private Coonoor")).toHaveCount(0);
     await page.goto(`${site}/journeys/${id}`);
     await expect(

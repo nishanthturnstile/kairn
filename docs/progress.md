@@ -8,6 +8,12 @@ Updated 2026-11-20. Baseline [bootstrap PR #1](https://github.com/nishanthturnst
 
 **Web setup ready for review · First-run onboarding and Dashboard.** Two steps reuse the display name and carry the plan, record or look-around choice into the actual Dashboard. The new migration is applied locally. Chromium and WebKit passed all three onboarding tests, Linux Firefox passed the large-text and appearance check, and 11 isolated database checks passed. Next, review the verified web flow before adapting it for native. [Web evidence](plans/first-run-onboarding-and-dashboard.md#web-implementation)
 
+**Verified locally · Web Dashboard and sidebar redesign.** Dashboard centers the next journey and keeps the onboarding action in an illustrated empty state. The shadcn sidebar passed Chromium, WebKit and Linux Firefox checks for resizing, draft preservation, keyboard focus and mobile account actions. Chromium also passed the web account, journey, onboarding and reader regressions. Next, review the redesigned workspace on web. [Navigation design](plans/first-run-onboarding-and-dashboard.md#dashboard-and-navigation) · [Browser coverage](../tests/web/workspace-sidebar.playwright.ts)
+
+**Verified locally · Journey wording and signed-in Account.** Onboarding, Dashboard and the creation form use journey terminology. The profile menu groups the four appearances, and Account separates profile and device controls. Chromium passed all three onboarding scenarios and the five workspace checks. Chromium and WebKit passed profile editing, device revocation and 320 CSS px reflow at 200% text. Next, review the updated web screens. [Account design](plans/web-account-access.md#design-and-entry-points) · [Browser coverage](../tests/web/identity.playwright.ts)
+
+**In planning · iPhone and Android onboarding and Dashboard.** Native will use the existing verified account APIs. The next step is the Astra review before implementation. [Native implementation plan](plans/first-run-onboarding-and-dashboard.md#native-implementation-plan)
+
 ## Private journey creation and history
 
 **First slice verified · R1 workstream 1, private journeys and membership.** A verified account can create a private journey and see one reference to the same ID in history. This gives capture and offline sync a stable account and journey destination. [TRP-01, TRP-02 and TRP-06](core/product-requirements.md#4-create-or-join-a-journey) · [PRO-02 and OWN-06](core/product-requirements.md#3-account-profile-and-private-history)

@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
+import { openAccount } from "./workspace-fixture";
 
 const password = "Synthetic-onboarding-password";
 const checkpointPath = "**/api/v1/onboarding";
@@ -85,7 +86,9 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await displayName.fill("Anu Rao");
   await page.getByRole("button", { name: "Save name", exact: true }).click();
   await expect(page.getByText("Display name saved.")).toBeVisible();
-  await expect(page.getByText("Anu Rao", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Anu Rao", { exact: true }),
+  ).toBeVisible();
 
   await page.route(
     checkpointPath,
@@ -132,22 +135,26 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await expect(page.getByText("Step 1 of 2")).toBeVisible();
   await page.reload();
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await openAccount(page);
   await expect(page.getByRole("link", { name: "Resume setup" })).toBeVisible();
-  await expect(page.getByText("Anu Rao", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Anu Rao", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await signIn(page, email);
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
-  await page.getByRole("radio", { name: "Plan a trip", exact: true }).check();
+  await page
+    .getByRole("radio", { name: "Plan a journey", exact: true })
+    .check();
   await page.getByRole("button", { name: "Go to Dashboard" }).click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await expect(
-    page.getByRole("heading", { name: "Plan your first trip" }),
+    page.getByRole("heading", { name: "Plan your first journey" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("link", { name: "Plan a trip", exact: true }).click();
+  await page.getByRole("link", { name: "Plan a journey", exact: true }).click();
   await expect(
-    page.getByText("Enter your planned start in the trip’s local time.", {
+    page.getByText("Enter the planned start in the journey’s local time.", {
       exact: false,
     }),
   ).toBeVisible();
@@ -172,7 +179,6 @@ test("reuses the signup name and resumes setup before creating a first planned j
     "Journeys",
     "Discover",
     "Saved",
-    "Account",
   ]);
   await nav.getByRole("link", { name: "Dashboard" }).click();
   await expect(
@@ -180,7 +186,7 @@ test("reuses the signup name and resumes setup before creating a first planned j
   ).toHaveAttribute("href", created);
   await expect(
     page.getByRole("region", { name: "Overview" }).locator("dd"),
-  ).toHaveText(["1", "1", "Excludes archived journeys"]);
+  ).toHaveText(["1", "1"]);
 });
 
 test("keeps an explicit journey return and consumes it after two steps", async ({
@@ -200,7 +206,7 @@ test("keeps an explicit journey return and consumes it after two steps", async (
     .click();
   await expect(page).toHaveURL(`${site}/journeys/new`);
   await expect(page.getByLabel("Title", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await openAccount(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await signIn(page, email);
   await expect(page).toHaveURL(`${site}/dashboard`);
@@ -209,7 +215,7 @@ test("keeps an explicit journey return and consumes it after two steps", async (
   ).toBeVisible();
 });
 
-test("keeps older accounts exempt and reflows both steps and the past-trip handoff", async ({
+test("keeps older accounts exempt and reflows both steps and the past-journey handoff", async ({
   page,
   browser,
   browserName,
@@ -235,7 +241,7 @@ test("keeps older accounts exempt and reflows both steps and the past-trip hando
   }
   await signIn(page, email);
   await expect(page).toHaveURL(`${site}/dashboard`);
-  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await openAccount(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const eligible = await newAccount(page);
   await page.setViewportSize({ width: 320, height: 800 });
@@ -263,7 +269,7 @@ test("keeps older accounts exempt and reflows both steps and the past-trip hando
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
   await assertAccessibleReflow();
   const record = page.getByRole("radio", {
-    name: "Record a past trip",
+    name: "Record a past journey",
     exact: true,
   });
   await record.focus();
@@ -271,17 +277,16 @@ test("keeps older accounts exempt and reflows both steps and the past-trip hando
   await expect(record).toBeChecked();
   await page.getByRole("button", { name: "Go to Dashboard" }).click();
   await expect(
-    page.getByRole("heading", { name: "Keep a trip you’ve already taken" }),
+    page.getByRole("heading", { name: "Record a journey you’ve taken" }),
   ).toBeVisible();
   await assertAccessibleReflow();
   await page
-    .getByRole("link", { name: "Record a past trip", exact: true })
+    .getByRole("link", { name: "Record a past journey", exact: true })
     .click();
   await expect(
-    page.getByText(
-      "Use the start date and local time from the trip you took.",
-      { exact: false },
-    ),
+    page.getByText("Enter the start in the journey’s local time.", {
+      exact: false,
+    }),
   ).toBeVisible();
   await assertAccessibleReflow();
 });

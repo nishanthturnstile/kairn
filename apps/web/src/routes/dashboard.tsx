@@ -5,7 +5,9 @@ import type {
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, CalendarDays, MapIcon, Plus } from "lucide-react";
 import { useEffect, useRef } from "react";
+import beach from "../assets/onboarding-beach.webp";
 import { JourneyDate } from "../components/journeys/dates";
 import {
   JourneyGate,
@@ -13,33 +15,14 @@ import {
   JourneyRetry,
 } from "../components/journeys/states";
 import { Button } from "../components/ui/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "../components/ui/empty";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { journeyResult } from "../lib/journey-api";
+import { journeyIntentCopy } from "../lib/journey-intent-copy";
 import { useOnboarding } from "../lib/onboarding";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
-
-const firstJourney = {
-  plan: {
-    action: "Plan a trip",
-    title: "Plan your first trip",
-    description:
-      "Give your trip a title and dates to see it in your upcoming plans.",
-  },
-  record: {
-    action: "Record a past trip",
-    title: "Keep a trip you’ve already taken",
-    description:
-      "Add the title and dates from a past trip to start your private journey history.",
-  },
-} as const;
 
 function Dashboard() {
   const { scope } = Route.useRouteContext();
@@ -83,30 +66,52 @@ function DashboardHome({
     heading.current?.focus();
   }, []);
 
+  const currentSummary =
+    summary.isFetching || summary.isError ? undefined : summary.data;
+  const showFirstJourney = currentSummary?.journeyCount === 0;
+
   return (
-    <div className="grid gap-8 sm:gap-10">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 ref={heading} tabIndex={-1} className="text-4xl font-semibold">
-          Dashboard
-        </h1>
-        <Button asChild>
-          <Link to="/journeys/new" search={{ intent }}>
-            {intent ? firstJourney[intent].action : "Create a journey"}
-          </Link>
-        </Button>
+    <div className="@container/dashboard grid gap-7 sm:gap-9">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="grid gap-1">
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            className="text-4xl font-bold tracking-tight"
+          >
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground">
+            Your upcoming plans and recent journeys.
+          </p>
+        </div>
+        {!showFirstJourney && <CreateJourneyLink />}
       </header>
-      {summary.isError ? (
+      {currentSummary ? (
+        <JourneyOverview summary={currentSummary} intent={intent} />
+      ) : summary.isError ? (
         <JourneyRetry
           title="Couldn’t load your Dashboard"
           busy={summary.isFetching}
           retry={() => void summary.refetch()}
         />
-      ) : !summary.data || summary.isFetching ? (
-        <JourneyLoading label="Loading your Dashboard" />
       ) : (
-        <JourneyOverview summary={summary.data} intent={intent} />
+        <JourneyLoading label="Loading your Dashboard" />
       )}
     </div>
+  );
+}
+
+function CreateJourneyLink({ intent }: { intent?: OnboardingIntent }) {
+  return (
+    <Button asChild>
+      <Link to="/journeys/new" search={{ intent }}>
+        <Plus aria-hidden="true" data-icon="inline-start" />
+        <span>
+          {intent ? journeyIntentCopy[intent].action : "Create a journey"}
+        </span>
+      </Link>
+    </Button>
   );
 }
 
@@ -117,89 +122,139 @@ function JourneyOverview({
   summary: DashboardSummary;
   intent?: OnboardingIntent;
 }) {
-  if (summary.journeyCount === 0)
-    return (
-      <Empty className="bg-muted p-6 sm:p-8">
-        <EmptyHeader>
-          <EmptyTitle>
-            {intent ? firstJourney[intent].title : "Your journeys start here"}
-          </EmptyTitle>
-          <EmptyDescription>
-            {intent
-              ? firstJourney[intent].description
-              : "Add a journey and its dates to see your upcoming plans and recent trips here."}
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    );
-
   return (
     <>
-      <section
-        aria-labelledby="next-journey"
-        className="grid gap-3 rounded-card control-border bg-muted p-4 sm:p-8"
-      >
-        <h2 id="next-journey" className="text-xl font-semibold">
-          Next journey
-        </h2>
-        {summary.nextJourney ? (
-          <JourneySummaryLink journey={summary.nextJourney} featured />
+      <div className="grid gap-4 @min-[49rem]/dashboard:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+        {summary.journeyCount === 0 ? (
+          <FirstJourney intent={intent} />
         ) : (
-          <p className="text-muted-foreground">
-            No upcoming journeys scheduled.
-          </p>
+          <NextJourney journey={summary.nextJourney} />
         )}
-      </section>
+        <section aria-labelledby="dashboard-overview">
+          <Card className="h-full gap-2 [--card-spacing:--spacing(5)]">
+            <CardHeader>
+              <h2 id="dashboard-overview" className="text-xl font-semibold">
+                Overview
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid divide-y divide-border/45">
+                <div className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <dt className="flex items-center gap-3 text-muted-foreground">
+                    <MapIcon aria-hidden="true" className="size-4 shrink-0" />
+                    Journeys
+                  </dt>
+                  <dd className="text-xl font-bold tabular-nums">
+                    {summary.journeyCount.toLocaleString("en-IN")}
+                  </dd>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <dt className="flex items-center gap-3 text-muted-foreground">
+                    <CalendarDays
+                      aria-hidden="true"
+                      className="size-4 shrink-0"
+                    />
+                    Upcoming plans
+                  </dt>
+                  <dd className="text-xl font-bold tabular-nums">
+                    {summary.upcomingCount.toLocaleString("en-IN")}
+                  </dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
 
-      <section aria-labelledby="dashboard-overview" className="grid gap-3">
-        <h2 id="dashboard-overview" className="text-xl font-semibold">
-          Overview
-        </h2>
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div className="grid content-start gap-1 rounded-card control-border bg-card p-4">
-            <dt className="font-semibold text-muted-foreground">Journeys</dt>
-            <dd className="text-4xl font-semibold tabular-nums">
-              {summary.journeyCount.toLocaleString("en-IN")}
-            </dd>
-          </div>
-          <div className="grid content-start gap-1 rounded-card control-border bg-card p-4">
-            <dt className="font-semibold text-muted-foreground">
-              Upcoming plans
-            </dt>
-            <dd className="text-4xl font-semibold tabular-nums">
-              {summary.upcomingCount.toLocaleString("en-IN")}
-            </dd>
-            <dd className="text-sm text-muted-foreground">
-              Excludes archived journeys
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section aria-labelledby="dashboard-recent" className="grid gap-3">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="dashboard-recent" className="text-xl font-semibold">
-            Recent journeys
-          </h2>
-          <Button asChild variant="link">
-            <Link to="/journeys">All journeys</Link>
-          </Button>
-        </header>
-        {summary.recentJourneys.length ? (
-          <ul className="grid gap-2">
-            {summary.recentJourneys.map((journey) => (
-              <li key={journey.id}>
-                <JourneySummaryLink journey={journey} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground">
-            Journeys appear here once their planned start date arrives.
-          </p>
-        )}
-      </section>
+      {summary.journeyCount > 0 && (
+        <section aria-labelledby="dashboard-recent">
+          <Card className="gap-2 [--card-spacing:--spacing(5)]">
+            <CardHeader className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <h2 id="dashboard-recent" className="text-xl font-semibold">
+                Recent journeys
+              </h2>
+              <Button asChild variant="link" size="sm" className="-me-2">
+                <Link to="/journeys">
+                  All journeys
+                  <ArrowRight aria-hidden="true" data-icon="inline-end" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {summary.recentJourneys.length ? (
+                <ul className="divide-y divide-border/45">
+                  {summary.recentJourneys.map((journey) => (
+                    <li key={journey.id}>
+                      <JourneySummaryLink journey={journey} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="pb-3 text-muted-foreground">
+                  Journeys appear here once their planned start date arrives.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </>
+  );
+}
+
+function FirstJourney({ intent }: { intent?: OnboardingIntent }) {
+  return (
+    <section
+      aria-labelledby="first-journey"
+      className="relative grid overflow-hidden rounded-card control-border bg-card @min-[31rem]/dashboard:grid-cols-[minmax(0,1fr)_38%]"
+    >
+      <div className="grid content-center justify-items-start gap-3 p-5 sm:p-7">
+        <h2 id="first-journey" className="text-xl font-bold">
+          {intent
+            ? journeyIntentCopy[intent].heading
+            : "Your journeys start here"}
+        </h2>
+        <p className="max-w-[38ch] text-muted-foreground">
+          {intent
+            ? journeyIntentCopy[intent].description
+            : "Add a journey and its dates to see your upcoming plans and recent journeys here."}
+        </p>
+        <div className="mt-2">
+          <CreateJourneyLink intent={intent} />
+        </div>
+      </div>
+      <div className="relative min-h-32 bg-muted @min-[31rem]/dashboard:min-h-55">
+        <img
+          src={beach}
+          alt=""
+          className="absolute inset-0 size-full object-cover object-[58%_center]"
+        />
+      </div>
+    </section>
+  );
+}
+
+function NextJourney({ journey }: { journey?: DashboardJourney | null }) {
+  return (
+    <section
+      aria-labelledby="next-journey"
+      className="grid content-start gap-5 rounded-card control-border bg-accent p-5 text-accent-foreground sm:p-7"
+    >
+      <h2
+        id="next-journey"
+        className="flex items-center gap-2 text-base font-semibold"
+      >
+        <CalendarDays aria-hidden="true" className="size-5 shrink-0" />
+        Next journey
+      </h2>
+      {journey ? (
+        <JourneySummaryLink journey={journey} featured />
+      ) : (
+        <p className="max-w-prose text-xl font-semibold">
+          No upcoming journeys scheduled.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -214,27 +269,30 @@ function JourneySummaryLink({
     <Link
       to="/journeys/$journeyId"
       params={{ journeyId: journey.id }}
-      className="grid min-h-touch gap-1 rounded-control control-border bg-card p-4 transition-colors hover:bg-background"
+      className="group grid min-h-touch grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-control py-3 focus-visible:-outline-offset-2"
     >
-      <span
-        className={
-          featured
-            ? "text-xl font-semibold text-primary underline underline-offset-4"
-            : "font-semibold text-primary underline underline-offset-4"
-        }
-      >
-        {journey.title}
-      </span>
-      <span className="text-muted-foreground">
-        {journey.schedule ? (
-          <JourneyDate minute={journey.schedule.intendedStart} />
-        ) : (
-          "Dates unavailable"
+      <span className="grid gap-1">
+        <span
+          className={
+            featured
+              ? "text-2xl font-bold underline-offset-4 group-hover:underline"
+              : "font-semibold text-primary underline-offset-4 group-hover:underline"
+          }
+        >
+          {journey.title}
+        </span>
+        <span className={featured ? "text-current" : "text-muted-foreground"}>
+          {journey.schedule ? (
+            <JourneyDate minute={journey.schedule.intendedStart} />
+          ) : (
+            "Dates unavailable"
+          )}
+        </span>
+        {journey.state === "archived" && (
+          <span className="text-sm text-muted-foreground">Archived</span>
         )}
       </span>
-      {journey.state === "archived" && (
-        <span className="text-sm text-muted-foreground">Archived</span>
-      )}
+      <ArrowRight aria-hidden="true" className="size-4 shrink-0 text-primary" />
     </Link>
   );
 }

@@ -4,6 +4,7 @@ import type {
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BadgeCheck, LogOut, MonitorSmartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AuthForm, type AuthMode } from "../components/auth-form";
 import { JourneyLoading } from "../components/journeys/states";
@@ -11,6 +12,8 @@ import { PageHeading } from "../components/page-heading";
 import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { authClient } from "../lib/auth";
 import { journeyReturnTo, saveJourneyReturnTo } from "../lib/journey-return";
 import { useOnboarding } from "../lib/onboarding";
@@ -49,12 +52,10 @@ type Feedback = {
   variant: "default" | "destructive" | "success" | "warning";
 };
 
-const feedbackTextClass = {
-  default: "text-muted-foreground",
-  destructive: "text-destructive",
-  success: "text-success",
-  warning: "text-warning",
-};
+const sessionDate = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 function AccountPage() {
   const { data } = authClient.useSession();
@@ -122,11 +123,8 @@ function AccountPage() {
     if (returnTo || signInAccount === scope.accountId)
       return <output className="text-muted-foreground">Opening Kairn</output>;
     return (
-      <section className="grid max-w-lg gap-6">
-        <PageHeading
-          title="Account"
-          description="Manage your profile, current session and signed-in devices."
-        />
+      <div className="@container/account grid gap-6">
+        <PageHeading title="Account" />
         {signOutFailed && (
           <Alert variant="destructive" role="alert">
             <AlertDescription>Couldn’t sign out. Try again.</AlertDescription>
@@ -137,9 +135,44 @@ function AccountPage() {
             <Link to="/onboarding">Resume setup</Link>
           </Button>
         )}
-        <ProfileName accountId={scope.accountId} scope={scope} />
-        <SignedInAccount email={data.user.email} id={scope.accountId} />
-      </section>
+        <div className="grid items-start gap-4 @min-[48rem]/account:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+          <section aria-labelledby="account-profile" className="min-w-0">
+            <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+              <CardHeader>
+                <h2 id="account-profile" className="text-xl font-semibold">
+                  Profile
+                </h2>
+              </CardHeader>
+              <CardContent className="grid min-w-0 divide-y divide-border/50">
+                <div className="pb-4">
+                  <ProfileName
+                    accountId={scope.accountId}
+                    scope={scope}
+                    embedded
+                    fallbackName={data.user.name}
+                  />
+                </div>
+                <dl className="grid gap-1 pt-4">
+                  <dt className="text-sm font-semibold text-muted-foreground">
+                    Email address
+                  </dt>
+                  <dd className="font-semibold wrap-anywhere">
+                    {data.user.email}
+                  </dd>
+                  <dd className="flex items-center gap-1.5 text-sm font-semibold text-success">
+                    <BadgeCheck
+                      aria-hidden="true"
+                      className="size-4 shrink-0"
+                    />
+                    Verified
+                  </dd>
+                </dl>
+              </CardContent>
+            </Card>
+          </section>
+          <SignedInDevices id={scope.accountId} />
+        </div>
+      </div>
     );
   }
   return (
@@ -185,7 +218,7 @@ function AccountPage() {
   );
 }
 
-function SignedInAccount({ email, id }: { email: string; id: string }) {
+function SignedInDevices({ id }: { id: string }) {
   const { signOut } = useSessionAccess();
   const [feedback, setFeedback] = useState<Feedback>();
   const [revoking, setRevoking] = useState(false);
@@ -234,63 +267,119 @@ function SignedInAccount({ email, id }: { email: string; id: string }) {
     }
   }
 
+  const currentDeviceId = devices.data?.currentDeviceId;
+  const sessions = devices.data?.devices.toSorted(
+    (a, b) =>
+      Number(b.id === currentDeviceId) - Number(a.id === currentDeviceId),
+  );
+
   return (
-    <div className="grid min-w-0 gap-4 rounded-card control-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <p className="min-w-0 font-semibold">{email}</p>
-        <Button variant="outline" onClick={signOut}>
-          Sign out
-        </Button>
-      </div>
-      <h2 className="text-xl font-semibold">Signed-in devices</h2>
-      {devices.isPending && (
-        <output className="text-muted-foreground">Loading devices</output>
-      )}
-      {devices.isError && (
-        <p className="text-destructive" role="alert">
-          Couldn’t load your devices.
-        </p>
-      )}
-      {devices.data && (
-        <ul className="grid gap-3">
-          {devices.data.devices.map((device) => (
-            <li
-              key={device.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
-            >
-              {device.id === devices.data?.currentDeviceId ? (
-                <p>This device</p>
-              ) : (
-                <>
-                  <p>
-                    Session started{" "}
-                    <time dateTime={device.createdAt}>
-                      {new Date(device.createdAt).toLocaleString("en-IN")}
-                    </time>
-                  </p>
-                  <Button
-                    variant="outline"
-                    disabled={revoking}
-                    onClick={() => void revoke(device.id)}
+    <section aria-labelledby="account-devices" className="min-w-0">
+      <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="account-devices" className="text-xl font-semibold">
+            Signed-in devices
+          </h2>
+          <Button type="button" variant="outline" size="sm" onClick={signOut}>
+            <LogOut aria-hidden="true" data-icon="inline-start" />
+            Sign out
+          </Button>
+        </CardHeader>
+        <CardContent className="@container/device-list grid gap-3">
+          {devices.isPending && (
+            <output className="grid gap-2 text-muted-foreground">
+              Loading devices
+              <Skeleton className="h-12" />
+            </output>
+          )}
+          {devices.isError && (
+            <Alert variant="destructive">
+              <AlertDescription>Couldn’t load your devices.</AlertDescription>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={devices.isFetching}
+                className="justify-self-start"
+                onClick={() => void devices.refetch()}
+              >
+                Try again
+              </Button>
+            </Alert>
+          )}
+          {sessions?.length ? (
+            <ul className="grid gap-2">
+              {sessions.map((device) => {
+                const current = device.id === currentDeviceId;
+                return (
+                  <li
+                    key={device.id}
+                    data-current={current}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-border/50 px-2 py-3 sm:px-3 data-[current=true]:border-transparent data-[current=true]:bg-accent data-[current=true]:text-accent-foreground"
                   >
-                    Revoke device
-                  </Button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {feedback && (
-        <p className={feedbackTextClass[feedback.variant]} role="status">
-          {feedback.text}
-        </p>
-      )}
-      {!feedback && Boolean(devices.data?.pendingRestrictions) && (
-        <p className="text-warning" role="status">
-          Account changes await recovery confirmation.
-        </p>
-      )}
-    </div>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <MonitorSmartphone
+                        aria-hidden="true"
+                        className="mt-0.5 hidden size-5 shrink-0 @min-[12rem]/device-list:block"
+                      />
+                      <div className="grid min-w-0 gap-0.5">
+                        <p className="font-semibold">
+                          {current ? "This device" : "Other device"}
+                        </p>
+                        <p
+                          className={
+                            current
+                              ? "text-sm"
+                              : "text-sm text-muted-foreground"
+                          }
+                        >
+                          Signed in{" "}
+                          <time dateTime={device.createdAt}>
+                            {sessionDate.format(new Date(device.createdAt))}
+                          </time>
+                        </p>
+                      </div>
+                    </div>
+                    {!current && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="px-2 sm:px-3"
+                        disabled={revoking}
+                        onClick={() => void revoke(device.id)}
+                      >
+                        Revoke device
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            sessions && (
+              <p className="text-muted-foreground">
+                No signed-in devices to show.
+              </p>
+            )
+          )}
+          {feedback && (
+            <Alert
+              variant={feedback.variant}
+              role={feedback.variant === "destructive" ? "alert" : "status"}
+            >
+              <AlertDescription>{feedback.text}</AlertDescription>
+            </Alert>
+          )}
+          {!feedback && Boolean(devices.data?.pendingRestrictions) && (
+            <Alert variant="warning" role="status">
+              <AlertDescription>
+                Account changes await recovery confirmation.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   );
 }

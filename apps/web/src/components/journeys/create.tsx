@@ -29,6 +29,7 @@ import {
   type JourneyAttempt,
   loadJourneyAttempt,
 } from "../../lib/journey-attempt";
+import { journeyIntentCopy } from "../../lib/journey-intent-copy";
 import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
 import { PageHeading } from "../page-heading";
@@ -59,13 +60,7 @@ export function CreateJourneyPage(props: CreatePageProps) {
       <JourneyBackLink />
       <PageHeading
         title="Create journey"
-        description={
-          props.intent === "plan"
-            ? "Enter your planned start in the trip’s local time. You can leave the end date open."
-            : props.intent === "record"
-              ? "Use the start date and local time from the trip you took. Add the end if you know it."
-              : undefined
-        }
+        description={props.intent && journeyIntentCopy[props.intent].guidance}
       />
       {pending.isError ? (
         <JourneyRetry

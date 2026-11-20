@@ -6,6 +6,7 @@ import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { JourneyRequestError, journeyResult } from "../lib/journey-api";
+import { journeyIntentCopy } from "../lib/journey-intent-copy";
 import {
   boundJourneyReturn,
   clearJourneyReturn,
@@ -23,8 +24,7 @@ const steps = [
   {
     label: "Welcome",
     title: "Welcome to Kairn",
-    description:
-      "Keep a record of your trips in one place. Every journey starts private.",
+    description: "Keep your journeys together. Each one starts private.",
   },
   {
     label: "Get started",
@@ -37,13 +37,13 @@ const steps = [
 const choices = [
   {
     value: "plan",
-    title: "Plan a trip",
-    description: "Set up an upcoming journey with a title and dates.",
+    title: journeyIntentCopy.plan.action,
+    description: journeyIntentCopy.plan.choice,
   },
   {
     value: "record",
-    title: "Record a past trip",
-    description: "Start a private record of a journey you’ve already taken.",
+    title: journeyIntentCopy.record.action,
+    description: journeyIntentCopy.record.choice,
   },
   {
     value: "look",

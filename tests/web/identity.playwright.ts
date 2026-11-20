@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { mailLink, site } from "./identity-fixture";
+import { openAccount } from "./workspace-fixture";
 
 const password = "Synthetic-browser-password";
 
 test("browser account flows verify email, revoke another session, and reset the password", async ({
   page,
   browser,
-}) => {
+}, testInfo) => {
   test.skip(
     process.env.KAIRN_WEB_IDENTITY !== "1",
     "Requires the local server, web, worker and Mailpit.",
@@ -83,11 +85,57 @@ test("browser account flows verify email, revoke another session, and reset the 
     });
     expect(verifiedStory.status()).toBe(404);
     expect(await verifiedStory.text()).toContain("Story unavailable");
-    await page.getByRole("link", { name: "Account", exact: true }).click();
-    await expect(page.getByText(email)).toBeVisible();
+    await openAccount(page);
+    const profile = page.getByRole("region", { name: "Profile" });
+    const devices = page.getByRole("region", { name: "Signed-in devices" });
+    await expect(profile.getByText(email, { exact: true })).toBeVisible();
+    await expect(profile.getByText("Verified", { exact: true })).toBeVisible();
+    const current = devices.getByRole("listitem").first();
+    await expect(current).toContainText("This device");
+    await expect(
+      current.getByRole("button", { name: "Revoke device" }),
+    ).toHaveCount(0);
+    await profile.getByRole("button", { name: "Edit name" }).click();
+    const displayName = profile.getByRole("textbox", { name: "Display name" });
+    await expect(displayName).toBeFocused();
+    await displayName.fill("Rhea Mehta");
+    await profile.getByRole("button", { name: "Save name" }).click();
+    await expect(
+      profile.getByText("Rhea Mehta", { exact: true }),
+    ).toBeVisible();
+    if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
+      await page.screenshot({
+        path: testInfo.outputPath("account-desktop.png"),
+        animations: "disabled",
+      });
+
+    const originalSize = page.viewportSize();
+    if (!originalSize) throw new Error("The account test requires a viewport.");
+    await page.setViewportSize({ width: 320, height: 840 });
+    const largeText = await page.addStyleTag({
+      content: "html { font-size: 200% !important; }",
+    });
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(320);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
+      await page.screenshot({
+        path: testInfo.outputPath("account-mobile-large-text.png"),
+        fullPage: true,
+        animations: "disabled",
+      });
+    await largeText.evaluate((style) => style.remove());
+    await page.setViewportSize(originalSize);
     await page.getByRole("link", { name: "Kairn", exact: true }).click();
     await expect(page).toHaveURL(`${site}/dashboard`);
-    await page.getByRole("link", { name: "Account", exact: true }).click();
+    await openAccount(page);
     await page.getByRole("button", { name: "Revoke device" }).click();
     await expect(
       page.getByText("Device signed out. Recovery confirmation is pending."),

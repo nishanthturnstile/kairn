@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { type SubmitEvent, useEffect, useId, useRef, useState } from "react";
 import { journeyResult } from "../lib/journey-api";
+import { profileQueryKey, useProfile } from "../lib/profile";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
+import { ProfileAvatar } from "./profile-avatar";
 import { Button } from "./ui/button";
 import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
@@ -12,28 +13,20 @@ export function ProfileName({
   scope,
   disabled,
   onEditingChange,
+  embedded = false,
+  fallbackName,
 }: {
   accountId: string;
   scope: AccountScope;
   disabled?: boolean;
+  embedded?: boolean;
+  fallbackName?: string;
   onEditingChange?: (editing: boolean) => void;
 }) {
   const { refresh } = useSessionAccess();
-  const queryKey = [accountId, "profile"];
+  const queryKey = profileQueryKey(accountId);
   const headers = { "x-expected-account": accountId };
-  const profile = useQuery({
-    queryKey,
-    async queryFn({ signal }) {
-      return journeyResult(
-        await scope.api.GET("/api/v1/profile", {
-          params: { header: headers },
-          signal,
-        }),
-        scope,
-        refresh,
-      );
-    },
-  });
+  const profile = useProfile(scope, accountId);
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const editButton = useRef<HTMLButtonElement>(null);
@@ -98,10 +91,15 @@ export function ProfileName({
     }
   }
 
+  const Container = embedded ? "div" : "section";
   return (
-    <section
-      aria-label="Profile"
-      className="grid min-w-0 gap-3 rounded-card control-border bg-card p-4"
+    <Container
+      aria-label={embedded ? undefined : "Profile"}
+      className={
+        embedded
+          ? "@container/profile-name grid min-w-0 gap-3"
+          : "grid min-w-0 gap-3 rounded-card control-border bg-card p-4"
+      }
     >
       {editing ? (
         <form
@@ -147,21 +145,31 @@ export function ProfileName({
         </form>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-muted-foreground">
-              Display name
-            </p>
-            {profile.data ? (
-              <p className="font-semibold wrap-anywhere">
-                {profile.data.displayName || "Enter a display name"}
-              </p>
-            ) : (
-              <p className="text-muted-foreground" role="status">
-                {profile.isError
-                  ? "Couldn’t load your name."
-                  : "Loading your name…"}
-              </p>
+          <div className="flex min-w-0 items-center gap-3">
+            {embedded && (
+              <span className="hidden @min-[12rem]/profile-name:block">
+                <ProfileAvatar
+                  name={profile.data?.displayName || fallbackName}
+                  size="lg"
+                />
+              </span>
             )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-muted-foreground">
+                Display name
+              </p>
+              {profile.data ? (
+                <p className="font-semibold wrap-anywhere">
+                  {profile.data.displayName || "Enter a display name"}
+                </p>
+              ) : (
+                <p className="text-muted-foreground" role="status">
+                  {profile.isError
+                    ? "Couldn’t load your name."
+                    : "Loading your name…"}
+                </p>
+              )}
+            </div>
           </div>
           {profile.data ? (
             <Button
@@ -197,6 +205,6 @@ export function ProfileName({
           Display name saved.
         </p>
       )}
-    </section>
+    </Container>
   );
 }
