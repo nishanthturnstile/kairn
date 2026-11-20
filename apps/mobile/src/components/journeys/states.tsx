@@ -1,6 +1,11 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import { type ReactNode, useCallback } from "react";
-import { ScrollView } from "react-native";
+import {
+  type ComponentRef,
+  type ReactNode,
+  type Ref,
+  useCallback,
+} from "react";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { useMobileSession } from "../../mobile-session";
@@ -11,6 +16,7 @@ import { Action, AppText, Panel, StatusNotice } from "../ui";
 export const journeyStyles = StyleSheet.create(
   ({ semantic: { color, space } }) => ({
     screen: { flex: 1, backgroundColor: color.canvas },
+    hidden: { display: "none" },
     content: { gap: space.step16, padding: space.step24 },
     contentHeader: { gap: space.step16, marginBottom: space.step16 },
     group: { gap: space.step8 },
@@ -20,9 +26,11 @@ export const journeyStyles = StyleSheet.create(
 export function JourneyScreen({
   children,
   top = false,
+  scrollRef,
 }: {
   children: ReactNode;
   top?: boolean;
+  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
   return (
     <SafeAreaView
@@ -30,6 +38,7 @@ export function JourneyScreen({
       style={journeyStyles.screen}
     >
       <ScrollView
+        ref={scrollRef}
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -53,41 +62,51 @@ export function JourneyGate({
   children: (scope: VerifiedMobileScope) => ReactNode;
 }) {
   const router = useRouter();
-  const { state, scope, refresh } = useMobileSession();
-  if (scope) return children(scope);
+  const { state, scope, refresh, isRevalidating } = useMobileSession();
   return (
-    <JourneyScreen top={top}>
-      {top && <DestinationTopBar />}
-      <AppText text={title} variant="title" accessibilityRole="header" />
-      {state === "checking" && (
-        <StatusNotice
-          notice={{ text: "Checking your session", tone: "info" }}
-        />
+    <>
+      {scope && (
+        <View
+          style={isRevalidating ? journeyStyles.hidden : journeyStyles.screen}
+        >
+          {children(scope)}
+        </View>
       )}
-      {state === "unavailable" && (
-        <Panel>
-          <StatusNotice
-            notice={{ text: "Couldn’t check your session.", tone: "error" }}
-          />
-          <Action label="Try again" onPress={() => refresh()} />
-        </Panel>
+      {(!scope || isRevalidating) && (
+        <JourneyScreen top={top}>
+          {top && <DestinationTopBar />}
+          <AppText text={title} variant="title" accessibilityRole="header" />
+          {state === "checking" && (
+            <StatusNotice
+              notice={{ text: "Checking your session", tone: "info" }}
+            />
+          )}
+          {state === "unavailable" && (
+            <Panel>
+              <StatusNotice
+                notice={{ text: "Couldn’t check your session.", tone: "error" }}
+              />
+              <Action label="Try again" onPress={() => refresh()} />
+            </Panel>
+          )}
+          {state === "signed-out" && (
+            <Panel>
+              <AppText text="Your journeys are private." subdued />
+              <Action
+                label="Sign in"
+                variant="primary"
+                onPress={() =>
+                  router.push({
+                    pathname: "/account",
+                    params: { returnTo: destination },
+                  })
+                }
+              />
+            </Panel>
+          )}
+        </JourneyScreen>
       )}
-      {state === "signed-out" && (
-        <Panel>
-          <AppText text="Your journeys are private." subdued />
-          <Action
-            label="Sign in"
-            variant="primary"
-            onPress={() =>
-              router.push({
-                pathname: "/account",
-                params: { returnTo: destination },
-              })
-            }
-          />
-        </Panel>
-      )}
-    </JourneyScreen>
+    </>
   );
 }
 

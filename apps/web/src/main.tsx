@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -23,18 +24,9 @@ const session = createWebSession(window.location.origin);
 function createCreatorRouter(scope: ReturnType<typeof session.getSnapshot>) {
   return createRouter({
     routeTree,
-    context: { scope, signOut },
+    context: { scope },
     scrollRestoration: true,
   });
-}
-
-async function signOut() {
-  session.setVerifiedAccount(null);
-  try {
-    return !(await authClient.signOut()).error;
-  } catch {
-    return false;
-  }
 }
 
 declare module "@tanstack/react-router" {
@@ -57,6 +49,8 @@ createRoot(root).render(
 function CreatorApp() {
   const current = authClient.useSession();
   const [rechecking, setRechecking] = useState(false);
+  const [signOutFailed, setSignOutFailed] = useState(false);
+  const transition = useRef(false);
   const accountId =
     !current.error && current.data?.user?.emailVerified
       ? current.data.user.id
@@ -68,15 +62,39 @@ function CreatorApp() {
   const scope = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const router = useMemo(() => createCreatorRouter(scope), [scope]);
   const refetch = current.refetch;
-  const refresh = useCallback(
-    (rejectedScope?: AccountScope) => {
-      if (rejectedScope && session.getSnapshot() !== rejectedScope) return;
+  const recheck = useCallback(
+    async (action?: () => Promise<void>) => {
+      if (transition.current) return;
+      transition.current = true;
       setRechecking(true);
       session.setVerifiedAccount(null);
-      void refetch().finally(() => setRechecking(false));
+      try {
+        await action?.();
+        await refetch();
+      } finally {
+        transition.current = false;
+        setRechecking(false);
+      }
     },
     [refetch],
   );
+  const refresh = useCallback(
+    (rejectedScope?: AccountScope) => {
+      if (rejectedScope && session.getSnapshot() !== rejectedScope) return;
+      void recheck();
+    },
+    [recheck],
+  );
+  function signOut() {
+    void recheck(async () => {
+      setSignOutFailed(false);
+      try {
+        setSignOutFailed(Boolean((await authClient.signOut()).error));
+      } catch {
+        setSignOutFailed(true);
+      }
+    });
+  }
   const state =
     rechecking || current.isPending
       ? "checking"
@@ -88,7 +106,7 @@ function CreatorApp() {
             ? "verified"
             : "signed-out";
   return (
-    <SessionAccess.Provider value={{ state, refresh }}>
+    <SessionAccess.Provider value={{ state, refresh, signOut, signOutFailed }}>
       <QueryClientProvider
         key={scope.accountId ?? "signed-out"}
         client={scope.queryClient}

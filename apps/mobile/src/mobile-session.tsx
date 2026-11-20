@@ -41,6 +41,8 @@ const useAuthSession =
 const Context = createContext<{
   state: "checking" | "signed-out" | "verified" | "unavailable";
   scope?: VerifiedMobileScope;
+  isRevalidating: boolean;
+  canSubmit: (scope: VerifiedMobileScope) => boolean;
   recheck: () => Promise<void>;
   refresh: (rejectedScope?: MobileAccountScope) => void;
   signOut: () => Promise<boolean>;
@@ -55,15 +57,20 @@ export function useMobileSession() {
 export function MobileSessionProvider({ children }: { children: ReactNode }) {
   const current = useAuthSession();
   const [checking, setChecking] = useState(false);
+  const [isRevalidating, setRevalidating] = useState(false);
   const signingOut = useRef(false);
+  const sessionCheck = useRef<Promise<void> | undefined>(undefined);
   const scope = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const accountId =
     !current.error && current.data?.user.emailVerified
       ? current.data.user.id
       : null;
   const refetch = current.refetch;
-  const recheck = useCallback(async () => {
-    await refetch();
+  const recheck = useCallback(() => {
+    sessionCheck.current ??= refetch().finally(() => {
+      sessionCheck.current = undefined;
+    });
+    return sessionCheck.current;
   }, [refetch]);
 
   useEffect(() => {
@@ -75,12 +82,20 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active" && previous !== "active") {
         const active = store.getSnapshot();
-        void recheck().then(() => {
-          if (!active.signal.aborted)
-            void active.queryClient.invalidateQueries({
-              queryKey: ["journeys"],
+        if (isVerifiedMobileScope(active)) {
+          const finish = store.beginForegroundCheck();
+          setRevalidating(true);
+          void recheck()
+            .then(async () => {
+              if (!active.signal.aborted)
+                await active.queryClient.invalidateQueries({
+                  queryKey: ["journeys"],
+                });
+            })
+            .finally(() => {
+              if (finish()) setRevalidating(false);
             });
-        });
+        } else void recheck();
       }
       previous = state;
     });
@@ -105,10 +120,10 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
     store.setVerifiedAccount(null);
     try {
       const { error } = await client.signOut();
-      await recheck();
+      await refetch();
       return !error;
     } catch {
-      await recheck();
+      await refetch();
       return false;
     } finally {
       signingOut.current = false;
@@ -116,7 +131,7 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const state = !client
+  const sessionState = !client
     ? "unavailable"
     : checking || current.isPending
       ? "checking"
@@ -128,13 +143,17 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
             ? "verified"
             : "signed-out";
   const verified =
-    state === "verified" && isVerifiedMobileScope(scope) ? scope : undefined;
+    sessionState === "verified" && isVerifiedMobileScope(scope)
+      ? scope
+      : undefined;
   return (
     <QueryClientProvider client={scope.queryClient}>
       <Context.Provider
         value={{
-          state,
+          state: verified && isRevalidating ? "checking" : sessionState,
           scope: verified,
+          isRevalidating,
+          canSubmit: store.canSubmit,
           recheck,
           refresh,
           signOut,

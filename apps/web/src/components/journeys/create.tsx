@@ -1,4 +1,5 @@
 import {
+  canReleaseJourneyAttempt,
   type FieldErrors,
   fieldOrder,
   type JourneyDraft,
@@ -202,7 +203,7 @@ function JourneyForm({
       if (
         submitted &&
         error instanceof JourneyRequestError &&
-        [400, 403, 404, 409, 413, 415].includes(error.status)
+        canReleaseJourneyAttempt(error.status, error.issues)
       ) {
         try {
           await clearJourneyAttempt(accountId, submitted.key);

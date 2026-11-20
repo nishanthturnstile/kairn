@@ -56,10 +56,10 @@ const feedbackTextClass = {
 };
 
 function AccountPage() {
-  const { data, isPending, error } = authClient.useSession();
+  const { data } = authClient.useSession();
   const verification = Route.useSearch();
   const navigate = Route.useNavigate();
-  const { state } = useSessionAccess();
+  const { state, refresh, signOutFailed } = useSessionAccess();
   const { returnTo, verification: confirmed } = verification;
   useEffect(() => {
     if (returnTo) saveJourneyReturnTo(returnTo);
@@ -96,21 +96,28 @@ function AccountPage() {
           </AlertDescription>
         </Alert>
       )}
-      {isPending && (
+      {state === "checking" && (
         <output className="text-muted-foreground">Checking your session</output>
       )}
-      {error && (
+      {state === "unavailable" && (
         <Alert variant="destructive">
           <AlertDescription>
             Account access is temporarily unavailable.
           </AlertDescription>
+          <Button variant="outline" onClick={() => refresh()}>
+            Try again
+          </Button>
         </Alert>
       )}
-      {data?.user ? (
-        <SignedInAccount email={data.user.email} id={data.user.id} />
-      ) : (
-        <AccountForm />
+      {signOutFailed && state === "verified" && (
+        <p className="text-destructive" role="status">
+          Couldn’t sign out. Try again.
+        </p>
       )}
+      {state === "verified" && data?.user && (
+        <SignedInAccount email={data.user.email} id={data.user.id} />
+      )}
+      {(!data?.user || state === "signed-out") && <AccountForm />}
     </section>
   );
 }
@@ -273,7 +280,7 @@ function AccountForm() {
 }
 
 function SignedInAccount({ email, id }: { email: string; id: string }) {
-  const { signOut } = Route.useRouteContext();
+  const { signOut } = useSessionAccess();
   const [feedback, setFeedback] = useState<Feedback>();
   const [revoking, setRevoking] = useState(false);
   const devices = useQuery({
@@ -325,17 +332,7 @@ function SignedInAccount({ email, id }: { email: string; id: string }) {
     <div className="grid min-w-0 gap-4 rounded-card control-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
         <p className="min-w-0 font-semibold">{email}</p>
-        <Button
-          variant="outline"
-          onClick={async () => {
-            const success = await signOut();
-            if (!success)
-              setFeedback({
-                variant: "destructive",
-                text: "Couldn’t sign out. Try again.",
-              });
-          }}
-        >
+        <Button variant="outline" onClick={signOut}>
           Sign out
         </Button>
       </div>

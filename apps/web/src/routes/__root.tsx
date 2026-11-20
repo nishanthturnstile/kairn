@@ -10,7 +10,6 @@ import type { AccountScope } from "../lib/session";
 
 export const Route = createRootRouteWithContext<{
   scope: AccountScope;
-  signOut: () => Promise<boolean>;
 }>()({
   component: AppShell,
 });

@@ -4,6 +4,8 @@ import type { AccountScope } from "./session";
 export const SessionAccess = createContext<{
   state: "checking" | "signed-out" | "verified" | "unavailable";
   refresh: (rejectedScope?: AccountScope) => void;
+  signOut: () => void;
+  signOutFailed: boolean;
 } | null>(null);
 
 export function useSessionAccess() {

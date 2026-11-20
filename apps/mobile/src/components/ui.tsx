@@ -118,6 +118,7 @@ export function Action({
 }: Omit<PressableProps, "style" | "children"> & {
   label: string;
   variant?: "primary" | "secondary" | "danger";
+  ref?: Ref<ComponentRef<typeof Pressable>>;
 }) {
   const [focused, setFocused] = useState(false);
 

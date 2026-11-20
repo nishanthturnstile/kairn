@@ -128,6 +128,22 @@ test("creates and reopens one journey after the committed reply is lost", async 
   );
   await expect(page.getByLabel("Title", { exact: true })).toBeDisabled();
   await page.route(
+    endpoint,
+    (route) =>
+      route.fulfill({
+        status: 403,
+        json: { code: "forbidden" },
+      }),
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Retry save" }).click();
+  await expect(
+    page.getByText(
+      "We couldn’t confirm the save. Retry with the same details.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toBeDisabled();
+  await page.route(
     `${site}/api/v1/journeys/${id}`,
     (route) => route.abort("failed"),
     { times: 1 },
@@ -162,12 +178,15 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect(page).toHaveURL(`${site}/journeys/${id}`);
   await expect(page.getByRole("heading", { name: "Coorg trip" })).toBeVisible();
 
-  for (let index = 0; index < 25; index++) {
+  const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  for (let index = 0; index < 26; index++) {
     const response = await page.request.post(`${site}/api/v1/journeys`, {
       headers: { Origin: site, "Idempotency-Key": randomUUID() },
       data: {
         title: `Future trip ${index}`,
-        intendedStart: "2035-05-12T09:00",
+        intendedStart: `${futureDate}T09:00`,
         timeZone: "UTC",
       },
     });
@@ -179,7 +198,9 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await upcoming
     .getByRole("button", { name: "Load more upcoming journeys" })
     .click();
-  await expect(upcoming.getByRole("link")).toHaveCount(26);
+  await expect(upcoming.getByRole("link", { name: /Future trip/ })).toHaveCount(
+    26,
+  );
   const laterRow = upcoming.getByRole("link").nth(12);
   await laterRow.scrollIntoViewIfNeeded();
   const position = await page.evaluate(() => window.scrollY);
@@ -193,6 +214,82 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(0);
+});
+
+test("refreshes fresh history after a brief tab switch and recovers a failed sign-out", async ({
+  page,
+}) => {
+  const email = await verifiedEmail(page);
+  await page.goto(`${site}/account`);
+  await signIn(page, email);
+  await expect(page.getByText(email)).toBeVisible();
+
+  const created = await page.request.post(`${site}/api/v1/journeys`, {
+    headers: { Origin: site, "Idempotency-Key": randomUUID() },
+    data: {
+      title: "Focus boundary fixture",
+      intendedStart: "2035-05-12T09:00",
+      timeZone: "UTC",
+    },
+  });
+  expect(created.status()).toBe(201);
+  const { id } = await created.json();
+  const detail = await page.request.get(`${site}/api/v1/journeys/${id}`);
+  expect(detail.ok()).toBe(true);
+  const journey = await detail.json();
+  let started = false;
+  await page.route(endpoint, (route) =>
+    route.fulfill({
+      json: {
+        asOf: started ? "2035-05-12T09:00:00.000Z" : "2035-05-12T08:59:59.999Z",
+        upcoming: { items: started ? [] : [journey], nextCursor: null },
+        recent: { items: started ? [journey] : [], nextCursor: null },
+      },
+    }),
+  );
+  await page.getByRole("link", { name: "Journeys", exact: true }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Upcoming" })
+      .getByRole("link", { name: /Focus boundary fixture/ }),
+  ).toHaveAttribute("href", `/journeys/${id}`);
+  started = true;
+  await page.evaluate(() => {
+    for (const value of ["hidden", "visible"]) {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value,
+      });
+      document.dispatchEvent(new Event("visibilitychange", { bubbles: true }));
+    }
+  });
+  await expect(
+    page
+      .getByRole("region", { name: "Recent journeys" })
+      .getByRole("link", { name: /Focus boundary fixture/ }),
+  ).toHaveAttribute("href", `/journeys/${id}`);
+  await expect(
+    page.getByRole("region", { name: "Upcoming" }).getByRole("link"),
+  ).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Account", exact: true }).click();
+  await page.route(
+    "**/api/auth/sign-out",
+    (route) =>
+      route.fulfill({
+        status: 503,
+        json: { message: "Fixture sign-out failure" },
+      }),
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page.getByText("Couldn’t sign out. Try again.")).toBeVisible();
+  await expect(page.getByText(email)).toBeVisible();
+  await signOut(page);
+  await page.getByRole("link", { name: "Journeys", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "Sign in", exact: true }),
+  ).toBeVisible();
 });
 
 test("renders the form at 320px and keeps a pending save bound to the original account", async ({

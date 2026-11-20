@@ -1,6 +1,6 @@
 # Create a private journey and show it in history
 
-**Status · In progress.** This is the first slice of R1 workstream 1. Step 1 starts from `development` at `950957c`. See [implementation progress](../progress.md) for the current next step.
+**Status · Verified on supported development profiles.** This is the first slice of R1 workstream 1. Implementation started from `development` at `950957c`. See [implementation progress](../progress.md) for the current next step.
 
 ## Outcome and scope
 
@@ -170,7 +170,8 @@ Use synthetic accounts A and B and a controlled clock for backend date boundarie
 | **iPhone Simulator** | On the documented iPhone 17 profile, verify web → iOS and iOS → web IDs. Cover optional end, timezone parity, interrupted save, account switching, Back, keyboard, largest accessibility text size and VoiceOver where supported. Record this run separately from the iPhone web launch path. |
 
 - [x] Run `pnpm check`, `pnpm api:check`, `pnpm test`, `pnpm test:integration`, the service-backed browser suite, `pnpm build`, and `pnpm check:client-bundles`. Keep automated checks and fixtures under `tests/`.
-- [ ] Complete the browser and native checks below that require a browser settings change or manual screen-reader use. Record hosted CI on the submitted revision.
+- [x] Run desktop Safari and verify TalkBack on the Android emulator. Record the physical-device requirement for VoiceOver.
+- [x] Record finished hosted CI on the submitted revision.
 
 ### Acceptance evidence · 19 November 2026
 
@@ -181,11 +182,12 @@ Working tree on `feat/private-journey-step-1` over `950957c`. The fixture uses s
 | Workspace and artifacts | Verified | Token, Biome and type checks, OpenAPI parity, 55 unit tests, ten build targets, and web, Android and iOS bundle scans passed. [Foundation workflow](../../.github/workflows/ci.yml) |
 | Backend · TRP-01, D-01, OWN-05, OWN-06 | Verified | The full integration suite passed 21 checks, including the isolated audit rollback and pre-existing legacy row. The two recovery-only cases ran in the separate seven-check identity suite. Coorg moved to Recent exactly at its start. Coonoor kept the same ID and creator capabilities after its intended end. Concurrent create and lost confirmation replay left one Journey, receipt, membership and audit. [Journey integration tests](../../tests/integration/journeys.test.ts) · [Isolated database harness](../../tests/integration/isolated-journeys.sh) |
 | Browser · PRO-02, TRP-02, OWN-06 | Verified | 15 baseline Chromium checks and three service-backed checks each on Chromium, Firefox and WebKit. Firefox ran in the pinned Linux Playwright image after the macOS Firefox launcher could not open its temporary profile. A same-tick repeat submit dispatched once, and a delayed save released after an account switch left the new account on its own screen. The 320 px, 200% text case checked all three appearances and the automated accessibility scan. [Browser Journey tests](../../tests/web/journeys.playwright.ts) |
-| Desktop Safari | Not run | Safari 27.2’s WebDriver session was refused because Allow Remote Automation is disabled on the host. Phone-width WebKit ran separately. |
+| Desktop Safari | Verified | Installed Safari 27.2 at a 1174 CSS px viewport ran the built Journey routes through a loopback-only browser test. Signed-out entry, sign-in return, private history, validation focus, creation with no end, recorded time, browser Back and reopening the canonical ID passed. The form also reflowed at a 320 CSS px viewport and 200% text in Light, Dark and Outdoor. The temporary harness ran inside Safari with Remote Automation disabled. |
 | Android API 37 emulator | Verified | Native time input populated `01:30`. The repeated-minute form required a choice and saved the second occurrence (`UTC−05:00`). A local proxy held the committed reply until B signed in. B saw empty history, an empty form and a generic unavailable direct link. A’s SQLite retry used the original key and returned `200` for the committed ID. Chromium opened one matching history row and the API returned `2027-11-07T06:30:00.000Z` for that recorded time. |
 | iPhone 17 Simulator, iOS 27.2 | Verified | The system time picker populated the form. The run used keyboard entry for the exact `01:30` fixture and selected the second occurrence (`UTC−05:00`). XCUITest switched from A to B while the proxy held the committed reply. B saw empty history and an empty form after release. Returning to A recovered the SQLite attempt and replayed the original key and ID. Chromium reopened the same record at its recorded time. |
-| Manual accessibility | Not run | The Android TalkBack service activated and placed accessibility focus in the Journey detail window. Spoken output and full traversal with TalkBack and VoiceOver require manual verification. |
-| Hosted CI | Not run | Local working-tree run. Hosted CI evidence belongs to the submitted revision. |
+| Android TalkBack | Verified | TalkBack’s speech display on the API 37 emulator announced the history row as one link with its title, date, time and unknown end. Accessibility actions opened detail, returned to history and opened Create journey. TalkBack announced the detail schedule, the time format hint and the focused Title field’s validation error after an empty submit. The check used the installed client and the actual TalkBack service. |
+| iOS VoiceOver | Not run | Xcode detected only simulators. Apple requires a physical iPhone for VoiceOver testing. Large text and the native accessibility tree were exercised in the iPhone Simulator. [Apple accessibility testing](https://developer.apple.com/documentation/accessibility/performing-accessibility-testing-for-your-app) |
+| Hosted CI | Verified | The pushed application revision `9a3d65c` passed both jobs. `foundation` ran the workspace, OpenAPI, unit, build, bundle, browser, migration, integration, recovery and isolated Journey checks. `release-smoke` built the Linux release images and passed the coordinated restore. [Foundation CI run](https://github.com/nishanthturnstile/kairn/actions/runs/44516072451) |
 
 The full integration run initially failed in identity mail. The Journey signup fixtures queued mail encrypted with a different test key from the identity worker. The fix keeps the signup and sign-in HTTP paths and substitutes a queue acknowledgement for the Journey fixture’s mail send. The real delivery cases continue to run in the identity and browser suites. [Journey signup fixture](../../tests/integration/journeys.test.ts) · [Identity integration suite](../../tests/integration/identity.test.ts)
 
@@ -194,8 +196,21 @@ The full integration run initially failed in identity mail. The Journey signup f
 | Android repeated-minute journey | `5ee6a582-837e-4690-9c26-b2cd933bd6e9` | Android create, restored save and detail. Chromium history, detail and exact scheduled UTC instant. |
 | iPhone repeated-minute journey | `2a748211-96ec-4348-8017-505e6058d373` | iPhone create, restored save and detail. Chromium history, detail and exact scheduled UTC instant. |
 | Web canonical ridge | `c80963d4-e4cb-4c10-9d95-9a6bb4db94ef` | Created in the Chromium form at `09:15` Asia/Kolkata with the browser in Europe/London. Android and iPhone reopened it from history and displayed the same recorded time. |
+| Safari acceptance ridge | `665132a9-78c6-481f-b6b0-16f421fc9d3e` | Safari created and reopened it. TalkBack announced its single history row and recorded time, and its accessibility action opened the record on Android. |
 
 [Foundation CI](../../.github/workflows/ci.yml) · [Development evidence register](../core/development-and-validation.md#6-evidence-register) · [Design-system rollout checks](../core/design-system/design-system-governance.md#rollout)
+
+### Post-acceptance review · 19 November 2026
+
+The independent Astra review covered `950957c..9a3d65c`. Local follow-up on `feat/private-journey-step-1` checked each step against the requirements, architecture and approved controls. The existing hosted CI result applies to `9a3d65c`.
+
+| Step | Review and validation |
+| --- | --- |
+| 1 · Contracts and dates | Shared form validation now directs malformed clock values to the start or end time field. Unit coverage checks both fields, invalid dates and the classification of retryable save responses. [Form unit tests](../../tests/journey-time.test.ts) |
+| 2 · Persistence and authorization | Reviewed the write transaction, receipt lookup, membership policies and bounded history queries. The PostgreSQL suite passed 21 checks, including concurrent replay, rollback and revocation. Seven checks passed in the separate identity recovery run. [Journey integration tests](../../tests/integration/journeys.test.ts) |
+| 3 · Web | Lost confirmations retain the stored attempt through an intervening `403`. History regroups after a brief tab switch, and a failed sign-out restores access and allows a retry. Pagination uses 26 independently scheduled future fixtures. Four service-backed cases passed on each of Chromium, WebKit and Linux Firefox. The 320 px, 200% text and three-appearance regression passed. [Browser checks](../../tests/web/journeys.playwright.ts) |
+| 4 · Android and iOS | The foreground gate hides private Journey surfaces and pauses saves during revalidation. On the Android API 37 emulator, a delayed check hid an unsaved form and restored the same draft. Revocation from a separate session kept the former detail hidden and led to the sign-in gate. TalkBack focused the first occurrence for both ambiguous times, and the form saved the selected start and end occurrences. The iPhone 17 Simulator passed sign-in return, creation with an optional end, and hiding and restoring the same detail during a delayed foreground check. [Native session and retry tests](../../tests/mobile-journeys.test.ts) |
+| 5 · Release and acceptance | Workspace checks, OpenAPI parity, 58 unit tests, 15 baseline Chromium checks, production builds, and web, Android and iOS client bundle scans passed. Linux ARM64 release images passed the coordinated database and private-object restore drill. Physical-device VoiceOver remains open. [Foundation workflow](../../.github/workflows/ci.yml) |
 
 ## Scope decision · Editing title and dates
 

@@ -81,7 +81,11 @@ function JourneyDetail({
       if (result.response.status === 404) {
         ensureActive(scope.signal);
         ensureActive(signal);
-        scope.queryClient.removeQueries({ queryKey: historyKey, exact: true });
+        scope.queryClient.removeQueries({ queryKey: ["journeys", "page"] });
+        void scope.queryClient.resetQueries({
+          queryKey: historyKey,
+          exact: true,
+        });
         return null;
       }
       return journeyResult(result, scope, refresh);

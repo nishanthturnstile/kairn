@@ -46,10 +46,23 @@ const fieldMessages: FieldErrors = {
 
 export function validateJourneyDraft(draft: JourneyDraft) {
   const errors: FieldErrors = {};
-  if (!draft.startDate) errors.startDate = "Enter a start date.";
-  if (!draft.startTime) errors.startTime = "Enter a start time.";
-  if (draft.endTime && !draft.endDate) errors.endDate = "Enter an end date.";
-  if (draft.endDate && !draft.endTime) errors.endTime = "Enter an end time.";
+  for (const part of ["start", "end"] as const) {
+    const dateField = `${part}Date` as const;
+    const timeField = `${part}Time` as const;
+    const date = draft[dateField];
+    const time = draft[timeField];
+    if (part === "end" && !date && !time) continue;
+    if (!date)
+      errors[dateField] =
+        `Enter ${part === "start" ? "a" : "an"} ${part} date.`;
+    else if (!isCalendarDate(date))
+      errors[dateField] = fieldMessages[dateField];
+    if (!time)
+      errors[timeField] =
+        `Enter ${part === "start" ? "a" : "an"} ${part} time.`;
+    else if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))
+      errors[timeField] = fieldMessages[timeField];
+  }
   const result = createJourney.safeParse({
     title: draft.title,
     intendedStart: `${draft.startDate}T${draft.startTime}`,
@@ -66,27 +79,37 @@ export function validateJourneyDraft(draft: JourneyDraft) {
       const path = issue.path[0];
       if (path === "title" || path === "timeZone")
         errors[path] = fieldMessages[path];
-      if (path === "intendedStart" && !errors.startDate && !errors.startTime)
-        errors.startDate = fieldMessages.startDate;
-      if (path === "intendedEnd" && !errors.endDate && !errors.endTime)
-        errors.endDate = fieldMessages.endDate;
+      if (path === "startOffset" || path === "endOffset")
+        errors[path === "startOffset" ? "startTime" : "endTime"] =
+          "Choose a valid time occurrence.";
     }
     return { errors };
   }
-  for (const [field, minute] of [
-    ["startDate", result.data.intendedStart],
-    ["endDate", result.data.intendedEnd],
-  ] as const) {
-    if (!minute) continue;
-    const date = new Date(`${minute}Z`);
-    if (
-      !Number.isFinite(date.getTime()) ||
-      date.toISOString().slice(0, 16) !== minute
-    )
-      errors[field] = fieldMessages[field];
-  }
   if (Object.keys(errors).length) return { errors };
   return { input: result.data };
+}
+
+function isCalendarDate(value: string) {
+  if (!/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00Z`);
+  return (
+    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
+}
+
+export function canReleaseJourneyAttempt(
+  status: number,
+  issues: JourneyInputIssue[],
+) {
+  // Request validation and origin failures can happen before receipt lookup.
+  return (
+    status === 404 ||
+    status === 409 ||
+    (status === 400 &&
+      issues.some(
+        ({ code }) => code !== "invalid_value" && code !== "invalid_cursor",
+      ))
+  );
 }
 
 export function journeyFormIssues(issues: JourneyInputIssue[]) {

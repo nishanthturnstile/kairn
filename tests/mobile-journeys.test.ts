@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { createAuthenticatedMobileApiClient } from "../apps/mobile/src/api";
-import { createMobileSession } from "../apps/mobile/src/session";
+import {
+  createMobileSession,
+  isVerifiedMobileScope,
+} from "../apps/mobile/src/session";
 import {
   createJourneyAttemptTable,
   journeyAttempts,
@@ -103,6 +106,49 @@ describe("native Journey account lifetime", () => {
     expect(signal?.aborted).toBe(true);
     response.resolve(Response.json({ upcoming: [] }));
     expect(await settled).toMatchObject({ name: "AbortError" });
+  });
+
+  it("pauses a write awaiting its cookie during foreground verification while retaining the same account scope", async () => {
+    const started = Promise.withResolvers<void>();
+    const pending = Promise.withResolvers<string>();
+    const send = vi.fn(async () => Response.json({}));
+    const session = createMobileSession({
+      origin,
+      send,
+      getCookie() {
+        started.resolve();
+        return pending.promise;
+      },
+    });
+    session.setVerifiedAccount(accountId);
+    const scope = session.getSnapshot();
+    if (!isVerifiedMobileScope(scope))
+      throw new Error("Expected a verified scope");
+    const submit = () =>
+      scope.api.POST("/api/v1/journeys", {
+        params: {
+          header: { "idempotency-key": "15629f55-bdda-4239-9b98-4b02c50d3e20" },
+        },
+        body: input,
+      });
+    const blocked = expect(submit()).rejects.toThrow(
+      "Session verification is in progress.",
+    );
+    await started.promise;
+    const first = session.beginForegroundCheck();
+    const current = session.beginForegroundCheck();
+    expect(first()).toBe(false);
+    expect(session.canSubmit(scope)).toBe(false);
+    expect(session.getSnapshot()).toBe(scope);
+    pending.resolve("session=synthetic");
+    await blocked;
+    expect(send).not.toHaveBeenCalled();
+    await scope.api.GET("/api/v1/journeys");
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(current()).toBe(true);
+    expect(session.canSubmit(scope)).toBe(true);
+    await submit();
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });
 

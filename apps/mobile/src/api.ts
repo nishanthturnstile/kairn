@@ -23,12 +23,14 @@ export function createAuthenticatedMobileApiClient({
   lifetime,
   getCookie,
   send,
+  canWrite = () => true,
 }: {
   origin: string;
   accountId: string;
   lifetime: AbortSignal;
   getCookie: () => Promise<string>;
   send: NativeFetch;
+  canWrite?: () => boolean;
 }) {
   return createApiClient({
     baseUrl: origin,
@@ -45,6 +47,12 @@ export function createAuthenticatedMobileApiClient({
       try {
         const cookie = await getCookie();
         ensureActive(controller.signal);
+        if (
+          request.method !== "GET" &&
+          request.method !== "HEAD" &&
+          !canWrite()
+        )
+          throw new Error("Session verification is in progress.");
         if (!cookie) return new Response(null, { status: 401 });
 
         const headers = new Headers(request.headers);

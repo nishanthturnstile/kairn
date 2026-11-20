@@ -27,6 +27,7 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
   const history = useQuery({
     queryKey: historyKey(scope),
     refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     async queryFn({ signal }) {
       const result = journeyResult(
         await scope.api.GET("/api/v1/journeys", { signal }),

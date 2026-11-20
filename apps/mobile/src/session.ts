@@ -7,7 +7,11 @@ interface Transport {
   send: NativeFetch;
 }
 
-function accountScope(accountId: string | null, transport?: Transport) {
+function accountScope(
+  accountId: string | null,
+  canWrite: () => boolean,
+  transport?: Transport,
+) {
   const lifetime = new AbortController();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -22,6 +26,7 @@ function accountScope(accountId: string | null, transport?: Transport) {
             ...transport,
             accountId,
             lifetime: lifetime.signal,
+            canWrite,
           })
         : undefined,
     dispose() {
@@ -45,10 +50,24 @@ export function isVerifiedMobileScope(
 }
 
 export function createMobileSession(transport?: Transport) {
-  let scope = accountScope(null, transport);
+  let foregroundCheck: symbol | undefined;
+  const canWrite = () => foregroundCheck === undefined;
+  let scope = accountScope(null, canWrite, transport);
   const listeners = new Set<() => void>();
   return {
     getSnapshot: () => scope,
+    canSubmit(candidate: VerifiedMobileScope) {
+      return candidate === scope && canWrite();
+    },
+    beginForegroundCheck() {
+      const check = Symbol();
+      foregroundCheck = check;
+      return () => {
+        if (foregroundCheck !== check) return false;
+        foregroundCheck = undefined;
+        return true;
+      };
+    },
     subscribe(listener: () => void) {
       listeners.add(listener);
       return () => {
@@ -58,7 +77,7 @@ export function createMobileSession(transport?: Transport) {
     setVerifiedAccount(accountId: string | null) {
       if (scope.accountId === accountId) return;
       scope.dispose();
-      scope = accountScope(accountId, transport);
+      scope = accountScope(accountId, canWrite, transport);
       for (const listener of listeners) listener();
     },
   };

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 import { resolveJourneySchedule } from "../packages/backend/src/modules/journeys/schedule";
 import { createJourney } from "../packages/contracts/src/journeys";
+import {
+  canReleaseJourneyAttempt,
+  journeyDraft,
+  validateJourneyDraft,
+} from "../packages/shared/src/journey-form";
 import { formatJourneyLocalMinute } from "../packages/shared/src/journey-time";
 
 const input = {
@@ -8,6 +13,41 @@ const input = {
   intendedStart: "2026-06-12T09:00",
   timeZone: "Asia/Kolkata",
 };
+
+describe("journey form", () => {
+  it("reports invalid typed clocks on the time fields alongside valid dates", () => {
+    const draft = journeyDraft({ ...input, intendedEnd: "2026-06-13T09:00" });
+    expect(
+      validateJourneyDraft({ ...draft, startTime: "25:00", endTime: "09:60" }),
+    ).toEqual({
+      errors: {
+        startTime: "Enter a valid start time.",
+        endTime: "Enter a valid end time.",
+      },
+    });
+    expect(
+      validateJourneyDraft({ ...draft, startDate: "2026-02-29", endTime: "" }),
+    ).toEqual({
+      errors: {
+        startDate: "Enter a valid start date.",
+        endTime: "Enter an end time.",
+      },
+    });
+  });
+
+  it("retains the stored attempt when the request is denied before receipt lookup", () => {
+    for (const status of [401, 403, 413, 415, 500, 503])
+      expect(canReleaseJourneyAttempt(status, [])).toBe(false);
+    expect(
+      canReleaseJourneyAttempt(400, [{ field: "body", code: "invalid_value" }]),
+    ).toBe(false);
+    expect(
+      canReleaseJourneyAttempt(400, [
+        { field: "intendedStart", code: "nonexistent_time" },
+      ]),
+    ).toBe(true);
+  });
+});
 
 describe("journey schedule", () => {
   it.each([

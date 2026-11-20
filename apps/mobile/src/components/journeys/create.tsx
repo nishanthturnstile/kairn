@@ -1,4 +1,5 @@
 import {
+  canReleaseJourneyAttempt,
   type FieldErrors,
   fieldOrder,
   type JourneyField,
@@ -12,12 +13,20 @@ import { randomUUID } from "expo-crypto";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   type ComponentRef,
+  type RefObject,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { Keyboard, type TextInput, View } from "react-native";
+import {
+  AccessibilityInfo,
+  Keyboard,
+  type Pressable,
+  type ScrollView,
+  type TextInput,
+  View,
+} from "react-native";
 import { ensureActive } from "../../api";
 import {
   historyKey,
@@ -51,6 +60,7 @@ async function withAttempts<Result>(
 }
 
 export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const pending = useQuery({
     queryKey: ["pending-journey"],
     refetchOnMount: "always",
@@ -62,7 +72,7 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
     },
   });
   return (
-    <JourneyScreen>
+    <JourneyScreen scrollRef={scroll}>
       <AppText
         text="Create journey"
         variant="title"
@@ -79,7 +89,11 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
           notice={{ text: "Checking for an unfinished save", tone: "info" }}
         />
       ) : (
-        <JourneyForm scope={scope} initialAttempt={pending.data} />
+        <JourneyForm
+          scope={scope}
+          initialAttempt={pending.data}
+          scroll={scroll}
+        />
       )}
     </JourneyScreen>
   );
@@ -88,12 +102,14 @@ export function CreateJourney({ scope }: { scope: VerifiedMobileScope }) {
 function JourneyForm({
   scope,
   initialAttempt,
+  scroll,
 }: {
   scope: VerifiedMobileScope;
   initialAttempt: JourneyAttempt | null;
+  scroll: RefObject<ComponentRef<typeof ScrollView> | null>;
 }) {
   const router = useRouter();
-  const { refresh } = useMobileSession();
+  const { refresh, canSubmit } = useMobileSession();
   const [draft, setDraft] = useState(() => journeyDraft(initialAttempt?.input));
   const [attempt, setAttempt] = useState(initialAttempt);
   const [confirmed, setConfirmed] = useState<string>();
@@ -106,6 +122,12 @@ function JourneyForm({
   const focused = useRef(false);
   const editRefs = useRef<
     Partial<Record<JourneyField, ComponentRef<typeof TextInput> | null>>
+  >({});
+  const occurrenceRefs = useRef<
+    Partial<Record<keyof OffsetChoices, ComponentRef<typeof Pressable> | null>>
+  >({});
+  const occurrenceGroups = useRef<
+    Partial<Record<keyof OffsetChoices, ComponentRef<typeof View> | null>>
   >({});
   const pendingFocus = useRef<JourneyField | undefined>(undefined);
 
@@ -126,9 +148,34 @@ function JourneyForm({
   useEffect(() => {
     if (saving || !pendingFocus.current || !errors[pendingFocus.current])
       return;
-    editRefs.current[pendingFocus.current]?.focus();
+    const field = pendingFocus.current;
     pendingFocus.current = undefined;
-  }, [errors, saving]);
+    if (field !== "startOffset" && field !== "endOffset") {
+      editRefs.current[field]?.focus();
+      return;
+    }
+    const choice = occurrenceRefs.current[field];
+    const group = occurrenceGroups.current[field];
+    const content = scroll.current?.getInnerViewRef();
+    if (!choice || !group || !content) return;
+    group.measureLayout(content, (_x, y) => {
+      if (
+        occurrenceRefs.current[field] !== choice ||
+        !focused.current ||
+        !canSubmit(scope)
+      )
+        return;
+      scroll.current?.scrollTo({ y, animated: false });
+      requestAnimationFrame(() => {
+        if (
+          occurrenceRefs.current[field] === choice &&
+          focused.current &&
+          canSubmit(scope)
+        )
+          AccessibilityInfo.sendAccessibilityEvent(choice, "focus");
+      });
+    });
+  }, [canSubmit, errors, saving, scope, scroll]);
 
   function editRef(field: JourneyField) {
     return (input: ComponentRef<typeof TextInput> | null) => {
@@ -142,7 +189,7 @@ function JourneyForm({
   }
 
   function update(field: JourneyField, value: string) {
-    if (scope.signal.aborted || attempt || saving) return;
+    if (!canSubmit(scope) || attempt || saving) return;
     setFeedback("");
     const resetStart =
       field === "startDate" || field === "startTime" || field === "timeZone";
@@ -177,7 +224,7 @@ function JourneyForm({
   }
 
   function openJourney(id: string) {
-    if (!scope.signal.aborted && focused.current)
+    if (canSubmit(scope) && focused.current)
       router.replace({
         pathname: "/journeys/[journeyId]",
         params: { journeyId: id },
@@ -185,7 +232,7 @@ function JourneyForm({
   }
 
   async function submit() {
-    if (submitting.current || scope.signal.aborted || !focused.current) return;
+    if (submitting.current || !canSubmit(scope) || !focused.current) return;
     let submitted = attempt;
     const result = submitted ? undefined : validateJourneyDraft(draft);
     if (result?.errors) {
@@ -224,7 +271,11 @@ function JourneyForm({
         );
         if (!visible()) return;
         setAttempt(submitted);
-        if (submitted.key !== proposed.key || !focused.current) {
+        if (
+          submitted.key !== proposed.key ||
+          !focused.current ||
+          !canSubmit(scope)
+        ) {
           setDraft(journeyDraft(submitted.input));
           setChoices({});
           return;
@@ -251,7 +302,7 @@ function JourneyForm({
       if (
         submitted &&
         error instanceof JourneyRequestError &&
-        [400, 403, 404, 409, 413, 415].includes(error.status)
+        canReleaseJourneyAttempt(error.status, error.issues)
       ) {
         const { key } = submitted;
         try {
@@ -354,6 +405,10 @@ function JourneyForm({
                 })}
                 {choices[offset] ? (
                   <View
+                    ref={(node) => {
+                      occurrenceGroups.current[offset] = node;
+                    }}
+                    collapsable={false}
                     accessibilityRole="radiogroup"
                     style={journeyStyles.group}
                   >
@@ -369,8 +424,17 @@ function JourneyForm({
                     {choices[offset].map((choice, index) => (
                       <Action
                         key={choice}
+                        ref={
+                          index === 0
+                            ? (node) => {
+                                occurrenceRefs.current[offset] = node;
+                              }
+                            : undefined
+                        }
                         label={`${index === 0 ? "First" : "Second"} occurrence (UTC${choice})`}
                         accessibilityRole="radio"
+                        accessibilityLabel={`${label} time, ${index === 0 ? "first" : "second"} occurrence (UTC${choice})`}
+                        accessibilityHint={errors[offset]}
                         accessibilityState={{
                           checked: draft[offset] === choice,
                         }}
