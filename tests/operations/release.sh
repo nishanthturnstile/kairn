@@ -79,12 +79,16 @@ cat > "$temp/server.env" <<'EOF_SERVER'
 DATABASE_URL=postgresql://kairn_runtime:fixture-runtime-only@db:5432/kairn
 BETTER_AUTH_URL=https://kairn.invalid
 BETTER_AUTH_SECRET=fixture-authentication-origin-secret
+KAIRN_INVITATION_APP_LINKS_VARIANT=staging
+KAIRN_INVITATION_IOS_APP_ID_PREFIX=ABCDEF1234
+KAIRN_INVITATION_ANDROID_SHA256=AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB
 EOF_SERVER
 sed -n '/^DATABASE_URL=/p' "$temp/server.env" > "$temp/worker.env"
 cat >> "$temp/worker.env" <<'EOF_WORKER'
 SMTP_URL=smtps://smtp.kairn.invalid
 AUTH_FROM_EMAIL=accounts@kairn.invalid
 AUTH_MAIL_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+AUTH_RECOVERY_EPOCH=synthetic-release-recovery-epoch
 AUTH_JOURNAL_URL=https://journal.kairn.invalid
 AUTH_JOURNAL_CREDENTIAL=fixture-journal-only-credential
 EOF_WORKER
@@ -119,6 +123,21 @@ auth_status=$(curl -sS -o "$temp/auth.json" -w '%{http_code}' "http://$edge/api/
 [[ "$auth_status" == 503 ]]
 jq -e '.code == "RECOVERY_REQUIRED"' "$temp/auth.json"
 
+curl -fsS -H 'Host: kairn.invalid' "http://$edge/.well-known/apple-app-site-association" |
+  jq -e '.applinks.details == [{appIDs:["ABCDEF1234.dev.kairn.app.staging"],components:[{"/":"/journey-invitations"}]}]'
+curl -fsS -H 'Host: kairn.invalid' "http://$edge/.well-known/assetlinks.json" |
+  jq -e 'length == 1 and .[0].target.package_name == "dev.kairn.app.staging" and .[0].target.sha256_cert_fingerprints == ["AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB:AB"]'
+[[ "$(curl -sS -o /dev/null -w '%{http_code}' "http://$edge/.well-known/assetlinks.json")" == 404 ]]
+curl -fsS "http://$edge/journey-invitations" | grep -q '<title>Kairn</title>'
+
+restrictions() {
+  compose run --rm --no-deps -T --entrypoint /build/packages/backend/node_modules/.bin/tsx \
+    -e FIXTURE_RUNTIME_DATABASE_URL=postgresql://kairn_runtime:fixture-runtime-only@db:5432/kairn \
+    ops --conditions=development /build/tests/operations/release-restrictions.ts "$1"
+}
+compose stop worker
+restrictions before > "$temp/restriction-before.json"
+
 object_request() {
   curl -sS --max-time 20 --retry 3 --retry-all-errors --retry-max-time 45 \
     --aws-sigv4 aws:amz:us-east-1:s3 --user kairn-fixture:fixture-object-only "$@"
@@ -142,6 +161,7 @@ compose run --rm --no-deps -T object-backup init
 checkpoint_backup kairn-drill "$release" "$temp/checkpoint.env" > "$temp/snapshot"
 snapshot=$(cat "$temp/snapshot")
 backup_label=$(sed -n 's/^KAIRN_DATABASE_BACKUP=//p' "$temp/checkpoint.env")
+restrictions after < "$temp/restriction-before.json" > "$temp/restriction-after.json"
 
 # Write newer data and lose the primary volumes. The independent fixture repos survive.
 compose up -d --force-recreate --wait storage
@@ -174,5 +194,7 @@ restored_checksum=$(openssl dgst -sha256 -r "$temp/recovered" | cut -d ' ' -f 1)
 [[ "$restored_checksum" == "$(database_sql 'SELECT checksum FROM release_fixture;')" ]]
 [[ "$(curl -sS -o /dev/null -w '%{http_code}' "http://$storage/kairn-private/before")" == 403 ]]
 [[ "$(object_request -o /dev/null -w '%{http_code}' "http://$storage/kairn-private/after")" == 404 ]]
+[[ -z "$(compose ps -q edge server worker)" ]]
+restrictions restore < "$temp/restriction-after.json"
 [[ -z "$(compose ps -q edge server worker)" ]]
 echo "Recovered the database and private object at the same checkpoint with application access closed."

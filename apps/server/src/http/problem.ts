@@ -12,6 +12,7 @@ const problems = {
   409: { title: "Conflict", code: "idempotency_conflict" },
   413: { title: "Content Too Large", code: "request_too_large" },
   415: { title: "Unsupported Media Type", code: "unsupported_media_type" },
+  429: { title: "Too Many Requests", code: "rate_limited" },
   500: { title: "Internal Server Error", code: "internal_error" },
   503: { title: "Service Unavailable", code: "service_unavailable" },
 } as const;

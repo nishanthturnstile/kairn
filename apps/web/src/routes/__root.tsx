@@ -13,6 +13,7 @@ import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { Button } from "../components/ui/button";
 import { WorkspaceLayout } from "../components/workspace-layout";
 import { publicEnvironment } from "../env";
+import { clearInvitationHandoff } from "../lib/invitation-handoff";
 import {
   boundJourneyReturn,
   clearJourneyReturn,
@@ -40,7 +41,11 @@ function AppShell() {
       "/",
   });
   const onboarding = pathname === "/onboarding";
-  if (access.state !== "verified" || pathname === "/account/reset") {
+  if (
+    access.state !== "verified" ||
+    pathname === "/account/reset" ||
+    pathname === "/journey-invitations"
+  ) {
     return (
       <AuthLayout>
         <WorkspaceEntry scope={scope} pathname={pathname} />
@@ -111,6 +116,16 @@ function WorkspaceEntry({
   );
 
   useEffect(() => {
+    if (
+      ![
+        "/",
+        "/account",
+        "/account/reset",
+        "/onboarding",
+        "/journey-invitations",
+      ].includes(pathname)
+    )
+      clearInvitationHandoff();
     if (access.state !== "verified" || !scope.accountId) return;
     discardOtherAccountReturn(scope.accountId);
     if (
@@ -121,7 +136,12 @@ function WorkspaceEntry({
       clearJourneyReturn(scope.accountId);
   }, [access.state, pathname, progress.data, scope.accountId]);
 
-  if (pathname === "/account" || pathname === "/account/reset") return outlet;
+  if (
+    pathname === "/account" ||
+    pathname === "/account/reset" ||
+    pathname === "/journey-invitations"
+  )
+    return outlet;
   if (access.state === "checking")
     return (
       <JourneyLoading
@@ -153,13 +173,10 @@ function WorkspaceEntry({
   if (!progress.data) return <JourneyLoading label="Checking your setup" />;
   if (progress.data.state === "pending" && !onboarding)
     return <EnterOnboarding accountId={scope.accountId} pathname={pathname} />;
-  if (pathname === "/")
-    return (
-      <Navigate
-        {...workspaceDestination(boundJourneyReturn(scope.accountId))}
-        replace
-      />
-    );
+  if (pathname === "/") {
+    const target = boundJourneyReturn(scope.accountId);
+    return <Navigate {...workspaceDestination(target)} replace />;
+  }
   return outlet;
 }
 

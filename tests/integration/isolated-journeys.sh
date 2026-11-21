@@ -3,7 +3,11 @@ set -euo pipefail
 
 scratch=$(mktemp -d)
 database=""
+mail=""
 cleanup() {
+  if [[ -n "$mail" ]]; then
+    docker stop --time 2 "$mail" >/dev/null 2>&1 || true
+  fi
   if [[ -n "$database" ]]; then
     docker stop --time 2 "$database" >/dev/null 2>&1 || true
   fi
@@ -56,6 +60,20 @@ PGBOSS_DATABASE_URL="$KAIRN_TEST_MIGRATION_DATABASE_URL" pnpm db:queue
 if [[ "$#" -gt 0 ]]; then
   "$@"
 else
-  KAIRN_INTEGRATION=1 KAIRN_JOURNEY_TEST=isolated pnpm exec vp test run \
-    tests/integration/journeys.test.ts tests/integration/domain.test.ts
+  mail_image=$(docker compose -f infra/compose/dev.yml config --images mail)
+  mail=$(docker run -d --rm -p 127.0.0.1::1025 -p 127.0.0.1::8025 \
+    -e MP_DISABLE_VERSION_CHECK=true "$mail_image")
+  smtp_port=$(docker port "$mail" 1025/tcp | cut -d : -f 2)
+  inbox_port=$(docker port "$mail" 8025/tcp | cut -d : -f 2)
+  for ((attempt = 0; attempt < 25; attempt++)); do
+    if docker exec "$mail" /mailpit readyz >/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+  KAIRN_TEST_SMTP_URL="smtp://127.0.0.1:$smtp_port" \
+    KAIRN_TEST_MAILPIT_URL="http://127.0.0.1:$inbox_port" \
+    KAIRN_INTEGRATION=1 KAIRN_JOURNEY_TEST=isolated pnpm exec vp test run --no-file-parallelism \
+    tests/integration/journeys.test.ts tests/integration/domain.test.ts \
+    tests/integration/journey-invitations.test.ts tests/integration/journey-membership.test.ts
 fi

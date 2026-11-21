@@ -1,11 +1,9 @@
 import type { JourneySchedule, PrivateJourney } from "@kairn/contracts";
 import { journeyPath } from "@kairn/contracts/journeys";
 import {
-  journeyScheduleAsOf,
   journeyScheduleStatus,
   journeyStatusLabels,
 } from "@kairn/shared/journey-time";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { cn } from "cn";
 import {
@@ -16,6 +14,7 @@ import {
   Globe,
   History,
   LockKeyhole,
+  Users,
 } from "lucide-react";
 import { JourneyDate } from "../components/journeys/dates";
 import {
@@ -27,9 +26,8 @@ import {
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { historyKey, journeyResult } from "../lib/journey-api";
+import { useJourneyAccess } from "../lib/journey-access";
 import type { AccountScope } from "../lib/session";
-import { useSessionAccess } from "../lib/session-access";
 
 const pageLayout = "@container/journey-detail mx-auto grid max-w-4xl gap-5";
 const statusIcons = {
@@ -79,36 +77,18 @@ function JourneyDetail({
   scope: AccountScope;
   journeyId: string;
 }) {
-  const { refresh } = useSessionAccess();
-  const detail = useQuery({
-    queryKey: [scope.accountId, "journey-detail", journeyId],
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    async queryFn({ signal }) {
-      const result = await scope.api.GET("/api/v1/journeys/{journeyId}", {
-        params: { path: { journeyId } },
-        signal,
-      });
-      if (result.response.status === 404) {
-        scope.signal.throwIfAborted();
-        signal.throwIfAborted();
-        scope.queryClient.removeQueries({
-          queryKey: historyKey(scope),
-          exact: true,
-        });
-        return null;
-      }
-      const journey = journeyResult(result, scope, refresh);
-      return {
-        journey,
-        asOf: journeyScheduleAsOf(result.response.headers),
-      };
-    },
-  });
-  if (!detail.isError && detail.isFetchedAfterMount && detail.data === null)
+  const detail = useJourneyAccess(scope, journeyId);
+  if (
+    !detail.checking &&
+    !detail.isError &&
+    detail.isFetchedAfterMount &&
+    detail.data === null
+  )
     return <UnavailableJourney />;
   const snapshot =
-    detail.isFetchedAfterMount && !detail.isError ? detail.data : undefined;
+    detail.isFetchedAfterMount && !detail.isError && !detail.checking
+      ? detail.data
+      : undefined;
   return (
     <section className={pageLayout}>
       <JourneyBackLink />
@@ -117,10 +97,14 @@ function JourneyDetail({
       ) : (
         <>
           <PageHeading title="Journey" />
-          {detail.isError ? (
+          {detail.offline ? (
+            <Alert>
+              <AlertTitle>Reconnect to check journey access</AlertTitle>
+            </Alert>
+          ) : detail.isError ? (
             <JourneyRetry
               title="Couldn’t load this journey"
-              busy={detail.isFetching}
+              busy={detail.checking}
               retry={() => void detail.refetch()}
             />
           ) : (
@@ -200,6 +184,29 @@ function JourneyOverview({
         ) : (
           <p className="text-muted-foreground">Dates unavailable</p>
         )}
+      </section>
+      <section
+        aria-labelledby="journey-people"
+        className="flex flex-wrap items-center justify-between gap-3 border-t p-5 @min-[32rem]/journey-detail:p-8"
+      >
+        <div>
+          <h2 id="journey-people" className="text-xl font-semibold">
+            People
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {journey.capabilities.includes("administrator")
+              ? "Organiser"
+              : "Journey member"}
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link
+            to="/journeys/$journeyId/people"
+            params={{ journeyId: journey.id }}
+          >
+            <Users aria-hidden="true" data-icon="inline-start" /> View people
+          </Link>
+        </Button>
       </section>
     </article>
   );

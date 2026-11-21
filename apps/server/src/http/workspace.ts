@@ -1,14 +1,18 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type { VerifiedSession } from "@kairn/backend";
 import type {
+  AdvanceCompanionSetup,
   AdvanceOnboarding,
+  CompanionSetup,
   DashboardSummary,
   OnboardingProgress,
 } from "@kairn/contracts";
 import { dashboardSummary, journeyHeaders } from "@kairn/contracts/journeys";
 import {
   accountProfile,
+  advanceCompanionSetup,
   advanceOnboarding,
+  companionSetup,
   onboardingProgress,
   updateProfile,
 } from "@kairn/contracts/schemas";
@@ -28,11 +32,22 @@ export interface WorkspaceOperations {
   ): Promise<
     { status: 200; progress: OnboardingProgress } | { status: 401 | 409 | 503 }
   >;
+  companionSetup(
+    session: VerifiedSession,
+    command?: AdvanceCompanionSetup,
+  ): Promise<
+    { status: 200; setup: CompanionSetup } | { status: 401 | 404 | 409 | 503 }
+  >;
   profile(
     session: VerifiedSession,
     displayName?: string,
+    inviteDiscoverable?: boolean,
   ): Promise<
-    { status: 200; profile: { displayName: string } } | { status: 401 | 503 }
+    | {
+        status: 200;
+        profile: { displayName: string; inviteDiscoverable?: boolean };
+      }
+    | { status: 401 | 503 }
   >;
   dashboard(
     session: VerifiedSession,
@@ -61,6 +76,12 @@ const progressResponse = {
   description: "The verified account’s current onboarding checkpoint.",
   headers: privateHeaders,
   content: { "application/json": { schema: onboardingProgress } },
+};
+const companionResponse = {
+  description:
+    "The verified account’s required and optional setup checkpoints.",
+  headers: privateHeaders,
+  content: { "application/json": { schema: companionSetup } },
 };
 const profileResponse = {
   description: "The current account’s display profile.",
@@ -131,6 +152,59 @@ export function createWorkspaceApi(operations?: WorkspaceOperations) {
     guardWrite,
     bodyLimit({ maxSize: 1024 }),
   ] as const;
+
+  api.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/onboarding/companions",
+      operationId: "getCompanionSetup",
+      request: { headers: expectedAccount },
+      middleware: [protect, authenticate] as const,
+      responses: { ...errors, 200: companionResponse },
+    }),
+    async (context) => {
+      const { operations, session } = context.var.workspace;
+      const result = await operations.companionSetup(session);
+      if (result.status === 404) return problem(context, 503);
+      if (result.status !== 200) return problem(context, result.status);
+      return context.json(companionSetup.parse(result.setup), 200);
+    },
+  );
+
+  api.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/v1/onboarding/companions",
+      operationId: "advanceCompanionSetup",
+      request: {
+        headers: expectedAccount,
+        body: {
+          required: true,
+          content: { "application/json": { schema: advanceCompanionSetup } },
+        },
+      },
+      middleware: [...writeMiddleware] as const,
+      responses: {
+        ...writeErrors,
+        404: errorResponse(
+          "The journey is unavailable for invitations.",
+          privateHeaders,
+        ),
+        200: companionResponse,
+      },
+    }),
+    async (context) => {
+      const { operations, session } = context.var.workspace;
+      const result = await operations.companionSetup(
+        session,
+        context.req.valid("json"),
+      );
+      if (result.status === 409)
+        return problem(context, 409, { code: "checkpoint_changed" });
+      if (result.status !== 200) return problem(context, result.status);
+      return context.json(companionSetup.parse(result.setup), 200);
+    },
+  );
 
   api.openapi(
     createRoute({
@@ -214,6 +288,7 @@ export function createWorkspaceApi(operations?: WorkspaceOperations) {
       const result = await operations.profile(
         session,
         context.req.valid("json").displayName,
+        context.req.valid("json").inviteDiscoverable,
       );
       if (result.status !== 200) return problem(context, result.status);
       return context.json(accountProfile.parse(result.profile), 200);

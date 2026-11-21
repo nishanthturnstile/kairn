@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import {
   checkDatabaseReadiness,
+  localRecoveryEpoch,
   logger,
   openDatabase,
   openJobQueue,
@@ -9,6 +10,7 @@ import {
   parseWorkerEnvironment,
   registerIdentityMail,
   registerIdentityRestrictions,
+  registerJourneyInvitationMail,
   registerWorkerChecks,
 } from "@kairn/backend";
 
@@ -30,6 +32,7 @@ const journal =
     : undefined;
 
 const shutdown = Promise.withResolvers<void>();
+let stopInvitationRetention: (() => void) | undefined;
 const requestShutdown = () => shutdown.resolve();
 process.once("SIGINT", requestShutdown);
 process.once("SIGTERM", requestShutdown);
@@ -44,13 +47,25 @@ try {
       from: environment.AUTH_FROM_EMAIL,
       transport,
     });
+    stopInvitationRetention = await registerJourneyInvitationMail(boss, db, {
+      epoch: environment.AUTH_RECOVERY_EPOCH ?? localRecoveryEpoch,
+      key: environment.AUTH_MAIL_KEY,
+      from: environment.AUTH_FROM_EMAIL,
+      transport,
+    });
   }
-  await registerIdentityRestrictions(boss, db, journal);
+  await registerIdentityRestrictions(
+    boss,
+    db,
+    journal,
+    environment.AUTH_RECOVERY_EPOCH ?? localRecoveryEpoch,
+  );
   if (process.env.KAIRN_WORKER_READY_FILE)
     await writeFile(process.env.KAIRN_WORKER_READY_FILE, "");
   logger.info("Kairn worker is listening for jobs");
   await shutdown.promise;
 } finally {
+  stopInvitationRetention?.();
   process.off("SIGINT", requestShutdown);
   process.off("SIGTERM", requestShutdown);
   try {

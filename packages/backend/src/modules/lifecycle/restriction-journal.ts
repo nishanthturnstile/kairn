@@ -7,7 +7,7 @@ const target = z.object({
   accountId: z.uuid(),
   generation: z.int().positive(),
 });
-const eventSchema = z.discriminatedUnion("operation", [
+const identityEvent = z.discriminatedUnion("operation", [
   target.extend({
     operation: z.literal("device_session_revoked"),
     sessionId: z.uuid(),
@@ -17,7 +17,18 @@ const eventSchema = z.discriminatedUnion("operation", [
     sessionId: z.null(),
   }),
 ]);
-export type IdentityRestriction = z.infer<typeof eventSchema>;
+const membershipEvent = z.strictObject({
+  version: z.literal(2),
+  id: z.uuid(),
+  operation: z.literal("membership_revocation"),
+  accountId: z.uuid(),
+  journeyId: z.uuid(),
+  membershipGeneration: z.uuid(),
+  generation: z.int().positive().max(2_147_483_647),
+});
+export const restrictionEvent = z.union([identityEvent, membershipEvent]);
+export type IdentityRestriction = z.infer<typeof identityEvent>;
+export type RestrictionEvent = z.infer<typeof restrictionEvent>;
 
 const receiptSchema = z.object({
   eventId: z.uuid(),
@@ -34,17 +45,24 @@ export const journalCheckpoint = z.union([
   receiptSchema,
 ]);
 export type JournalCheckpoint = z.infer<typeof journalCheckpoint>;
-const journalRecord = z.object({ event: eventSchema, receipt: receiptSchema });
+const journalRecord = z.object({
+  event: restrictionEvent,
+  receipt: receiptSchema,
+});
 
 export interface RestrictionJournal {
-  append(event: IdentityRestriction): Promise<Receipt>;
+  append(event: RestrictionEvent): Promise<Receipt>;
   head(): Promise<number>;
   read(
     sequence: number,
-  ): Promise<{ event: IdentityRestriction; receipt: Receipt }>;
+  ): Promise<{ event: RestrictionEvent; receipt: Receipt }>;
 }
 
-export function restrictionDigest(event: IdentityRestriction) {
+export function restrictionDigest(event: RestrictionEvent) {
+  const scope =
+    event.version === 1
+      ? [event.sessionId]
+      : [event.journeyId, event.membershipGeneration];
   return createHash("sha256")
     .update(
       JSON.stringify([
@@ -52,14 +70,15 @@ export function restrictionDigest(event: IdentityRestriction) {
         event.id,
         event.operation,
         event.accountId,
-        event.sessionId,
+        ...scope,
         event.generation,
       ]),
     )
     .digest("hex");
 }
 
-export function verifyReceipt(event: IdentityRestriction, receipt: unknown) {
+export function verifyReceipt(input: unknown, receipt: unknown) {
+  const event = restrictionEvent.parse(input);
   const verified = receiptSchema.parse(receipt);
   if (
     verified.eventId !== event.id ||

@@ -15,7 +15,10 @@ test("browser account flows verify email, revoke another session, and reset the 
     "Requires the local server, web, worker and Mailpit.",
   );
   test.setTimeout(80_000);
-  await page.context().setExtraHTTPHeaders({ "X-Forwarded-For": "198.18.0.1" });
+  const client = testInfo.repeatEachIndex + 1;
+  await page.context().setExtraHTTPHeaders({
+    "X-Forwarded-For": `198.18.0.${client}`,
+  });
   const email = `browser-${randomUUID()}@example.test`;
   const guestStory = await page.request.get(`${site}/read/example`, {
     maxRedirects: 0,
@@ -67,7 +70,9 @@ test("browser account flows verify email, revoke another session, and reset the 
   await expect(signInHeading).toBeFocused();
   await expect(signInHeading).toHaveAccessibleDescription(verificationMessage);
 
-  const other = await browser.newContext();
+  const other = await browser.newContext({
+    extraHTTPHeaders: { "X-Forwarded-For": `198.18.1.${client}` },
+  });
   try {
     const login = await other.request.post(`${site}/api/auth/sign-in/email`, {
       headers: { Origin: site },
@@ -150,12 +155,29 @@ test("browser account flows verify email, revoke another session, and reset the 
   }
 
   const sameSession = await page.context().newPage();
+  const sessionEndpoint = `${site}/api/auth/get-session`;
+  const releaseSessionChecks = Promise.withResolvers<void>();
+  let sessionChecks = 0;
   try {
     await sameSession.goto(`${site}/saved`);
     await expect(
       sameSession.getByRole("heading", { name: "Saved", exact: true }),
     ).toBeVisible();
+    // Hold the initiating tab's session checks while the other tab signs out.
+    await page.route(sessionEndpoint, async (route) => {
+      sessionChecks++;
+      await releaseSessionChecks.promise;
+      await route.continue();
+    });
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect.poll(() => sessionChecks).toBeGreaterThanOrEqual(2);
+    await expect(
+      sameSession.getByRole("heading", { name: "Sign in" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("Signing out", { exact: true }),
+    ).toBeVisible();
+    releaseSessionChecks.resolve();
     const toast = page
       .getByRole("status")
       .filter({ hasText: "You’re signed out." });
@@ -164,13 +186,12 @@ test("browser account flows verify email, revoke another session, and reset the 
       page.getByRole("main").getByText("You’re signed out."),
     ).toHaveCount(0);
     await expect(
-      sameSession.getByRole("heading", { name: "Sign in" }),
-    ).toBeVisible();
-    await expect(
       sameSession.getByRole("navigation", { name: "Main" }),
     ).toHaveCount(0);
     await expect(toast).toBeHidden({ timeout: 7_000 });
   } finally {
+    releaseSessionChecks.resolve();
+    await page.unroute(sessionEndpoint);
     await sameSession.close();
   }
   await page

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, isNotNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
@@ -10,13 +10,20 @@ import {
   identityMail,
   identityRecovery,
 } from "../identity/schema.js";
-import { epochId, identityAccount, identityEpoch } from "../identity/state.js";
+import {
+  epochId,
+  identityAccount,
+  identityEpoch,
+  identityIsCurrent,
+  localRecoveryEpoch,
+} from "../identity/state.js";
 import {
   type IdentityRestriction,
   type JournalCheckpoint,
   journalCheckpoint,
   type RestrictionJournal,
   restrictionDigest,
+  restrictionEvent,
   verifyReceipt,
 } from "./restriction-journal.js";
 import { auditEvents, restrictionEvents } from "./schema.js";
@@ -61,11 +68,20 @@ export async function recordIdentityRestriction(
     operation: event.operation,
     integrityDigest: restrictionDigest(event),
   });
+  await enqueueRestrictionConfirmation(tx, boss, event.id);
+  return event;
+}
+
+export async function enqueueRestrictionConfirmation(
+  tx: DatabaseTransaction,
+  boss: PgBoss,
+  id: string,
+) {
   const jobId = await boss.send(
     restrictionQueue,
-    { id: event.id },
+    { id },
     {
-      id: event.id,
+      id,
       db: fromDrizzle(tx, sql),
       retryLimit: 12,
       retryDelay: 30,
@@ -73,69 +89,120 @@ export async function recordIdentityRestriction(
     },
   );
   if (!jobId) throw new Error("Restriction reconciliation was not scheduled.");
-  return event;
 }
 
-export async function confirmRestriction(
-  db: Database,
-  journal: RestrictionJournal,
-  id: string,
-) {
-  const [row] = await db
+async function readRecordedRestriction(tx: DatabaseTransaction, id: string) {
+  const [row] = await tx
     .select({
       event: restrictionEvents,
       accountId: auditEvents.targetId,
     })
     .from(restrictionEvents)
     .innerJoin(auditEvents, eq(auditEvents.id, restrictionEvents.auditEventId))
-    .where(eq(restrictionEvents.id, id));
-  if (!row) throw new Error("Restriction record is unavailable.");
-  if (row.event.journalSequence) return;
-  const {
-    operation,
-    affectedSessionId: sessionId,
-    policyGeneration: generation,
-  } = row.event;
-  const target = {
-    version: 1 as const,
-    id,
-    accountId: row.accountId,
-    generation,
-  };
-  if (
-    operation !== "device_session_revoked" &&
-    operation !== "credentials_changed"
-  ) {
-    throw new Error("Invalid identity restriction.");
+    .where(
+      and(
+        eq(restrictionEvents.id, id),
+        isNull(restrictionEvents.affectedMembershipGeneration),
+      ),
+    );
+  if (row) {
+    const {
+      operation,
+      affectedSessionId,
+      policyGeneration,
+      integrityDigest,
+      journalSequence,
+    } = row.event;
+    return {
+      event: restrictionEvent.parse({
+        version: 1,
+        id,
+        operation,
+        accountId: row.accountId,
+        sessionId: affectedSessionId,
+        generation: policyGeneration,
+      }),
+      digest: integrityDigest,
+      confirmed: journalSequence !== null,
+      earlierPending: false,
+    };
   }
-  if (operation === "device_session_revoked" && !sessionId)
-    throw new Error("Missing revoked session ID.");
-  const event: IdentityRestriction =
-    operation === "device_session_revoked" && sessionId
-      ? { ...target, operation, sessionId }
-      : { ...target, operation: "credentials_changed", sessionId: null };
-  if (restrictionDigest(event) !== row.event.integrityDigest)
+
+  const { rows } = await tx.execute<{ record: unknown }>(sql`
+    select kairn.read_membership_restriction(${id}::uuid) as record
+  `);
+  return z
+    .object({
+      event: restrictionEvent,
+      digest: z.string(),
+      confirmed: z.boolean(),
+      earlierPending: z.boolean(),
+    })
+    .parse(rows[0]?.record);
+}
+
+// The caller holds the shared recovery lock. The local restriction has already committed.
+export async function confirmRecordedRestriction(
+  tx: DatabaseTransaction,
+  journal: RestrictionJournal,
+  id: string,
+) {
+  const { event, digest, confirmed, earlierPending } =
+    await readRecordedRestriction(tx, id);
+  if (restrictionDigest(event) !== digest)
     throw new Error("Invalid restriction digest.");
+  if (confirmed) return;
+  // Restoring a backup from before a rejoin requires the earlier generation's deny.
+  if (earlierPending)
+    throw new Error("An earlier membership restriction awaits confirmation.");
+
   const receipt = verifyReceipt(event, await journal.append(event));
-  await db
+  if (event.version === 2) {
+    await tx.execute(sql`
+      select kairn.confirm_membership_restriction(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  await tx
     .update(restrictionEvents)
     .set({
       journalSequence: BigInt(receipt.sequence),
       journalReceipt: receipt.receipt,
     })
-    .where(eq(restrictionEvents.id, id));
+    .where(
+      and(
+        eq(restrictionEvents.id, id),
+        isNull(restrictionEvents.journalSequence),
+      ),
+    );
+}
+
+export async function confirmRestriction(
+  db: Database,
+  journal: RestrictionJournal,
+  id: string,
+  epoch = localRecoveryEpoch,
+) {
+  await db.transaction(async (tx) => {
+    if (!(await identityIsCurrent(tx, identityEpoch(epoch))))
+      throw new Error("The restriction worker recovery epoch is not current.");
+    await confirmRecordedRestriction(tx, journal, id);
+  });
 }
 
 export async function registerIdentityRestrictions(
   boss: PgBoss,
   db: Database,
   journal?: RestrictionJournal,
+  epoch = localRecoveryEpoch,
 ) {
   if (!journal) return;
   await boss.work(restrictionQueue, { localConcurrency: 1 }, async ([job]) => {
     const { id } = jobPayload.parse(job.data);
     try {
-      await confirmRestriction(db, journal, id);
+      await confirmRestriction(db, journal, id, epoch);
     } catch {
       logger.warn(
         { jobId: job.id, eventId: id },
@@ -214,11 +281,10 @@ export async function replayIdentityRestrictions(
       throw new Error("Restriction journal is missing a confirmed receipt.");
     }
     for (let sequence = 1; sequence <= head; sequence++) {
-      const { event, receipt } = await journal.read(sequence);
-      if (
-        verifyReceipt(event, receipt).sequence !== sequence ||
-        seen.has(event.id)
-      ) {
+      const entry = await journal.read(sequence);
+      const event = restrictionEvent.parse(entry.event);
+      const receipt = verifyReceipt(event, entry.receipt);
+      if (receipt.sequence !== sequence || seen.has(event.id.toLowerCase())) {
         throw new Error("Restriction journal is incomplete.");
       }
       if (
@@ -243,7 +309,38 @@ export async function replayIdentityRestrictions(
           "Restriction journal disagrees with a confirmed receipt.",
         );
       }
-      seen.add(event.id);
+      if (!local) {
+        const [pending] = await tx
+          .select({
+            digest: restrictionEvents.integrityDigest,
+            sequence: restrictionEvents.journalSequence,
+          })
+          .from(restrictionEvents)
+          .where(eq(restrictionEvents.id, event.id));
+        if (pending) {
+          if (pending.digest !== receipt.digest || pending.sequence !== null)
+            throw new Error(
+              "Restriction journal disagrees with a local event.",
+            );
+          await tx
+            .update(restrictionEvents)
+            .set({
+              journalSequence: BigInt(sequence),
+              journalReceipt: receipt.receipt,
+            })
+            .where(eq(restrictionEvents.id, event.id));
+        }
+      }
+
+      seen.add(event.id.toLowerCase());
+      if (event.version === 2) {
+        await tx.execute(sql`
+          select kairn.apply_journey_membership_revocation(
+            ${event.journeyId}::uuid, ${event.accountId}::uuid, ${event.membershipGeneration}::uuid, ${event.generation}::integer
+          )
+        `);
+        continue;
+      }
       const account = await identityAccount(tx, event.accountId);
       if (!account) continue;
       const restoredGeneration =

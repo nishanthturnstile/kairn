@@ -5,6 +5,7 @@ import ferryArt from "../assets/onboarding-ferry.webp";
 import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import { clearInvitationHandoff } from "../lib/invitation-handoff";
 import { JourneyRequestError, journeyResult } from "../lib/journey-api";
 import { journeyIntentCopy } from "../lib/journey-intent-copy";
 import {
@@ -66,6 +67,7 @@ function Onboarding() {
     action: "continue" | "dashboard";
   }>();
   const heading = useRef<HTMLHeadingElement>(null);
+  const mounted = useRef(false);
   const saving = useRef(false);
 
   const checkpoint =
@@ -75,14 +77,22 @@ function Onboarding() {
   const accountId = scope.accountId;
   const target = boundJourneyReturn(accountId);
   let targetLabel = "Continue to journey";
+  if (target === "/dashboard") targetLabel = "Go to Dashboard";
   if (target === "/journeys") targetLabel = "Continue to Journeys";
   if (target === "/journeys/new") targetLabel = "Continue to journey creation";
   if (target === "/saved") targetLabel = "Continue to Saved";
   if (target === "/discover") targetLabel = "Continue to Discover";
+  if (target === "/journey-invitations") targetLabel = "Continue to invitation";
 
   useEffect(() => {
     if (step) heading.current?.focus();
   }, [step]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   async function confirm(action: "continue" | "dashboard") {
     if (!step || !checkpoint || !accountId || editingName || saving.current)
@@ -94,7 +104,10 @@ function Onboarding() {
     saving.current = true;
     setBusy(true);
     setFailure(undefined);
-    if (action === "dashboard") clearJourneyReturn(accountId);
+    if (action === "dashboard") {
+      clearJourneyReturn(accountId);
+      if (target === "/journey-invitations") clearInvitationHandoff();
+    }
     try {
       const body: AdvanceOnboarding = step === 1 ? { step } : { step, intent };
       const response = await scope.api.POST("/api/v1/onboarding", {
@@ -105,6 +118,7 @@ function Onboarding() {
       await scope.queryClient.cancelQueries({ queryKey: onboardingKey(scope) });
       scope.signal.throwIfAborted();
       scope.queryClient.setQueryData(onboardingKey(scope), result);
+      if (!mounted.current) return;
       setReviewingWelcome(false);
       if (result.state !== "pending") {
         await navigate({
@@ -115,7 +129,7 @@ function Onboarding() {
         });
       }
     } catch (error) {
-      if (scope.signal.aborted) return;
+      if (!mounted.current || scope.signal.aborted) return;
       if (error instanceof JourneyRequestError && error.status === 409) {
         await progress.refetch();
         setReviewingWelcome(false);
@@ -123,14 +137,15 @@ function Onboarding() {
       setFailure({ step, action });
     } finally {
       saving.current = false;
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }
 
-  if (!step || !accountId)
-    return progress.data && progress.data.state !== "pending" && !busy ? (
-      <Navigate {...workspaceDestination(target)} replace />
-    ) : null;
+  if (!step || !accountId) {
+    if (!progress.data || progress.data.state === "pending" || busy)
+      return null;
+    return <Navigate {...workspaceDestination(target)} replace />;
+  }
 
   const active = steps[step - 1];
   return (
@@ -255,22 +270,18 @@ function Onboarding() {
               <Button
                 type="button"
                 disabled={busy || editingName}
-                onClick={() =>
-                  void confirm(step === 2 && !target ? "dashboard" : "continue")
-                }
+                onClick={() => void confirm("continue")}
               >
                 {busy
                   ? "Saving…"
-                  : step === 1
-                    ? "Continue"
-                    : target
-                      ? targetLabel
-                      : "Go to Dashboard"}
+                  : step === 2 && target
+                    ? targetLabel
+                    : "Continue"}
                 {!busy && (
                   <span aria-hidden="true" className="onboarding-arrow" />
                 )}
               </Button>
-              {step === 2 && target && (
+              {step === 2 && target && target !== "/dashboard" && (
                 <Button
                   type="button"
                   variant="outline"

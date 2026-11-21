@@ -133,7 +133,10 @@ function JourneyForm({
   const { refresh, canSubmit } = useMobileSession();
   const [draft, setDraft] = useState(() => journeyDraft(initialAttempt?.input));
   const [attempt, setAttempt] = useState(initialAttempt);
-  const [confirmed, setConfirmed] = useState<string>();
+  const [confirmed, setConfirmed] = useState<{
+    id: string;
+    invitePeople: boolean;
+  }>();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [choices, setChoices] = useState<OffsetChoices>({});
   const [feedback, setFeedback] = useState("");
@@ -245,15 +248,17 @@ function JourneyForm({
     }));
   }
 
-  function openJourney(id: string) {
+  function openJourney({ id, invitePeople }: NonNullable<typeof confirmed>) {
     if (canSubmit(scope) && focused.current)
       router.replace({
-        pathname: "/journeys/[journeyId]",
+        pathname: invitePeople
+          ? "/journeys/[journeyId]/invite"
+          : "/journeys/[journeyId]",
         params: { journeyId: id },
       });
   }
 
-  async function submit() {
+  async function submit(invitePeople: boolean) {
     if (submitting.current || !canSubmit(scope) || !focused.current) return;
     let submitted = attempt;
     const result = submitted ? undefined : validateJourneyDraft(draft);
@@ -318,8 +323,9 @@ function JourneyForm({
       void scope.queryClient.invalidateQueries({ queryKey: historyKey });
       void scope.queryClient.invalidateQueries({ queryKey: dashboardKey });
       if (visible()) {
-        setConfirmed(saved.id);
-        openJourney(saved.id);
+        const destination = { id: saved.id, invitePeople };
+        setConfirmed(destination);
+        openJourney(destination);
       }
     } catch (error) {
       if (!visible()) return;
@@ -553,35 +559,48 @@ function JourneyForm({
         </View>
       </Panel>
       <StatusNotice notice={notice} />
-      <View
-        style={[
-          styles.saveArea,
-          compactPickers && !confirmed && styles.saveRow,
-        ]}
-      >
+      <View style={styles.saveArea}>
         {!confirmed && (
           <AppText
             text="Only you can see this journey when you save it."
             variant="caption"
             subdued
-            style={compactPickers && styles.saveCopy}
           />
         )}
-        <Action
-          label={
-            confirmed
-              ? "Open journey"
-              : saving
-                ? "Saving…"
-                : attempt
-                  ? "Retry save"
-                  : "Save journey"
-          }
-          variant="primary"
-          accessibilityState={{ busy: saving }}
-          disabled={saving}
-          onPress={() => (confirmed ? openJourney(confirmed) : void submit())}
-        />
+        <View
+          style={[styles.saveActions, compactPickers && styles.saveActionsRow]}
+        >
+          <Action
+            label={
+              confirmed
+                ? confirmed.invitePeople
+                  ? "Invite people"
+                  : "Open journey"
+                : saving
+                  ? "Saving…"
+                  : attempt
+                    ? "Retry save"
+                    : "Save journey"
+            }
+            variant="primary"
+            accessibilityState={{ busy: saving }}
+            disabled={saving}
+            onPress={() =>
+              confirmed ? openJourney(confirmed) : void submit(false)
+            }
+          />
+          {!confirmed && (
+            <Action
+              label={
+                attempt
+                  ? "Retry save & invite people"
+                  : "Create & invite people"
+              }
+              disabled={saving}
+              onPress={() => void submit(true)}
+            />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -611,8 +630,8 @@ const styles = StyleSheet.create(
     scheduleFields: { gap: space.step12 },
     optionalAction: { alignItems: "flex-start" },
     saveArea: { gap: space.step12 },
-    saveRow: { flexDirection: "row", alignItems: "center" },
-    saveCopy: { flex: 1, minWidth: 0 },
+    saveActions: { gap: space.step8 },
+    saveActionsRow: { flexDirection: "row", flexWrap: "wrap" },
     preview: {
       borderRadius: radius.control,
       backgroundColor: color.actionWash,

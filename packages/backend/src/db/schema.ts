@@ -2,6 +2,7 @@ import { timestamp, uuid } from "drizzle-orm/pg-core";
 import { kairn } from "./namespaces.js";
 
 export * from "../modules/identity/auth-schema.js";
+export * from "../modules/identity/companion-setup-schema.js";
 export * from "../modules/identity/schema.js";
 export * from "../modules/journeys/schema.js";
 export * from "../modules/lifecycle/schema.js";

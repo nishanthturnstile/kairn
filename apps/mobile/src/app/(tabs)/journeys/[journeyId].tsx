@@ -7,7 +7,8 @@ import {
   journeyStatusLabels,
 } from "@kairn/shared/journey-time";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useNetworkState } from "expo-network";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo } from "react";
 import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -73,11 +74,15 @@ function JourneyDetail({
 }) {
   const router = useRouter();
   const { refresh } = useMobileSession();
+  const focused = useIsFocused();
+  const offline = useNetworkState().isConnected === false;
   const key = useMemo(() => detailKey(journeyId), [journeyId]);
   useJourneyReentry(scope, key);
   const detail = useQuery({
     queryKey: key,
+    enabled: focused && !offline,
     refetchOnMount: "always",
+    refetchInterval: focused && !offline ? 30_000 : false,
     async queryFn({ signal }) {
       const result = await scope.api.GET("/api/v1/journeys/{journeyId}", {
         params: { path: { journeyId } },
@@ -102,12 +107,44 @@ function JourneyDetail({
   if (!detail.isError && detail.isFetchedAfterMount && detail.data === null)
     return <UnavailableJourney />;
   const snapshot =
-    detail.isFetchedAfterMount && !detail.isError ? detail.data : undefined;
+    focused &&
+    !offline &&
+    detail.isFetchedAfterMount &&
+    !detail.isError &&
+    !detail.isFetching
+      ? detail.data
+      : undefined;
   return (
     <JourneyScreen>
       {snapshot ? (
         <>
           <JourneyOverview {...snapshot} />
+          <Panel>
+            <AppText
+              text="People"
+              variant="section"
+              accessibilityRole="header"
+            />
+            <AppText
+              text={
+                snapshot.journey.capabilities.includes("administrator")
+                  ? "Organiser"
+                  : snapshot.journey.capabilities.length === 0
+                    ? "Participant"
+                    : "Journey member"
+              }
+              subdued
+            />
+            <Action
+              label="View People"
+              onPress={() =>
+                router.push({
+                  pathname: "/journeys/[journeyId]/people",
+                  params: { journeyId },
+                })
+              }
+            />
+          </Panel>
           <Action
             label="Back to Journeys"
             variant="text"
@@ -117,7 +154,14 @@ function JourneyDetail({
       ) : (
         <>
           <AppText text="Journey" variant="title" accessibilityRole="header" />
-          {detail.isError ? (
+          {offline ? (
+            <StatusNotice
+              notice={{
+                text: "Reconnect to check access to this journey.",
+                tone: "info",
+              }}
+            />
+          ) : detail.isError ? (
             <JourneyRetry
               text="Couldn’t load this journey."
               retry={() => void detail.refetch()}

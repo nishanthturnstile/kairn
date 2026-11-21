@@ -4,6 +4,22 @@ export function createMobileApiClient(baseUrl: string) {
   return createApiClient({ baseUrl });
 }
 
+export function createInvitationExchangeClient(
+  origin: string,
+  send: NativeFetch,
+) {
+  return createApiClient({
+    baseUrl: origin,
+    fetch: (request) =>
+      send(request, {
+        headers: request.headers,
+        credentials: "omit",
+        redirect: "error",
+        signal: request.signal,
+      }),
+  });
+}
+
 export type NativeFetch = (
   request: Request,
   init: Pick<RequestInit, "headers" | "credentials" | "redirect" | "signal">,

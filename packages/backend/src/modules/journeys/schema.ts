@@ -4,9 +4,11 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { kairn } from "../../db/namespaces.js";
@@ -106,6 +108,7 @@ export const journeyMemberships = kairn
         .defaultNow()
         .notNull(),
       revokedAt: timestamp("revoked_at", { withTimezone: true }),
+      generation: uuid("generation").defaultRandom().notNull(),
     },
     (membership) => [
       primaryKey({ columns: [membership.journeyId, membership.accountId] }),
@@ -119,6 +122,169 @@ export const journeyMemberships = kairn
       ),
     ],
   )
+  .enableRLS();
+
+export const invitationDecision = kairn.enum("journey_invitation_decision", [
+  "pending",
+  "accepted",
+  "cancelled",
+  "replaced",
+  "expired",
+]);
+
+export const invitationDelivery = kairn.enum("journey_invitation_delivery", [
+  "queued",
+  "sent",
+  "failed",
+  "expired",
+]);
+
+export const journeyInvitations = kairn
+  .table(
+    "journey_invitations",
+    {
+      id: uuid("id").primaryKey(),
+      journeyId: uuid("journey_id")
+        .notNull()
+        .references(() => journeys.id),
+      issuedBy: uuid("issued_by")
+        .notNull()
+        .references(() => accounts.id),
+      issuerGeneration: uuid("issuer_generation").notNull(),
+      recipient: text("recipient").notNull(),
+      recipientLabel: text("recipient_label"),
+      scope: text("scope").default("participant").notNull(),
+      tokenDigest: text("token_digest").unique(),
+      epochDigest: text("epoch_digest").notNull(),
+      revision: integer("revision").default(1).notNull(),
+      createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+      expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+      decision: invitationDecision("decision").default("pending").notNull(),
+      acceptedBy: uuid("accepted_by").references(() => accounts.id),
+      acceptedGeneration: uuid("accepted_generation"),
+    },
+    (invitation) => [
+      uniqueIndex("journey_invitations_pending_recipient_idx")
+        .on(invitation.journeyId, invitation.recipient)
+        .where(sql`${invitation.decision} = 'pending'`),
+      index("journey_invitations_journey_idx").on(
+        invitation.journeyId,
+        invitation.id,
+      ),
+      index("journey_invitations_issuer_rate_idx").on(
+        invitation.issuedBy,
+        invitation.createdAt,
+      ),
+      index("journey_invitations_journey_rate_idx").on(
+        invitation.journeyId,
+        invitation.createdAt,
+      ),
+      index("journey_invitations_recipient_rate_idx").on(
+        invitation.recipient,
+        invitation.createdAt,
+      ),
+      check(
+        "journey_invitations_participant",
+        sql`${invitation.scope} = 'participant'`,
+      ),
+      check("journey_invitations_revision", sql`${invitation.revision} > 0`),
+      check(
+        "journey_invitations_expiry",
+        sql`${invitation.expiresAt} > ${invitation.createdAt}`,
+      ),
+      check(
+        "journey_invitations_acceptance",
+        sql`(
+        (${invitation.decision} = 'accepted' AND ${invitation.acceptedBy} IS NOT NULL
+          AND ${invitation.acceptedGeneration} IS NOT NULL)
+        OR (${invitation.decision} <> 'accepted' AND ${invitation.acceptedBy} IS NULL
+          AND ${invitation.acceptedGeneration} IS NULL)
+      )`,
+      ),
+    ],
+  )
+  .enableRLS();
+
+export const journeyInvitationMail = kairn
+  .table(
+    "journey_invitation_mail",
+    {
+      id: uuid("id")
+        .primaryKey()
+        .references(() => journeyInvitations.id, {
+          onDelete: "cascade",
+        }),
+      ciphertext: text("ciphertext"),
+      delivery: invitationDelivery("delivery").default("queued").notNull(),
+    },
+    (mail) => [
+      check(
+        "journey_invitation_mail_payload",
+        sql`(${mail.delivery} = 'queued') = (${mail.ciphertext} IS NOT NULL)`,
+      ),
+    ],
+  )
+  .enableRLS();
+
+export const journeyInvitationAttempts = kairn
+  .table(
+    "journey_invitation_attempts",
+    {
+      journeyId: uuid("journey_id")
+        .notNull()
+        .references(() => journeys.id),
+      accountId: uuid("account_id")
+        .notNull()
+        .references(() => accounts.id),
+      key: uuid("key").notNull(),
+      epochDigest: text("epoch_digest").notNull(),
+      payloadDigest: text("payload_digest").notNull(),
+      result: jsonb("result").notNull(),
+      recordedAt: timestamp("recorded_at", { withTimezone: true })
+        .defaultNow()
+        .notNull(),
+    },
+    (attempt) => [
+      primaryKey({
+        columns: [attempt.journeyId, attempt.accountId, attempt.key],
+      }),
+      index("journey_invitation_attempts_actor_rate_idx").on(
+        attempt.accountId,
+        attempt.recordedAt,
+      ),
+      index("journey_invitation_attempts_retention_idx").on(attempt.recordedAt),
+    ],
+  )
+  .enableRLS();
+
+export const journeyInvitationAcceptances = kairn
+  .table(
+    "journey_invitation_acceptances",
+    {
+      accountId: uuid("account_id")
+        .notNull()
+        .references(() => accounts.id),
+      operationId: uuid("operation_id").notNull(),
+      invitationId: uuid("invitation_id")
+        .notNull()
+        .unique()
+        .references(() => journeyInvitations.id),
+      membershipGeneration: uuid("membership_generation").notNull(),
+    },
+    (acceptance) => [
+      primaryKey({ columns: [acceptance.accountId, acceptance.operationId] }),
+    ],
+  )
+  .enableRLS();
+
+export const journeyInviteeSearchWindows = kairn
+  .table("journey_invitee_search_windows", {
+    accountId: uuid("account_id")
+      .primaryKey()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    minute: timestamp("minute", { withTimezone: true }).notNull(),
+    count: integer("count").notNull(),
+  })
   .enableRLS();
 
 export const journeyCapabilities = kairn

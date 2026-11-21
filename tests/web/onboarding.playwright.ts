@@ -49,6 +49,13 @@ async function signIn(page: Page, email: string) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
+async function viewer(page: Page) {
+  const { user } = await (
+    await page.request.get(`${site}/api/auth/get-session`)
+  ).json();
+  return { Origin: site, "X-Expected-Account": String(user.id) };
+}
+
 test("reuses the signup name and resumes setup before creating a first planned journey", async ({
   page,
   browser,
@@ -57,7 +64,10 @@ test("reuses the signup name and resumes setup before creating a first planned j
   test.setTimeout(75_000);
   const requestedArt: string[] = [];
   page.on("request", (request) => {
-    if (new URL(request.url()).pathname.startsWith("/assets/onboarding"))
+    if (
+      request.resourceType() === "image" &&
+      new URL(request.url()).pathname.startsWith("/assets/onboarding")
+    )
       requestedArt.push(request.url());
   });
   await page.goto(`${site}/`);
@@ -146,11 +156,18 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await page
     .getByRole("radio", { name: "Plan a journey", exact: true })
     .check();
-  await page.getByRole("button", { name: "Go to Dashboard" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await expect(
     page.getByRole("heading", { name: "Plan your first journey" }),
   ).toBeVisible();
+  expect(
+    await (
+      await page.request.get(`${site}/api/v1/dashboard`, {
+        headers: await viewer(page),
+      })
+    ).json(),
+  ).toMatchObject({ journeyCount: 0 });
   await page.reload();
   await page.getByRole("link", { name: "Plan a journey", exact: true }).click();
   await expect(
@@ -215,34 +232,12 @@ test("keeps an explicit journey return and consumes it after two steps", async (
   ).toBeVisible();
 });
 
-test("keeps older accounts exempt and reflows both steps and the past-journey handoff", async ({
+test("reflows both required steps and the past-journey handoff", async ({
   page,
-  browser,
   browserName,
 }) => {
   test.setTimeout(75_000);
   await page.goto(`${site}/account`);
-  const email = await newAccount(page);
-  const older = await browser.newContext();
-  try {
-    expect(
-      (
-        await older.request.post(`${site}/api/auth/sign-in/email`, {
-          headers: {
-            Origin: site,
-            "X-Forwarded-For": fixtureAddress(browserName, 19),
-          },
-          data: { email, password },
-        })
-      ).status(),
-    ).toBe(200);
-  } finally {
-    await older.close();
-  }
-  await signIn(page, email);
-  await expect(page).toHaveURL(`${site}/dashboard`);
-  await openAccount(page);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const eligible = await newAccount(page);
   await page.setViewportSize({ width: 320, height: 800 });
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -275,7 +270,7 @@ test("keeps older accounts exempt and reflows both steps and the past-journey ha
   await record.focus();
   await record.press("Space");
   await expect(record).toBeChecked();
-  await page.getByRole("button", { name: "Go to Dashboard" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Record a journey you’ve taken" }),
   ).toBeVisible();
@@ -289,4 +284,217 @@ test("keeps older accounts exempt and reflows both steps and the past-journey ha
     }),
   ).toBeVisible();
   await assertAccessibleReflow();
+});
+
+test("opens Dashboard after two steps and redirects the retired invitation screen", async ({
+  page,
+}) => {
+  await page.goto(`${site}/`);
+  const email = await newAccount(page);
+  await signIn(page, email);
+  const next = page.getByRole("button", { name: "Continue", exact: true });
+  await next.click();
+  await expect(page.getByRole("radio", { name: "Look around" })).toBeChecked();
+  await next.click();
+  await expect(page).toHaveURL(`${site}/dashboard`);
+  await page.goto(`${site}/onboarding/companions`);
+  await expect(page).toHaveURL(`${site}/dashboard`);
+  await openAccount(page);
+  await expect(page.getByText("Resume companion invitations")).toHaveCount(0);
+});
+
+async function fillJourney(page: Page, title: string) {
+  await page
+    .getByRole("link", { name: "Create a journey", exact: true })
+    .click();
+  await page.getByLabel("Title", { exact: true }).fill(title);
+  await page.getByLabel("Start date", { exact: true }).fill("2090-12-12");
+  await page.getByLabel("Start time", { exact: true }).fill("09:00");
+  await page.getByLabel("Timezone", { exact: true }).fill("Asia/Kolkata");
+}
+
+test("can skip inviting after creation and open the saved journey", async ({
+  page,
+  browserName,
+}) => {
+  await page.goto(`${site}/`);
+  const email = await newAccount(page);
+  await signIn(page, email);
+  const next = page.getByRole("button", { name: "Continue", exact: true });
+  await next.click();
+  await expect(page.getByText("Step 2 of 2")).toBeVisible();
+  await next.click();
+  await expect(page).toHaveURL(`${site}/dashboard`);
+  await fillJourney(page, "Quiet trip");
+  await page.getByRole("button", { name: "Create & invite people" }).click();
+  const heading = page.getByRole("heading", { name: "Invite people" });
+  await expect(heading).toBeFocused();
+  await expect(page.getByText("Quiet trip", { exact: true })).toBeVisible();
+  const journey = page.url().replace(/\/invite$/, "");
+  expect(page.url()).toBe(`${journey}/invite`);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(320);
+  if (browserName !== "firefox")
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.getByRole("button", { name: "Invite by email" }).click();
+  const addressField = page.getByRole("textbox", { name: "Email address" });
+  const addEmail = page.getByRole("button", { name: "Add email" });
+  for (const email of [
+    "draft-first@example.test",
+    "draft-second@example.test",
+  ]) {
+    await addressField.fill(email);
+    await addEmail.click();
+  }
+  await addressField.fill("still-typing@example.test");
+  const recipients = page.getByRole("region", { name: "Recipient list" });
+  const removeFirst = page.getByRole("button", {
+    name: "Remove draft-first@example.test from draft",
+  });
+  const removeSecond = page.getByRole("button", {
+    name: "Remove draft-second@example.test from draft",
+  });
+  const navigation = await page.evaluate(() => performance.timeOrigin);
+  await removeFirst.press("Enter");
+  await expect(removeFirst).toHaveCount(0);
+  await expect(removeSecond).toBeFocused();
+  await expect(recipients.getByRole("status")).toHaveText("1 recipient");
+  await expect(addressField).toHaveValue("still-typing@example.test");
+
+  const checking = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const journeyId = new URL(journey).pathname.split("/").at(-1);
+  await page.route(
+    `**/api/v1/journeys/${journeyId}`,
+    async (route) => {
+      checking.resolve();
+      await release.promise;
+      await route.continue();
+    },
+    { times: 1 },
+  );
+  try {
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await checking.promise;
+    await expect(heading).toBeVisible();
+    await expect(recipients).toBeHidden();
+    await expect(page.getByText("Checking journey access")).toBeVisible();
+  } finally {
+    release.resolve();
+  }
+  await expect(recipients).toBeVisible();
+  await expect(addressField).toHaveValue("still-typing@example.test");
+  await removeSecond.press("Enter");
+  await expect(addressField).toBeFocused();
+  await expect(recipients.getByText("No recipients yet")).toBeVisible();
+  expect(await page.evaluate(() => performance.timeOrigin)).toBe(navigation);
+
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page).toHaveURL(journey);
+  await page.getByRole("link", { name: "View people", exact: true }).click();
+  await expect(page.getByText("No pending invitations.")).toBeVisible();
+});
+
+test("retries creation and invitation delivery for the same saved journey", async ({
+  page,
+}) => {
+  test.setTimeout(75_000);
+  await page.goto(`${site}/`);
+  const email = await newAccount(page);
+  await signIn(page, email);
+  const next = page.getByRole("button", { name: "Continue", exact: true });
+  await next.click();
+  await expect(page.getByText("Step 2 of 2")).toBeVisible();
+  await next.click();
+  await expect(page).toHaveURL(`${site}/dashboard`);
+  await fillJourney(page, "Konkan with companions");
+
+  let journeyId = "";
+  await page.route(
+    "**/api/v1/journeys",
+    async (route) => {
+      const saved = await route.fetch();
+      expect(saved.status()).toBe(201);
+      journeyId = (await saved.json()).id;
+      await route.abort("failed");
+    },
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Create & invite people" }).click();
+  await expect(
+    page.getByText("We couldn’t confirm the save.", { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Retry save & invite people" })
+    .click();
+  const destination = `${site}/journeys/${journeyId}`;
+  await expect(page).toHaveURL(`${destination}/invite`);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Find on Kairn" }),
+  ).toBeEnabled();
+  await page
+    .getByRole("searchbox", { name: "Name or exact email" })
+    .fill(`Guest-${randomUUID()}`);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("No matches", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Use email instead" }).click();
+  const guest = `companion-${randomUUID()}@example.test`;
+  const addressField = page.getByRole("textbox", { name: "Email address" });
+  await expect(addressField).toBeFocused();
+  await addressField.fill(guest);
+  await page.getByRole("button", { name: "Add email" }).click();
+  await expect(page.getByRole("list", { name: "Recipients" })).toContainText(
+    guest,
+  );
+
+  const clicked = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let batchKey: string | undefined;
+  await page.route(
+    "**/api/v1/journeys/*/invitations",
+    async (route) => {
+      batchKey = route.request().headers()["idempotency-key"];
+      expect((await route.fetch()).ok()).toBe(true);
+      clicked.resolve();
+      await release.promise;
+      await route.abort("failed");
+    },
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Send invitations" }).click();
+  try {
+    await clicked.promise;
+    await expect(
+      page.getByRole("button", { name: "Skip for now" }),
+    ).toBeDisabled();
+  } finally {
+    release.resolve();
+  }
+  const retried = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" &&
+      request.url().endsWith(`/${journeyId}/invitations`),
+  );
+  await page.getByRole("button", { name: "Retry batch" }).click();
+  expect((await retried).headers()["idempotency-key"]).toBe(batchKey);
+  await expect(
+    page.getByText("Invitation queued", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page).toHaveURL(destination);
+  await mailLink(guest, "Join a journey on Kairn", "/journey-invitations#");
+  await page.getByRole("link", { name: "View people", exact: true }).click();
+  await expect(page.getByText(guest, { exact: true })).toHaveCount(1);
+  expect(
+    await (
+      await page.request.get(`${site}/api/v1/dashboard`, {
+        headers: await viewer(page),
+      })
+    ).json(),
+  ).toMatchObject({ journeyCount: 1 });
 });

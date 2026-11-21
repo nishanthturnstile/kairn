@@ -14,6 +14,8 @@ import { StyleSheet } from "react-native-unistyles";
 import { ensureActive } from "../api";
 import { ProfileName } from "../components/profile-name";
 import { Action, AppText, focusOutline, StatusNotice } from "../components/ui";
+import { clearInvitationHandoff } from "../invitation-handoff";
+import { invitationPath } from "../invitation-link";
 import { journeyResult } from "../journey-api";
 import { useMobileSession } from "../mobile-session";
 import type { VerifiedMobileScope } from "../session";
@@ -64,7 +66,7 @@ function Onboarding({
 }) {
   const router = useRouter();
   const { refresh, canSubmit } = useMobileSession();
-  const { handoff, forgetReturn, progress } = useWorkspace();
+  const { handoff, finishOnDashboard, progress } = useWorkspace();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const saving = useRef(false);
   const [reviewingWelcome, setReviewingWelcome] = useState(false);
@@ -92,7 +94,10 @@ function Onboarding({
       setReviewingWelcome(false);
       return;
     }
-    if (openDashboard) forgetReturn(scope.accountId);
+    if (openDashboard) {
+      finishOnDashboard(scope.accountId);
+      if (target === invitationPath) clearInvitationHandoff();
+    }
     saving.current = true;
     setBusy(true);
     try {
@@ -212,14 +217,14 @@ function Onboarding({
                   ? "Continue"
                   : target
                     ? workspaceReturnLabel(target)
-                    : "Go to Dashboard"
+                    : "Continue"
             }
             variant="primary"
             disabled={busy || editing}
-            accessibilityState={busy ? { busy: true } : undefined}
+            accessibilityState={{ busy }}
             onPress={() => void advance()}
           />
-          {step === 2 && target && (
+          {step === 2 && target && target !== "/dashboard" && (
             <Action
               label="Go to Dashboard"
               disabled={busy}

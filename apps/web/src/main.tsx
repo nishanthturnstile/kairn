@@ -12,6 +12,11 @@ import {
 import { createRoot } from "react-dom/client";
 import { initializeAppearance } from "./lib/appearance";
 import { authClient } from "./lib/auth";
+import {
+  captureInvitationFragment,
+  clearInvitationHandoff,
+  readInvitationHandoff,
+} from "./lib/invitation-handoff";
 import type { AccountScope } from "./lib/session";
 import { createWebSession } from "./lib/session";
 import { SessionAccess } from "./lib/session-access";
@@ -19,6 +24,7 @@ import { routeTree } from "./routeTree.gen";
 import "./index.css";
 
 initializeAppearance();
+captureInvitationFragment();
 const session = createWebSession(window.location.origin);
 
 function createCreatorRouter(scope: ReturnType<typeof session.getSnapshot>) {
@@ -53,6 +59,8 @@ function CreatorApp() {
   const [signOutRequested, setSignOutRequested] = useState(false);
   const [signInAccount, setSignInAccountId] = useState<string | null>(null);
   const transition = useRef(false);
+  const previousAccount = useRef<string | null>(null);
+  const switchingInvitationAccount = useRef(false);
   const setSignInAccount = useCallback((id: string | null) => {
     if (id) setSignOutRequested(false);
     setSignInAccountId(id);
@@ -61,10 +69,26 @@ function CreatorApp() {
     !current.error && current.data?.user?.emailVerified
       ? current.data.user.id
       : null;
+  // The automatic sign-out refresh can replace the explicit session request.
+  const signOutPending =
+    signOutRequested &&
+    (rechecking || (accountId !== null && current.isRefetching));
+  const checking = current.isPending || rechecking || signOutPending;
   useEffect(() => {
-    if (!current.isPending && !rechecking)
+    if (!checking) {
+      if (
+        !current.error &&
+        previousAccount.current &&
+        previousAccount.current !== accountId
+      ) {
+        if (!(switchingInvitationAccount.current && accountId === null))
+          clearInvitationHandoff();
+        switchingInvitationAccount.current = false;
+      }
+      if (!current.error) previousAccount.current = accountId;
       session.setVerifiedAccount(accountId);
-  }, [accountId, current.isPending, rechecking]);
+    }
+  }, [accountId, checking, current.error]);
   const scope = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const router = useMemo(() => createCreatorRouter(scope), [scope]);
   const refetch = current.refetch;
@@ -91,7 +115,13 @@ function CreatorApp() {
     },
     [recheck],
   );
-  function signOut() {
+  function signOut(options?: { switchInvitationAccount?: boolean }) {
+    switchingInvitationAccount.current = Boolean(
+      options?.switchInvitationAccount &&
+        readInvitationHandoff() &&
+        !readInvitationHandoff()?.accountId,
+    );
+    if (!switchingInvitationAccount.current) clearInvitationHandoff();
     setSignOutRequested(true);
     setSignInAccount(null);
     void recheck(async () => {
@@ -103,16 +133,15 @@ function CreatorApp() {
       }
     });
   }
-  const state =
-    rechecking || current.isPending
-      ? "checking"
-      : current.error
-        ? "unavailable"
-        : accountId !== scope.accountId
-          ? "checking"
-          : accountId
-            ? "verified"
-            : "signed-out";
+  const state = checking
+    ? "checking"
+    : current.error
+      ? "unavailable"
+      : accountId !== scope.accountId
+        ? "checking"
+        : accountId
+          ? "verified"
+          : "signed-out";
   const showSignedOut = signOutRequested && state === "signed-out";
   useEffect(() => {
     if (signOutRequested && state === "verified") setSignOutRequested(false);
@@ -127,7 +156,7 @@ function CreatorApp() {
         refresh,
         signOut,
         signOutFailed,
-        signOutPending: signOutRequested && rechecking,
+        signOutPending,
         signInAccount,
         setSignInAccount,
       }}

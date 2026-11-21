@@ -50,6 +50,41 @@
       "when": 1795185913178,
       "tag": "0006_onboarding_intent",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795232647713,
+      "tag": "0007_journey_people",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795234031355,
+      "tag": "0008_journey_invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795234735536,
+      "tag": "0009_journey_membership_restrictions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795239482482,
+      "tag": "0010_invitee_discovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795241492939,
+      "tag": "0011_optional_companion_setup",
+      "breakpoints": true
     }
   ]
 }

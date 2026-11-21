@@ -15,6 +15,7 @@ export { openMailTransport } from "./mail.js";
 export { createAuth, type VerifiedSession } from "./modules/identity/auth.js";
 export { registerIdentityMail } from "./modules/identity/email.js";
 export {
+  createCompanionSetupService,
   createOnboardingService,
   createProfileService,
 } from "./modules/identity/onboarding.js";
@@ -22,6 +23,9 @@ export {
   initializeLocalIdentity,
   localRecoveryEpoch,
 } from "./modules/identity/state.js";
+export { registerJourneyInvitationMail } from "./modules/journeys/invitation-mail.js";
+export { createJourneyInvitationService } from "./modules/journeys/invitations.js";
+export { createJourneyMembershipService } from "./modules/journeys/membership.js";
 export { createJourneyService } from "./modules/journeys/service.js";
 export {
   registerIdentityRestrictions,
@@ -35,6 +39,7 @@ export { openObjectStore } from "./storage.js";
 
 const databaseUrl = z.url({ protocol: /^postgres(?:ql)?$/ });
 const identityConfiguration = {
+  AUTH_RECOVERY_EPOCH: z.string().min(32).optional(),
   AUTH_MAIL_KEY: z
     .string()
     .regex(/^[a-f0-9]{64}$/i)
@@ -60,7 +65,6 @@ const serverEnvironment = z
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_URL: authOrigin,
     BETTER_AUTH_SECRET: z.string().min(32),
-    AUTH_RECOVERY_EPOCH: z.string().min(32).optional(),
     ONBOARDING_STARTS_AT: z.iso
       .datetime()
       .transform((value) => new Date(value))
@@ -93,6 +97,7 @@ const workerEnvironment = z
       "SMTP_URL",
       "AUTH_FROM_EMAIL",
       "AUTH_MAIL_KEY",
+      "AUTH_RECOVERY_EPOCH",
       "AUTH_JOURNAL_URL",
       "AUTH_JOURNAL_CREDENTIAL",
     ] as const) {

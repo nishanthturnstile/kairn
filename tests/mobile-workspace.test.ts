@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
-import { createAuthenticatedMobileApiClient } from "../apps/mobile/src/api";
+import {
+  createAuthenticatedMobileApiClient,
+  createInvitationExchangeClient,
+} from "../apps/mobile/src/api";
+import {
+  invitationLink,
+  restoreInvitation,
+} from "../apps/mobile/src/invitation-link";
 import {
   createMobileSession,
   isVerifiedMobileScope,
@@ -25,6 +32,21 @@ describe("native workspace return", () => {
       params: { journeyId },
     });
     expect(workspaceTarget("/journeys/new")).toBe("/journeys/new");
+    expect(
+      workspaceHref(workspaceTarget(`/journeys/${journeyId}/people`)),
+    ).toEqual({
+      pathname: "/journeys/[journeyId]/people",
+      params: { journeyId },
+    });
+    expect(
+      workspaceHref(workspaceTarget(`/journeys/${journeyId}/invite`)),
+    ).toEqual({
+      pathname: "/journeys/[journeyId]/invite",
+      params: { journeyId },
+    });
+    expect(workspaceHref(workspaceTarget("/journey-invitations"))).toBe(
+      "/journey-invitations",
+    );
     expect(workspaceHref()).toBe("/dashboard");
     for (const rejected of [
       "https://kairn.test/journeys",
@@ -33,6 +55,8 @@ describe("native workspace return", () => {
       "/journeys/../saved",
       "/journeys/new?intent=record",
       `/journeys/${journeyId}/members`,
+      "/journey-invitations#opaque-token",
+      "/journey-invitations?continuation=opaque-token",
       ["/saved"],
     ])
       expect(workspaceTarget(rejected)).toBeUndefined();
@@ -50,6 +74,80 @@ describe("native workspace return", () => {
     ])
       expect(readReturnHandoff(JSON.stringify(invalid), now)).toBeUndefined();
     expect(readReturnHandoff("not JSON", now)).toBeUndefined();
+  });
+});
+
+describe("native invitation links", () => {
+  const token = "a".repeat(43);
+  const handle = "b".repeat(80);
+
+  it("extracts only a first-party fragment or a development invitation link", () => {
+    expect(
+      invitationLink(`${origin}/journey-invitations#${token}`, origin),
+    ).toEqual({ token });
+    expect(
+      invitationLink(`kairn://journey-invitations#${token}`, origin, true),
+    ).toEqual({ token });
+    expect(
+      invitationLink(`kairn:///journey-invitations#${token}`, origin, true),
+    ).toEqual({ token });
+    for (const url of [
+      `https://other.test/journey-invitations#${token}`,
+      `https://person@kairn.test/journey-invitations#${token}`,
+      `kairn://journey-invitations#${token}`,
+      `${origin}/journey-invitations?token=${token}`,
+      `${origin}/journey-invitations#invalid`,
+    ])
+      expect(invitationLink(url, origin)).toEqual({ token: undefined });
+    expect(
+      invitationLink(`kairn://journeys/${journeyId}`, origin, true),
+    ).toBeUndefined();
+  });
+
+  it("restores only bounded continuations and keeps a matching receipt after expiry", () => {
+    const now = Date.now();
+    const saved = { continuation: handle, expiresAt: now + 10 };
+    expect(restoreInvitation(JSON.stringify(saved), now)).toMatchObject(saved);
+    expect(restoreInvitation(JSON.stringify(saved), now + 10)).toBeUndefined();
+    expect(
+      restoreInvitation(
+        JSON.stringify({ ...saved, operationId: journeyId }),
+        now,
+      ),
+    ).toBeUndefined();
+    const pending = { ...saved, accountId, operationId: journeyId };
+    expect(restoreInvitation(JSON.stringify(pending), now + 10)).toEqual({
+      ...pending,
+      continuation: undefined,
+    });
+    expect(
+      restoreInvitation(JSON.stringify(pending), now + 25 * 60 * 60_000),
+    ).toBeUndefined();
+  });
+
+  it("exchanges a credential only in a cookie-free request body", async () => {
+    const expiresAt = "2026-11-25T12:30:00.000Z";
+    const api = createInvitationExchangeClient(
+      origin,
+      async (request, init) => {
+        expect(request.url).toBe(
+          `${origin}/api/v1/journey-invitations/continue`,
+        );
+        expect(init.credentials).toBe("omit");
+        expect(init.redirect).toBe("error");
+        expect(new Headers(init.headers).has("Cookie")).toBe(false);
+        expect(new Headers(init.headers).has("X-Expected-Account")).toBe(false);
+        expect(await request.json()).toEqual({ token });
+        return Response.json({ continuation: handle, expiresAt });
+      },
+    );
+    expect(
+      (
+        await api.POST("/api/v1/journey-invitations/continue", {
+          body: { token },
+        })
+      ).data,
+    ).toEqual({ continuation: handle, expiresAt });
   });
 });
 

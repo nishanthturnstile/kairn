@@ -31,6 +31,7 @@ jobs:
       - run: pnpm build
       - run: pnpm check:client-bundles
       - run: pnpm --dir apps/mobile exec expo install --check
+      - run: bash tests/operations/packaged-links.sh
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:web
       - name: Integration services
@@ -40,6 +41,8 @@ jobs:
       - run: pnpm test:web:identity
       - name: Web onboarding and Dashboard
         run: KAIRN_WEB_ONBOARDING=1 pnpm test:web:identity --workers=1
+      - name: Web invitation and membership recovery
+        run: KAIRN_WEB_INVITATIONS=1 KAIRN_TEST_WEB_PORT=58084 KAIRN_TEST_API_PORT=58085 pnpm test:web:identity --workers=1
       - run: pnpm test:integration
       - run: pnpm test:identity:recovery
       - run: bash tests/integration/isolated-journeys.sh

@@ -33,23 +33,28 @@ describe("native auth environments", () => {
 describe("identity worker configuration", () => {
   const DATABASE_URL = "postgresql://runtime@127.0.0.1/kairn";
 
-  it("requires both mail and journal configuration in production", () => {
+  it("requires mail, journal and recovery epoch configuration in production", () => {
+    const production = {
+      DATABASE_URL,
+      NODE_ENV: "production",
+      SMTP_URL: "smtps://smtp.kairn.invalid",
+      AUTH_FROM_EMAIL: "accounts@kairn.invalid",
+      AUTH_MAIL_KEY: "a".repeat(64),
+      AUTH_JOURNAL_URL: "https://journal.kairn.invalid/",
+      AUTH_JOURNAL_CREDENTIAL: "fixture-journal-credential",
+    };
     expect(() =>
       parseWorkerEnvironment({ DATABASE_URL, NODE_ENV: "production" }),
     ).toThrow();
     expect(parseWorkerEnvironment({ DATABASE_URL }).NODE_ENV).toBe(
       "development",
     );
+    expect(() => parseWorkerEnvironment(production)).toThrow(
+      "AUTH_RECOVERY_EPOCH",
+    );
+    const epoch = "synthetic-test-recovery-epoch-0001";
     expect(
-      parseWorkerEnvironment({
-        DATABASE_URL,
-        NODE_ENV: "production",
-        SMTP_URL: "smtps://smtp.kairn.invalid",
-        AUTH_FROM_EMAIL: "accounts@kairn.invalid",
-        AUTH_MAIL_KEY: "a".repeat(64),
-        AUTH_JOURNAL_URL: "https://journal.kairn.invalid/",
-        AUTH_JOURNAL_CREDENTIAL: "fixture-journal-credential",
-      }).NODE_ENV,
-    ).toBe("production");
+      parseWorkerEnvironment({ ...production, AUTH_RECOVERY_EPOCH: epoch }),
+    ).toMatchObject({ NODE_ENV: "production", AUTH_RECOVERY_EPOCH: epoch });
   });
 });

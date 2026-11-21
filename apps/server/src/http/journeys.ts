@@ -1,26 +1,38 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import type { VerifiedSession } from "@kairn/backend";
+import type {
+  createJourneyInvitationService,
+  createJourneyMembershipService,
+  VerifiedSession,
+} from "@kairn/backend";
 import type {
   CreateJourney,
+  InvitableJourneysPage,
   JourneyHistory,
   JourneyHistoryQuery,
   JourneyInputIssue,
+  JourneyPeoplePage,
   PrivateJourney,
 } from "@kairn/contracts";
 import {
   createdJourney,
   createJourney,
   createJourneyHeaders,
+  invitableJourneysPage,
   journeyHeaders,
   journeyHistory,
   journeyHistoryQuery,
   journeyInputField,
+  journeyPageQuery,
   journeyPath,
+  journeyPeoplePage,
   privateJourney,
 } from "@kairn/contracts/journeys";
+import type { MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { registerJourneyInvitationRoutes } from "./journey-invitations.js";
+import { registerJourneyMembershipRoutes } from "./journey-membership.js";
 import { allowsWriteOrigin, errorResponse, privateHeaders } from "./openapi.js";
 import { problem, type RequestEnvironment } from "./problem.js";
 
@@ -30,6 +42,8 @@ interface Unavailable {
 
 export interface JourneyOperations {
   writeOrigins: readonly string[];
+  invitations?: ReturnType<typeof createJourneyInvitationService>;
+  restrictMembership?: ReturnType<typeof createJourneyMembershipService>;
   verifySession(
     headers: Headers,
   ): Promise<
@@ -61,13 +75,35 @@ export interface JourneyOperations {
     | { status: 401 | 404 }
     | Unavailable
   >;
+  people(
+    session: VerifiedSession,
+    journeyId: string,
+    cursor?: string,
+  ): Promise<
+    | { status: 200; page: JourneyPeoplePage }
+    | { status: 401 | 404 }
+    | Unavailable
+  >;
+  invitable(
+    session: VerifiedSession,
+    cursor?: string,
+  ): Promise<
+    { status: 200; page: InvitableJourneysPage } | { status: 401 } | Unavailable
+  >;
 }
 
-type JourneyEnvironment = {
+export type JourneyEnvironment = {
   Variables: RequestEnvironment["Variables"] & {
     journeys: { operations: JourneyOperations; session: VerifiedSession };
   };
 };
+
+export interface JourneyRouteGuards {
+  operations?: JourneyOperations;
+  protect: MiddlewareHandler<JourneyEnvironment>;
+  authenticate: MiddlewareHandler<JourneyEnvironment>;
+  enforceWriteOrigin: MiddlewareHandler<JourneyEnvironment>;
+}
 
 const journeysPath = "/api/v1/journeys";
 
@@ -152,12 +188,8 @@ export function createJourneysApi(operations?: JourneyOperations) {
   );
   const enforceWriteOrigin = createMiddleware<JourneyEnvironment>(
     async (context, next) => {
-      if (
-        !allowsWriteOrigin(
-          context.req.raw.headers,
-          context.var.journeys.operations.writeOrigins,
-        )
-      )
+      if (!operations) return problem(context, 503);
+      if (!allowsWriteOrigin(context.req.raw.headers, operations.writeOrigins))
         return problem(context, 403);
       await next();
     },
@@ -264,6 +296,65 @@ export function createJourneysApi(operations?: JourneyOperations) {
   api.openapi(
     createRoute({
       method: "get",
+      path: "/api/v1/journeys/invitable",
+      operationId: "listInvitableJourneys",
+      middleware: [protect, authenticate] as const,
+      request: { headers: journeyHeaders, query: journeyPageQuery },
+      responses: {
+        ...errors,
+        200: {
+          description: "Non-archived journeys the caller can administer.",
+          headers: privateHeaders,
+          content: { "application/json": { schema: invitableJourneysPage } },
+        },
+      },
+    }),
+    async (context) => {
+      const { operations, session } = context.var.journeys;
+      const result = await operations.invitable(
+        session,
+        context.req.valid("query").cursor,
+      );
+      if (result.status !== 200) return problem(context, result.status);
+      return context.json(invitableJourneysPage.parse(result.page), 200);
+    },
+  );
+
+  api.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/journeys/{journeyId}/people",
+      operationId: "listJourneyPeople",
+      middleware: [protect, authenticate] as const,
+      request: {
+        headers: journeyHeaders,
+        params: journeyPath,
+        query: journeyPageQuery,
+      },
+      responses: {
+        ...errors,
+        200: {
+          description: "Active members visible to a current journey member.",
+          headers: privateHeaders,
+          content: { "application/json": { schema: journeyPeoplePage } },
+        },
+      },
+    }),
+    async (context) => {
+      const { operations, session } = context.var.journeys;
+      const result = await operations.people(
+        session,
+        context.req.valid("param").journeyId,
+        context.req.valid("query").cursor,
+      );
+      if (result.status !== 200) return problem(context, result.status);
+      return context.json(journeyPeoplePage.parse(result.page), 200);
+    },
+  );
+
+  api.openapi(
+    createRoute({
+      method: "get",
       path: "/api/v1/journeys/{journeyId}",
       operationId: "getJourney",
       middleware: [protect, authenticate] as const,
@@ -297,5 +388,13 @@ export function createJourneysApi(operations?: JourneyOperations) {
     },
   );
 
+  const guards = {
+    operations,
+    protect,
+    authenticate,
+    enforceWriteOrigin,
+  };
+  registerJourneyInvitationRoutes(api, guards);
+  registerJourneyMembershipRoutes(api, guards);
   return api;
 }

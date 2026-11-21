@@ -5,6 +5,7 @@ import { createJourneyOperations } from "../../apps/server/src/journey-operation
 import {
   checkJourneyReadiness,
   createAuth,
+  createCompanionSetupService,
   createOnboardingService,
   createProfileService,
   openDatabase,
@@ -16,7 +17,9 @@ import {
 } from "../../packages/backend/src/modules/identity/state";
 import {
   type CreateJourney,
+  invitableJourneysPage,
   journeyHistory,
+  journeyPeoplePage,
   type PrivateJourney,
   privateJourney,
 } from "../../packages/contracts/src/journeys";
@@ -70,6 +73,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       workspace: {
         ...operations,
         onboarding: createOnboardingService(auth),
+        companionSetup: createCompanionSetupService(auth),
         profile: createProfileService(auth),
       },
     });
@@ -291,6 +295,227 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       );
       expect((await detail(accountB, id)).status).toBe(404);
       expect((await create(accountA, key)).status).toBe(404);
+    });
+
+    it("pages the roster and rechecks current membership without exposing unrelated people", async () => {
+      const organiser = await member();
+      const participant = await member();
+      const id = String(
+        (await (await create(organiser, randomUUID())).json()).id,
+      );
+      const otherId = String(
+        (await (await create(accountA, randomUUID())).json()).id,
+      );
+      const fixtureIds = Array.from({ length: 25 }, () => randomUUID());
+      await owner.pool.query(
+        `
+        with profiles as (
+          insert into kairn_auth."user" (id, name, email, email_verified)
+          select id, 'Roster fixture', id || '@example.test', true
+          from unnest($2::uuid[]) as id returning id
+        ), accounts as (
+          insert into kairn.accounts (id) select id from profiles returning id
+        )
+        insert into kairn.journey_memberships (journey_id, account_id)
+        select $1, id from accounts
+      `,
+        [id, fixtureIds],
+      );
+      await owner.pool.query(
+        "insert into kairn.journey_memberships (journey_id, account_id) values ($1, $2)",
+        [id, participant.id],
+      );
+
+      const roster = `${path}/${id}/people`;
+      function people(account: TestMember, query = "", expected = account.id) {
+        return app.request(`${roster}${query}`, {
+          headers: { Cookie: account.cookie, "X-Expected-Account": expected },
+        });
+      }
+      const response = await people(participant);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      const first = journeyPeoplePage.parse(await response.json());
+      expect(first.items).toHaveLength(25);
+      expect(first.nextCursor).toBe(first.items.at(-1)?.accountId);
+      const query = `?cursor=${first.nextCursor}`;
+      const next = journeyPeoplePage.parse(
+        await (await people(participant, query)).json(),
+      );
+      expect(next.items).toHaveLength(2);
+      expect(next.nextCursor).toBeNull();
+      const rosterItems = [...first.items, ...next.items];
+      expect(rosterItems.map(({ accountId }) => accountId)).toEqual(
+        [organiser.id, participant.id, ...fixtureIds].sort(),
+      );
+      expect(
+        rosterItems.find(({ accountId }) => accountId === organiser.id),
+      ).toEqual({
+        accountId: organiser.id,
+        membershipGeneration: expect.any(String),
+        capabilities,
+        displayName: "Journey test account",
+      });
+      expect(
+        rosterItems.find(({ accountId }) => accountId === participant.id),
+      ).toEqual({
+        accountId: participant.id,
+        membershipGeneration: expect.any(String),
+        capabilities: [],
+        displayName: "Journey test account",
+      });
+      expect(
+        await (
+          await people(
+            organiser,
+            "?cursor=ffffffff-ffff-ffff-ffff-ffffffffffff",
+          )
+        ).json(),
+      ).toEqual({ items: [], nextCursor: null });
+      expect((await people(organiser, "?cursor=invalid")).status).toBe(400);
+      expect((await people(organiser, "", participant.id)).status).toBe(409);
+      expect((await people(accountA)).status).toBe(404);
+      expect((await app.request(roster)).status).toBe(401);
+      expect(
+        (
+          await app.request(`${path}/${otherId}/people`, {
+            headers: { Cookie: participant.cookie },
+          })
+        ).status,
+      ).toBe(404);
+
+      const runtimeClient = await runtime.pool.connect();
+      try {
+        await runtimeClient.query("begin");
+        const projection =
+          "select kairn.read_journey_people($1, null) as items";
+        expect((await runtimeClient.query(projection, [id])).rows).toEqual([
+          { items: null },
+        ]);
+        await runtimeClient.query(
+          "select set_config('kairn.journey_account', $1, true), set_config('kairn.identity_account', $2, true)",
+          [organiser.id, participant.id],
+        );
+        expect((await runtimeClient.query(projection, [id])).rows).toEqual([
+          { items: null },
+        ]);
+        await runtimeClient.query(
+          "select set_config('kairn.identity_account', $1, true)",
+          [organiser.id],
+        );
+        expect(
+          (
+            await runtimeClient.query(
+              "select account_id from kairn.journey_memberships where journey_id = $1",
+              [id],
+            )
+          ).rows,
+        ).toEqual([{ account_id: organiser.id }]);
+        expect((await runtimeClient.query(projection, [otherId])).rows).toEqual(
+          [{ items: null }],
+        );
+      } finally {
+        await runtimeClient.query("rollback");
+        runtimeClient.release();
+      }
+
+      await owner.pool.query(
+        "update kairn.journey_memberships set revoked_at = now() where journey_id = $1 and account_id = $2",
+        [id, participant.id],
+      );
+      expect((await people(participant, query)).status).toBe(404);
+      const remaining = await people(organiser, `?cursor=${participant.id}`);
+      expect(remaining.status).toBe(200);
+      const active = [
+        ...journeyPeoplePage.parse(await (await people(organiser)).json())
+          .items,
+        ...journeyPeoplePage.parse(
+          await (await people(organiser, query)).json(),
+        ).items,
+      ];
+      expect(active.map(({ accountId }) => accountId)).not.toContain(
+        participant.id,
+      );
+    }, 20_000);
+
+    it("pages eligible journeys independently of history and excludes archived and revoked administration", async () => {
+      const organiser = await member();
+      const response = await create(organiser, randomUUID());
+      expect(response.status).toBe(201);
+      const { id } = await response.json();
+      const legacy = Array.from({ length: 25 }, () => randomUUID());
+      const [archived, participantOnly, revoked] = Array.from(
+        { length: 3 },
+        () => randomUUID(),
+      );
+      const fixtures = [...legacy, archived, participantOnly, revoked];
+      await owner.pool.query(
+        `
+        insert into kairn.journeys (id, title, created_by, archived_at)
+        select id, 'Picker fixture', $1, case when id = $3 then now() end
+        from unnest($2::uuid[]) as id
+      `,
+        [organiser.id, fixtures, archived],
+      );
+      await owner.pool.query(
+        `
+        insert into kairn.journey_memberships (journey_id, account_id, revoked_at)
+        select id, $1, case when id = $3 then now() end
+        from unnest($2::uuid[]) as id
+      `,
+        [organiser.id, fixtures, revoked],
+      );
+      await owner.pool.query(
+        `
+        insert into kairn.journey_capabilities (journey_id, account_id, capability)
+        select id, $1, 'administrator' from unnest($2::uuid[]) as id
+      `,
+        [organiser.id, [...legacy, archived, revoked]],
+      );
+      await owner.pool.query(
+        "insert into kairn.journey_capabilities (journey_id, account_id, capability) values ($1, $2, 'publisher')",
+        [participantOnly, organiser.id],
+      );
+
+      function invitable(cursor?: string) {
+        return app.request(
+          `${path}/invitable${cursor ? `?cursor=${cursor}` : ""}`,
+          {
+            headers: {
+              Cookie: organiser.cookie,
+              "X-Expected-Account": organiser.id,
+            },
+          },
+        );
+      }
+      const firstResponse = await invitable();
+      expect(firstResponse.status).toBe(200);
+      expect(firstResponse.headers.get("Cache-Control")).toBe(
+        "private, no-store",
+      );
+      const first = invitableJourneysPage.parse(await firstResponse.json());
+      expect(first.items).toHaveLength(25);
+      expect(first.nextCursor).toBe(first.items.at(-1)?.id);
+      const next = invitableJourneysPage.parse(
+        await (await invitable(first.nextCursor ?? undefined)).json(),
+      );
+      const journeys = [...first.items, ...next.items];
+      expect(journeys.map((journey) => journey.id)).toEqual(
+        [id, ...legacy].sort(),
+      );
+      expect(journeys.find((journey) => journey.id === id)).toEqual({
+        id,
+        title: sample.title,
+        schedule: privateJourney.parse(
+          await (await detail(organiser, id)).json(),
+        ).schedule,
+      });
+      expect(
+        journeys.find((journey) => journey.id === legacy[0])?.schedule,
+      ).toBeNull();
+      expect(next.nextCursor).toBeNull();
+      expect((await invitable("invalid")).status).toBe(400);
+      expect((await app.request(`${path}/invitable`)).status).toBe(401);
     });
 
     it("keeps overlapping journeys accessible as they start and end", async () => {
@@ -692,7 +917,110 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       ).toEqual({ state: "completed", intent: "record" });
     });
 
-    it("reads and updates the verified account’s display name only", async () => {
+    function companionRequest(
+      account: TestMember,
+      body?: object,
+      expectedAccount = account.id,
+    ) {
+      return app.request("/api/v1/onboarding/companions", {
+        method: body ? "POST" : "GET",
+        headers: {
+          Cookie: account.cookie,
+          Origin: origin,
+          "X-Expected-Account": expectedAccount,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+    }
+
+    async function setupMember(step: number) {
+      const account = await member();
+      await owner.pool.query(
+        "update kairn.accounts set onboarding_step = $1 where id = $2",
+        [step, account.id],
+      );
+      return account;
+    }
+
+    it("shares required completion with previous clients without opening invitations", async () => {
+      const account = await setupMember(1);
+      const complete = { action: "complete", intent: "plan" };
+      expect((await companionRequest(account, complete)).status).toBe(409);
+      expect(
+        (await companionRequest(account, complete, accountB.id)).status,
+      ).toBe(409);
+
+      async function finishLegacy(account: TestMember) {
+        return app.request("/api/v1/onboarding", {
+          method: "POST",
+          headers: {
+            Cookie: account.cookie,
+            Origin: origin,
+            "X-Expected-Account": account.id,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ step: 2, intent: "record" }),
+        });
+      }
+
+      const legacy = await setupMember(2);
+      expect((await finishLegacy(legacy)).status).toBe(200);
+      const oldClientWon = await companionRequest(legacy, complete);
+      expect(await oldClientWon.json()).toEqual({
+        progress: { state: "completed", intent: "record" },
+        checkpoint: { state: "unavailable" },
+      });
+
+      const concurrent = await setupMember(3);
+      const [capable, older] = await Promise.all([
+        companionRequest(concurrent, complete),
+        finishLegacy(concurrent),
+      ]);
+      const enrolled = await capable.json();
+      expect(capable.status).toBe(200);
+      expect(capable.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(await older.json()).toEqual(enrolled.progress);
+      expect(enrolled.checkpoint).toEqual({ state: "unavailable" });
+      expect(
+        await (
+          await companionRequest(concurrent, { ...complete, intent: "record" })
+        ).json(),
+      ).toEqual(enrolled);
+    });
+
+    it("ignores the retired checkpoint and preserves a journey selected before the update", async () => {
+      const account = await setupMember(4);
+      const created = await (await create(account, randomUUID())).json();
+      await owner.pool.query(
+        `insert into kairn.companion_setups (account_id, expires_at, selected_journey_id)
+         values ($1, now() + interval '1 day', $2)`,
+        [account.id, created.id],
+      );
+      const retired = {
+        progress: { state: "completed" },
+        checkpoint: { state: "unavailable" },
+      };
+      expect(await (await companionRequest(account)).json()).toEqual(retired);
+      for (const action of [
+        { action: "select", journeyId: created.id },
+        { action: "skip" },
+        { action: "done" },
+      ]) {
+        expect(await (await companionRequest(account, action)).json()).toEqual(
+          retired,
+        );
+      }
+      const { rows } = await owner.pool.query(
+        `select
+          (select count(*)::int from kairn.journeys where created_by = $1) as journeys,
+          (select count(*)::int from kairn.journey_invitation_attempts where account_id = $1) as sends`,
+        [account.id],
+      );
+      expect(rows).toEqual([{ journeys: 1, sends: 0 }]);
+    });
+
+    it("reads and updates the verified account’s display name and invitation-search preference", async () => {
       const path = "/api/v1/profile";
       const headers = {
         Cookie: accountA.cookie,
@@ -710,9 +1038,12 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
           body: JSON.stringify(body),
         });
       expect((await app.request(path)).status).toBe(401);
-      expect(await (await app.request(path, { headers })).json()).toEqual({
-        displayName: "Journey test account",
-      });
+      expect(await (await app.request(path, { headers })).json()).toMatchObject(
+        {
+          displayName: "Journey test account",
+          inviteDiscoverable: false,
+        },
+      );
       expect(
         (
           await update(
@@ -737,10 +1068,12 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       const changed = await update({ displayName: "  ಅನು Rao  " });
       expect(changed.status).toBe(200);
       expect(changed.headers.get("cache-control")).toBe("private, no-store");
-      expect(await changed.json()).toEqual({ displayName: "ಅನು Rao" });
-      expect(await (await app.request(path, { headers })).json()).toEqual({
-        displayName: "ಅನು Rao",
-      });
+      expect(await changed.json()).toMatchObject({ displayName: "ಅನು Rao" });
+      expect(await (await app.request(path, { headers })).json()).toMatchObject(
+        {
+          displayName: "ಅನು Rao",
+        },
+      );
       expect(
         await (
           await app.request(path, {
@@ -750,7 +1083,10 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
             },
           })
         ).json(),
-      ).toEqual({ displayName: "Journey test account" });
+      ).toMatchObject({
+        displayName: "Journey test account",
+        inviteDiscoverable: false,
+      });
     });
 
     it("rejects incompatible actors and rechecks the current session inside the operation", async () => {
@@ -913,8 +1249,10 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
           );
           const { rows } = await client.query(`
         select j.id, j.title, j.archived_at is not null as archived, j.intended_start_at,
-          j.time_zone, c.capability
-        from kairn.journeys j join kairn.journey_capabilities c on c.journey_id = j.id
+          j.time_zone, c.capability, m.generation
+        from kairn.journeys j
+        join kairn.journey_capabilities c on c.journey_id = j.id
+        join kairn.journey_memberships m on (m.journey_id, m.account_id) = (c.journey_id, c.account_id)
       `);
           expect(rows).toEqual([
             {
@@ -924,6 +1262,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
               intended_start_at: null,
               time_zone: null,
               capability: "administrator",
+              generation: "525f3afe-c796-8bba-82bf-3bb85b17dec3",
             },
           ]);
         } finally {

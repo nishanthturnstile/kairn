@@ -19,6 +19,14 @@ import { StyleSheet } from "react-native-unistyles";
 import { authOrigin } from "./auth";
 import { sessionStoragePrefix } from "./auth-origin";
 import { Action, AppText, StatusNotice } from "./components/ui";
+import {
+  clearInvitationHandoff,
+  readInvitationHandoff,
+  saveInvitationHandoff,
+  useInvitationExpiry,
+  useInvitationHandoff,
+} from "./invitation-handoff";
+import { invitationPath } from "./invitation-link";
 import { useMobileSession } from "./mobile-session";
 import { useNativeOnboarding } from "./workspace-queries";
 import {
@@ -45,7 +53,8 @@ const WorkspaceContext = createContext<{
   handoff?: ReturnHandoff;
   entry?: SignInEntry;
   signedIn: (entry: SignInEntry) => void;
-  forgetReturn: (accountId: string) => void;
+  retainInvitationForSignIn: () => void;
+  finishOnDashboard: (accountId: string) => void;
 } | null>(null);
 
 export function useWorkspace() {
@@ -75,7 +84,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [entry, signedIn] = useState<SignInEntry>();
   const [handoff, setHandoff] = useState(restoreHandoff);
+  const invitation = useInvitationHandoff();
+  useInvitationExpiry(invitation.handoff);
+  const continuation = readInvitationHandoff();
+  const hasInvitation = Boolean(
+    invitation.token ||
+      (continuation &&
+        (!scope ||
+          !continuation.accountId ||
+          continuation.accountId === scope.accountId)),
+  );
   const unbound = useRef<UnboundReturn>(undefined);
+  const retainInvitationForSignIn = useCallback(() => {
+    unbound.current = {
+      target: invitationPath,
+      expiresAt: Date.now() + returnLifetime,
+    };
+  }, []);
+  const previousPath = useRef<string>(undefined);
   const admittedPath = useRef<string>(undefined);
   const inFlightRoute = useRef<string>(undefined);
   const saveReturn = useCallback((value?: ReturnHandoff) => {
@@ -91,17 +117,33 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // The current app session can still use its in-memory return.
     }
   }, []);
-  const forgetReturn = useCallback(
+  const finishOnDashboard = useCallback(
     (accountId: string) => {
-      if (handoff?.accountId === accountId) saveReturn();
+      saveReturn({
+        accountId,
+        target: "/dashboard",
+        expiresAt: Date.now() + returnLifetime,
+      });
     },
-    [handoff, saveReturn],
+    [saveReturn],
   );
   const checkpoint = progress.data;
   const failed = progress.isError;
 
   useEffect(() => {
     if (!ready) return;
+    const lastPath = previousPath.current;
+    previousPath.current = pathname;
+    const invitationRoutes = [invitationPath, "/account", "/onboarding"];
+    if (
+      lastPath &&
+      lastPath !== pathname &&
+      invitationRoutes.includes(lastPath) &&
+      !invitationRoutes.includes(pathname) &&
+      pathname !== "/" &&
+      hasInvitation
+    )
+      clearInvitationHandoff();
     // A screen already entered with access is not a new return after revocation.
     if (admittedPath.current !== pathname) admittedPath.current = undefined;
     if (inFlightRoute.current === pathname) return;
@@ -115,6 +157,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const incoming = workspaceTarget(pathname);
     if (state === "signed-out") {
       if (entry) signedIn(undefined);
+      if (pathname === invitationPath) {
+        unbound.current = hasInvitation
+          ? { target: invitationPath, expiresAt: now + returnLifetime }
+          : undefined;
+        return;
+      }
+      if (pathname === "/" && hasInvitation) {
+        replace(invitationPath);
+        return;
+      }
       if (pathname !== "/account") {
         unbound.current =
           incoming && admittedPath.current !== pathname
@@ -128,10 +180,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     if (state !== "verified" || !scope) return;
     const accountId = scope.accountId;
+    if (
+      invitation.handoff?.accountId &&
+      invitation.handoff.accountId !== accountId
+    )
+      saveInvitationHandoff();
     let retained = handoff;
     if (
       retained &&
-      (retained.accountId !== accountId || !liveExpiry(retained.expiresAt, now))
+      (retained.accountId !== accountId ||
+        !liveExpiry(retained.expiresAt, now) ||
+        (retained.target === invitationPath && !hasInvitation))
     ) {
       saveReturn();
       retained = undefined;
@@ -142,27 +201,38 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       pathname === "/account" && entry?.accountId === accountId;
 
     if (fromSignIn) {
-      signedIn(undefined);
       const continuation = unbound.current;
+      const freshReturn =
+        continuation &&
+        liveExpiry(continuation.expiresAt, now) &&
+        (continuation.target !== invitationPath || hasInvitation)
+          ? continuation
+          : undefined;
+      signedIn(undefined);
       unbound.current = undefined;
-      if (continuation && liveExpiry(continuation.expiresAt, now)) {
-        retained = { accountId, ...continuation };
+      if (freshReturn) {
+        retained = { accountId, ...freshReturn };
         saveReturn(retained);
       }
       replace(pending ? "/onboarding" : workspaceHref(retained?.target));
     } else if (pathname === "/account") {
       return;
     } else if (pending && pathname !== "/onboarding") {
-      if (incoming && admittedPath.current !== pathname) {
+      const target =
+        pathname === "/" && hasInvitation ? invitationPath : incoming;
+      if (target && admittedPath.current !== pathname) {
         saveReturn({
           accountId,
-          target: incoming,
+          target,
           expiresAt: now + returnLifetime,
         });
       }
       replace("/onboarding");
     } else if (!pending && (pathname === "/" || pathname === "/onboarding")) {
-      replace(workspaceHref(retained?.target));
+      const target =
+        retained?.target ??
+        (pathname === "/" && hasInvitation ? invitationPath : undefined);
+      replace(workspaceHref(target));
     } else if (!pending) {
       admittedPath.current = pathname;
       if (incoming && retained?.target === incoming) saveReturn();
@@ -172,6 +242,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     entry,
     failed,
     handoff,
+    hasInvitation,
+    invitation.handoff?.accountId,
     pathname,
     ready,
     router,
@@ -182,7 +254,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   return (
     <WorkspaceContext.Provider
-      value={{ progress, handoff, entry, signedIn, forgetReturn }}
+      value={{
+        progress,
+        handoff,
+        entry,
+        signedIn,
+        finishOnDashboard,
+        retainInvitationForSignIn,
+      }}
     >
       {children}
     </WorkspaceContext.Provider>

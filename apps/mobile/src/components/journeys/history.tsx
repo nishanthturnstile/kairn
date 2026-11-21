@@ -21,6 +21,7 @@ import {
   JourneyRequestError,
   journeyResult,
 } from "../../journey-api";
+import { departureKey } from "../../membership-attempt";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import { DestinationTopBar } from "../destination";
@@ -76,6 +77,11 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
   const [failed, setFailed] = useState<Section>();
   const [loading, setLoading] = useState<Section>();
   const inFlight = useRef(false);
+  const departure = useQuery({
+    queryKey: departureKey,
+    queryFn: () => null as "confirmed" | "pending" | null,
+    enabled: false,
+  });
   useJourneyReentry(scope, historyKey);
   const history = useQuery({
     queryKey: historyKey,
@@ -199,6 +205,26 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                 />
               )}
             </View>
+            {departure.data && (
+              <View style={journeyStyles.group}>
+                <StatusNotice
+                  notice={{
+                    text:
+                      departure.data === "pending"
+                        ? "You’ve left the journey. Confirmation is pending."
+                        : "You’ve left the journey.",
+                    tone: departure.data === "pending" ? "warning" : "success",
+                  }}
+                />
+                <Action
+                  label="Dismiss"
+                  variant="text"
+                  onPress={() =>
+                    scope.queryClient.setQueryData(departureKey, null)
+                  }
+                />
+              </View>
+            )}
             {history.isError ? (
               <JourneyRetry
                 text="Couldn’t load your journeys."

@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { check, integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  integer,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { kairn, kairnAuth } from "../../db/namespaces.js";
 import { user } from "./auth-schema.js";
 
@@ -24,6 +31,9 @@ export const accounts = kairn
         .defaultNow()
         .notNull(),
       restrictedAt: timestamp("restricted_at", { withTimezone: true }),
+      inviteDiscoverable: boolean("invite_discoverable")
+        .notNull()
+        .default(false),
       credentialRecovery: credentialRecoveryState("credential_recovery"),
       securityGeneration: integer("security_generation").default(1).notNull(),
       firstVerifiedAt: timestamp("first_verified_at", { withTimezone: true }),

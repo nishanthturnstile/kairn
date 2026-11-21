@@ -21,7 +21,8 @@ function createAccountScope(accountId: string | null, origin: string) {
       if (
         accountId &&
         (url.pathname === "/api/v1/journeys" ||
-          url.pathname.startsWith("/api/v1/journeys/"))
+          url.pathname.startsWith("/api/v1/journeys/") ||
+          url.pathname.startsWith("/api/v1/journey-invitations/"))
       ) {
         headers.set("X-Expected-Account", accountId);
       }

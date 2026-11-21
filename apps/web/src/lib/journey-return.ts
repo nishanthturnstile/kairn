@@ -3,10 +3,14 @@ import { journeyPath } from "@kairn/contracts/journeys";
 const storageKey = "kairn.workspace-sign-in-return";
 const lifetime = 24 * 60 * 60 * 1000;
 type ReturnTarget =
+  | "/dashboard"
   | "/journeys"
   | "/journeys/new"
   | "/saved"
   | "/discover"
+  | "/journey-invitations"
+  | `/journeys/${string}/invite`
+  | `/journeys/${string}/people`
   | `/journeys/${string}`;
 
 interface Handoff {
@@ -19,17 +23,23 @@ let handoffInMemory: Handoff | undefined;
 
 export function journeyReturnTo(value: unknown): ReturnTarget | undefined {
   if (
+    value === "/dashboard" ||
     value === "/journeys" ||
     value === "/journeys/new" ||
     value === "/saved" ||
-    value === "/discover"
+    value === "/discover" ||
+    value === "/journey-invitations"
   )
     return value;
   if (typeof value !== "string" || !value.startsWith("/journeys/")) return;
-  const result = journeyPath.safeParse({
-    journeyId: value.slice("/journeys/".length),
-  });
-  if (result.success) return `/journeys/${result.data.journeyId}`;
+  const match = /^\/journeys\/([^/]+)(\/(?:invite|people))?$/.exec(value);
+  const result = journeyPath.safeParse({ journeyId: match?.[1] });
+  if (result.success)
+    return match?.[2] === "/invite"
+      ? `/journeys/${result.data.journeyId}/invite`
+      : match?.[2] === "/people"
+        ? `/journeys/${result.data.journeyId}/people`
+        : `/journeys/${result.data.journeyId}`;
 }
 
 function storeHandoff(value?: Handoff) {
@@ -96,12 +106,26 @@ export function clearJourneyReturn(accountId: string) {
 export function workspaceDestination(target?: ReturnTarget) {
   if (!target) return { to: "/dashboard" } as const;
   if (
+    target === "/dashboard" ||
     target === "/journeys" ||
     target === "/journeys/new" ||
     target === "/saved" ||
-    target === "/discover"
+    target === "/discover" ||
+    target === "/journey-invitations"
   )
     return { to: target } as const;
+  if (target.endsWith("/invite"))
+    return {
+      to: "/journeys/$journeyId/invite",
+      params: { journeyId: target.split("/")[2] },
+    } as const;
+  if (target.endsWith("/people"))
+    return {
+      to: "/journeys/$journeyId/people",
+      params: {
+        journeyId: target.slice("/journeys/".length, -"/people".length),
+      },
+    } as const;
   return {
     to: "/journeys/$journeyId",
     params: { journeyId: target.slice("/journeys/".length) },
