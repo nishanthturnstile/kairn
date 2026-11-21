@@ -311,6 +311,87 @@ test("invites four people by member search or email, resumes verification and re
       existing.getByRole("heading", { name: "Invitations", exact: true }),
     ).toHaveCount(0);
     await page.reload();
+    await expect(
+      existing.getByRole("button", { name: /Manage roles/ }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: `Manage roles for ${name}` })
+      .click();
+    const roleEditor = page.getByRole("group", { name: `Roles for ${name}` });
+    const roleEndpoint = `**/api/v1/journeys/${journeyId}/members/${first.id}/editorial-capability`;
+    await page.route(
+      roleEndpoint,
+      async (route) => {
+        expect((await route.fetch()).status()).toBe(200);
+        await route.abort("failed");
+      },
+      { times: 1 },
+    );
+    await roleEditor.getByRole("button", { name: "Assign coauthor" }).click();
+    const assignCoauthor = page.getByRole("dialog", {
+      name: "Assign coauthor",
+    });
+    await expect(
+      assignCoauthor.getByText(/review contributed sources/),
+    ).toBeVisible();
+    await assignCoauthor
+      .getByRole("button", { name: "Assign coauthor" })
+      .click();
+    await expect(
+      assignCoauthor.getByText("Couldn’t confirm this change. Try again."),
+    ).toBeVisible();
+    await assignCoauthor.getByRole("button", { name: "Go back" }).click();
+    await page.reload();
+    const retryCoauthor = page.getByRole("button", {
+      name: `Retry coauthor change for ${name}`,
+    });
+    await retryCoauthor.click();
+    await expect(retryCoauthor).toHaveCount(0);
+    await page
+      .getByRole("button", { name: `Manage roles for ${name}` })
+      .click();
+    await roleEditor.getByRole("button", { name: "Assign publisher" }).click();
+    const assignPublisher = page.getByRole("dialog", {
+      name: "Assign publisher",
+    });
+    await assignPublisher
+      .getByRole("button", { name: "Assign publisher" })
+      .click();
+    await expect(assignPublisher).toBeHidden();
+    await roleEditor.getByRole("button", { name: "Revoke coauthor" }).click();
+    const roleConfirmation = page.getByRole("dialog", {
+      name: "Revoke coauthor",
+    });
+    await expect(
+      roleConfirmation.getByText(/if they also hold the publisher role/),
+    ).toBeVisible();
+    await roleConfirmation
+      .getByRole("button", { name: "Revoke coauthor" })
+      .click();
+    await expect(
+      page.getByRole("status").filter({
+        hasText: `Coauthor revoked for ${name}. Confirmation is pending.`,
+      }),
+    ).toBeVisible();
+    await expect(
+      roleEditor.getByRole("button", { name: "Assign coauthor" }),
+    ).toBeVisible();
+    await expect(
+      roleEditor.getByRole("button", { name: "Revoke publisher" }),
+    ).toBeVisible();
+    await roleEditor.getByRole("button", { name: "Revoke publisher" }).click();
+    await page
+      .getByRole("dialog", { name: "Revoke publisher" })
+      .getByRole("button", { name: "Revoke publisher" })
+      .click();
+    const checks = ["coauthor", "publisher"].map((role) =>
+      page.getByRole("button", {
+        name: `Check ${role} revocation for ${name}`,
+      }),
+    );
+    for (const check of checks) await expect(check).toBeVisible();
+    await page.reload();
+    for (const check of checks) await expect(check).toBeVisible();
     await page.getByRole("button", { name: `Remove ${name}` }).click();
     await page
       .getByRole("dialog")
@@ -404,6 +485,19 @@ test("keeps People and the focused invitation form usable at 320 CSS pixels", as
     release.resolve();
   }
   await expect(page.getByText("Narrow layout organiser (You)")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Manage roles for Narrow layout organiser" })
+    .press("Enter");
+  const publisherAction = page.getByRole("button", {
+    name: "Revoke publisher",
+  });
+  await publisherAction.press("Enter");
+  const roleDialog = page.getByRole("dialog", { name: "Revoke publisher" });
+  expect(
+    await roleDialog.evaluate((node) => node.scrollWidth),
+  ).toBeLessThanOrEqual(320);
+  await roleDialog.getByRole("button", { name: "Go back" }).press("Enter");
+  await expect(publisherAction).toBeFocused();
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(320);

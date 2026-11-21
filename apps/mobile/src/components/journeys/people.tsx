@@ -1,15 +1,31 @@
 import type { components } from "@kairn/contracts";
 import {
+  editorialCapability,
+  editorialCapabilityResult,
   journeyInvitationBatchResult,
   membershipRestrictionResult,
 } from "@kairn/contracts/journeys";
+import {
+  createEditorialAttemptStore,
+  type EditorialAction,
+  editorialActionLabel,
+  editorialAttemptActionLabel,
+  editorialAttemptNotice,
+  editorialChangeDescription,
+  editorialChangeNotice,
+  editorialRoleKey,
+  editorialRoles,
+} from "@kairn/shared/journey-editorial";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { randomUUID } from "expo-crypto";
 import { useNetworkState } from "expo-network";
 import { useIsFocused, usePreventRemove, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { type ComponentRef, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Modal, type ScrollView, View } from "react-native";
 import { ensureActive } from "../../api";
+import { authOrigin } from "../../auth";
+import { sessionStoragePrefix } from "../../auth-origin";
 import {
   JourneyRequestError,
   journeyInvitationsKey,
@@ -40,7 +56,18 @@ type Management = {
   label: string;
   key: string;
 };
-type Confirmation = { type: "leave" | "remove"; person: Person } | Management;
+type Confirmation =
+  | { type: "leave" | "remove"; person: Person }
+  | Management
+  | EditorialAction;
+
+const roleStorageOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+};
+const roleAttemptStore = createEditorialAttemptStore(
+  (key) => SecureStore.getItem(key, roleStorageOptions),
+  (key, value) => SecureStore.setItem(key, value, roleStorageOptions),
+);
 
 const roleLabels = {
   administrator: "Organiser",
@@ -80,6 +107,11 @@ export function JourneyPeople({
   );
   const [removalReceipt, setRemovalReceipt] = useState<MembershipAttempt>();
   const [management, setManagement] = useState<Management>();
+  const [roleEditor, setRoleEditor] = useState<string>();
+  const roleStorageKey = `${sessionStoragePrefix(authOrigin ?? "")}_editorial_${scope.accountId}_${journeyId}`;
+  const [roleAttempts, setRoleAttempts] = useState(() =>
+    roleAttemptStore.load(roleStorageKey),
+  );
   const [leaving, setLeaving] = useState(false);
   const lock = useRef(false);
   const sendingLock = useRef(false);
@@ -196,16 +228,54 @@ export function JourneyPeople({
     setPending(value);
   }
 
-  async function perform(operation: MembershipAttempt | Management) {
+  async function perform(
+    operation: MembershipAttempt | Management | EditorialAction,
+  ) {
     if (lock.current || sendingLock.current || !active || !canSubmit(scope))
       return;
+    if (operation.type === "editorial" && !admin) return;
     lock.current = true;
     setBusy(true);
     setFailure("");
     setConfirming(undefined);
-    const params = { header: { "idempotency-key": operation.key } };
     try {
-      if ("memberId" in operation) {
+      if (operation.type === "editorial") {
+        const { person, capability, expectedRevision, enabled } = operation;
+        setRoleAttempts(
+          roleAttemptStore.update(roleStorageKey, operation, "uncertain"),
+        );
+        const response = await scope.api.POST(
+          "/api/v1/journeys/{journeyId}/members/{memberId}/editorial-capability",
+          {
+            params: { path: { journeyId, memberId: person.accountId } },
+            body: {
+              membershipGeneration: person.membershipGeneration,
+              capability,
+              expectedRevision,
+              enabled,
+            },
+          },
+        );
+        const result = editorialCapabilityResult.parse(
+          journeyResult(response, scope, refresh),
+        );
+        const awaitingConfirmation =
+          !result.enabled && result.confirmation === "pending";
+        setRoleAttempts(
+          roleAttemptStore.update(
+            roleStorageKey,
+            operation,
+            awaitingConfirmation ? "pending" : undefined,
+          ),
+        );
+        setNotice(
+          awaitingConfirmation
+            ? ""
+            : editorialChangeNotice(capability, result.enabled),
+        );
+        await refreshJourneyViews(scope);
+      } else if ("memberId" in operation) {
+        const params = { header: { "idempotency-key": operation.key } };
         savePending(operation);
         const body = { membershipGeneration: operation.membershipGeneration };
         const response =
@@ -247,7 +317,7 @@ export function JourneyPeople({
             : "/api/v1/journeys/{journeyId}/invitations/{invitationId}/resend",
           {
             params: {
-              ...params,
+              header: { "idempotency-key": operation.key },
               path: { journeyId, invitationId: operation.invitationId },
             },
           },
@@ -278,21 +348,25 @@ export function JourneyPeople({
         error instanceof JourneyRequestError &&
         [404, 409, 429].includes(error.status)
       ) {
-        if ("memberId" in operation) {
+        if (operation.type === "editorial") {
+          setRoleAttempts(roleAttemptStore.update(roleStorageKey, operation));
+        } else if ("memberId" in operation) {
           savePending();
           if (removalReceipt?.key === operation.key)
             setRemovalReceipt(undefined);
         } else setManagement(undefined);
         setFailure(
-          error.code === "last_administrator"
-            ? "This journey needs an active organiser before you can leave."
-            : error.code === "invitation_accepted"
-              ? "This person already joined. You can manage their access under Members."
-              : error.code === "membership_changed"
-                ? "This membership changed. The roster has been refreshed."
-                : error.status === 429
-                  ? "Try again later."
-                  : "This action is no longer available.",
+          operation.type === "editorial" && error.status !== 429
+            ? "Roles or membership changed. The roster has been refreshed."
+            : error.code === "last_administrator"
+              ? "This journey needs an active organiser before you can leave."
+              : error.code === "invitation_accepted"
+                ? "This person already joined. You can manage their access under Members."
+                : error.code === "membership_changed"
+                  ? "This membership changed. The roster has been refreshed."
+                  : error.status === 429
+                    ? "Try again later."
+                    : "This action is no longer available.",
         );
         void refreshJourneyViews(scope).catch(() => {});
       } else {
@@ -329,7 +403,9 @@ export function JourneyPeople({
     AccessibilityInfo.announceForAccessibility("People");
   }
   function confirm(operation: Confirmation) {
-    if ("person" in operation) {
+    if (operation.type === "editorial") {
+      void perform(operation);
+    } else if ("person" in operation) {
       void perform({
         type: operation.type,
         key: randomUUID(),
@@ -360,6 +436,36 @@ export function JourneyPeople({
             />
           )}
         </View>
+        {confirming &&
+          availability &&
+          journey &&
+          (confirming.type === "leave" ||
+            (confirming.type === "remove" || confirming.type === "editorial"
+              ? admin
+              : mayInvite)) && (
+            <Panel>
+              <AppText
+                text={confirmationTitle(confirming)}
+                variant="section"
+                accessibilityRole="header"
+              />
+              <AppText text={confirmationMessage(confirming, journey.title)} />
+              <Action
+                label={confirmationTitle(confirming)}
+                variant={
+                  confirming.type === "resend" ||
+                  (confirming.type === "editorial" && confirming.enabled)
+                    ? "primary"
+                    : "danger"
+                }
+                disabled={
+                  "person" in confirming ? disabled : invitationActionsDisabled
+                }
+                onPress={() => confirm(confirming)}
+              />
+              <Action label="Back" onPress={() => setConfirming(undefined)} />
+            </Panel>
+          )}
         {!!failure && active && (
           <StatusNotice notice={{ text: failure, tone: "error" }} />
         )}
@@ -379,29 +485,27 @@ export function JourneyPeople({
             onPress={() => void perform(recovery)}
           />
         )}
-        {confirming &&
-          availability &&
-          journey &&
-          (confirming.type === "leave" ||
-            (confirming.type === "remove" ? admin : mayInvite)) && (
-            <Panel>
-              <AppText
-                text={confirmationTitle(confirming)}
-                variant="section"
-                accessibilityRole="header"
+        {admin &&
+          roleAttempts.map((attempt) => (
+            <View
+              key={editorialRoleKey(attempt.action)}
+              style={journeyStyles.group}
+            >
+              <StatusNotice
+                notice={{ text: editorialAttemptNotice(attempt), tone: "info" }}
               />
-              <AppText text={confirmationMessage(confirming, journey.title)} />
               <Action
-                label={confirmationTitle(confirming)}
-                variant={confirming.type === "resend" ? "primary" : "danger"}
-                disabled={
-                  "person" in confirming ? disabled : invitationActionsDisabled
+                label={
+                  attempt.state === "pending"
+                    ? "Check confirmation"
+                    : "Retry role change"
                 }
-                onPress={() => confirm(confirming)}
+                accessibilityLabel={editorialAttemptActionLabel(attempt)}
+                disabled={disabled || Boolean(unresolved || confirming)}
+                onPress={() => void perform(attempt.action)}
               />
-              <Action label="Back" onPress={() => setConfirming(undefined)} />
-            </Panel>
-          )}
+            </View>
+          ))}
         {!online ? (
           <StatusNotice
             notice={{
@@ -439,6 +543,14 @@ export function JourneyPeople({
                 ?.flatMap((page) => page?.items ?? [])
                 .map((person) => {
                   const you = person.accountId === scope.accountId;
+                  const revisions = person.editorialRevisions;
+                  const editor = `${person.accountId}:${person.membershipGeneration}`;
+                  const rolesOpen = roleEditor === editor;
+                  const availableRoles = editorialCapability.options.filter(
+                    (capability) =>
+                      journey?.state !== "archived" ||
+                      person.capabilities.includes(capability),
+                  );
                   return (
                     <View
                       key={person.accountId}
@@ -462,6 +574,56 @@ export function JourneyPeople({
                           />
                         </View>
                       </View>
+                      {admin && revisions && availableRoles.length > 0 && (
+                        <Action
+                          label="Manage roles"
+                          variant="text"
+                          accessibilityLabel={`Manage roles for ${person.displayName}`}
+                          accessibilityState={{ expanded: rolesOpen }}
+                          disabled={
+                            disabled || Boolean(unresolved || confirming)
+                          }
+                          onPress={() =>
+                            setRoleEditor(rolesOpen ? undefined : editor)
+                          }
+                        />
+                      )}
+                      {admin &&
+                        revisions &&
+                        rolesOpen &&
+                        availableRoles.map((capability) => {
+                          const role = editorialRoles[capability];
+                          const enabled =
+                            !person.capabilities.includes(capability);
+                          return (
+                            <View key={capability} style={journeyStyles.group}>
+                              <AppText text={role.label} variant="label" />
+                              <AppText
+                                text={`Can ${role.permission}.`}
+                                variant="caption"
+                                subdued
+                              />
+                              <Action
+                                label={editorialActionLabel(
+                                  capability,
+                                  enabled,
+                                )}
+                                disabled={
+                                  disabled || Boolean(unresolved || confirming)
+                                }
+                                onPress={() =>
+                                  setConfirming({
+                                    type: "editorial",
+                                    person,
+                                    capability,
+                                    enabled,
+                                    expectedRevision: revisions[capability],
+                                  })
+                                }
+                              />
+                            </View>
+                          );
+                        })}
                       {(you || admin) && (
                         <Action
                           label={you ? "Leave journey" : "Remove"}
@@ -610,12 +772,19 @@ function LeaveJourney() {
 }
 
 function confirmationTitle(action: Confirmation) {
+  if (action.type === "editorial")
+    return editorialActionLabel(action.capability, action.enabled);
   if (action.type === "leave") return "Leave journey";
   if (action.type === "remove") return "Remove access";
   return action.type === "resend" ? "Resend invitation" : "Cancel invitation";
 }
 
 function confirmationMessage(action: Confirmation, title: string) {
+  if (action.type === "editorial")
+    return `${action.person.displayName} · ${editorialChangeDescription(
+      action.capability,
+      action.enabled,
+    )}`;
   if ("person" in action)
     return action.type === "leave"
       ? `Leave ${title}? You’ll lose access immediately.`

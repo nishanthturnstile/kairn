@@ -334,6 +334,7 @@ export function createJourneyService(
             | {
                 accountId: string;
                 membershipGeneration: string;
+                editorialRevisions: { coauthor: number; publisher: number };
                 displayName: string;
                 capabilities: Membership["capabilities"][number][];
               }[]

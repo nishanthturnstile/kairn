@@ -5,6 +5,7 @@ import {
   index,
   integer,
   primaryKey,
+  text,
   timestamp,
   unique,
   uuid,
@@ -16,6 +17,12 @@ import { journeyMemberships, journeys } from "../journeys/schema.js";
 export const sourceScope = kairn.enum("source_scope", [
   "journey_review",
   "publication_reuse",
+]);
+
+export const originalExportDecision = kairn.enum("original_export_decision", [
+  "pending",
+  "approved",
+  "declined",
 ]);
 
 export const sources = kairn
@@ -61,6 +68,7 @@ export const sourceGrants = kairn
       sourceId: uuid("source_id").notNull(),
       ownerId: uuid("owner_id").notNull(),
       scope: sourceScope("scope").notNull(),
+      publicationConsent: text("publication_consent"),
       revision: integer("revision").default(1).notNull(),
       withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     },
@@ -78,6 +86,10 @@ export const sourceGrants = kairn
       }),
       index("source_grants_source_idx").on(grant.sourceId, grant.ownerId),
       check("source_grants_revision_positive", sql`${grant.revision} > 0`),
+      check(
+        "source_grants_publication_consent",
+        sql`${grant.publicationConsent} IS NULL OR (${grant.scope} = 'publication_reuse' AND ${grant.withdrawnAt} IS NULL AND ${grant.publicationConsent} = 'members_unlisted_public_v1')`,
+      ),
     ],
   )
   .enableRLS();
@@ -92,6 +104,11 @@ export const originalExportGrants = kairn
         .notNull()
         .references(() => accounts.id),
       recipientId: uuid("recipient_id").notNull(),
+      recipientMembershipGeneration: uuid("recipient_membership_generation"),
+      requestKey: uuid("request_key"),
+      decision: originalExportDecision("decision")
+        .default("approved")
+        .notNull(),
       createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
@@ -103,6 +120,11 @@ export const originalExportGrants = kairn
         grant.id,
         grant.journeyId,
         grant.ownerId,
+      ),
+      unique("original_export_grants_request_key_unique").on(
+        grant.journeyId,
+        grant.recipientId,
+        grant.requestKey,
       ),
       foreignKey({
         name: "original_export_grants_recipient_fk",
@@ -124,6 +146,10 @@ export const originalExportGrants = kairn
       check(
         "original_export_grants_expiry_order",
         sql`${grant.expiresAt} > ${grant.createdAt}`,
+      ),
+      check(
+        "original_export_grants_request_scope",
+        sql`(${grant.requestKey} IS NULL) = (${grant.recipientMembershipGeneration} IS NULL) AND (${grant.requestKey} IS NOT NULL OR ${grant.decision} = 'approved')`,
       ),
     ],
   )

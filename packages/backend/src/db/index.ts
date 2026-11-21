@@ -53,6 +53,9 @@ export async function checkJourneyReadiness(
     canReadPeople: boolean;
     canUseInvitations: boolean;
     canRestrictMembership: boolean;
+    canManageSourceReview: boolean;
+    canManageEditorialCapabilities: boolean;
+    canManageOriginalExports: boolean;
   }>(sql`
     select has_function_privilege(
       'kairn.create_private_journey(uuid,text,text,text,text,timestamptz,text,text,timestamptz,text)',
@@ -78,7 +81,36 @@ export async function checkJourneyReadiness(
         ('kairn.read_membership_restriction(uuid)'),
         ('kairn.confirm_membership_restriction(uuid,text,bigint,text)')
       ) as routines(signature)
-    ) as "canRestrictMembership"
+    ) as "canRestrictMembership", (
+      select bool_and(coalesce(has_function_privilege(to_regprocedure(signature), 'EXECUTE'), false))
+      from (values
+        ('kairn.read_source_review(uuid,uuid)'),
+        ('kairn.set_source_permission(uuid,uuid,integer,text,text)'),
+        ('kairn.read_source_withdrawal(uuid)'),
+        ('kairn.confirm_source_withdrawal(uuid,text,bigint,text)'),
+        ('kairn.read_source_narrowing(uuid)'),
+        ('kairn.confirm_source_narrowing(uuid,text,bigint,text)')
+      ) as routines(signature)
+    ) as "canManageSourceReview", (
+      select bool_and(coalesce(has_function_privilege(to_regprocedure(signature), 'EXECUTE'), false))
+      from (values
+        ('kairn.set_editorial_capability(uuid,uuid,uuid,kairn.journey_capability,integer,boolean)'),
+        ('kairn.read_editorial_capability_removal(uuid)'),
+        ('kairn.confirm_editorial_capability_removal(uuid,text,bigint,text)')
+      ) as routines(signature)
+    ) as "canManageEditorialCapabilities", (
+      select bool_and(coalesce(has_function_privilege(to_regprocedure(signature), 'EXECUTE'), false))
+      from (values
+        ('kairn.request_original_export(uuid,uuid,uuid[],timestamptz,uuid)'),
+        ('kairn.read_original_export(uuid,uuid)'),
+        ('kairn.list_original_exports(uuid,uuid)'),
+        ('kairn.decide_original_export(uuid,uuid,boolean,boolean)'),
+        ('kairn.authorize_original_export(uuid,uuid)'),
+        ('kairn.revoke_original_export(uuid,uuid)'),
+        ('kairn.read_original_export_revocation(uuid)'),
+        ('kairn.confirm_original_export_revocation(uuid,text,bigint,text)')
+      ) as routines(signature)
+    ) as "canManageOriginalExports"
   `);
   if (!result.rows[0]?.canCreate)
     throw new Error("Journey creation is unavailable.");
@@ -88,6 +120,12 @@ export async function checkJourneyReadiness(
     throw new Error("Journey invitations are unavailable.");
   if (!result.rows[0].canRestrictMembership)
     throw new Error("Journey membership restrictions are unavailable.");
+  if (!result.rows[0].canManageSourceReview)
+    throw new Error("Source review permissions are unavailable.");
+  if (!result.rows[0].canManageEditorialCapabilities)
+    throw new Error("Journey editorial capabilities are unavailable.");
+  if (!result.rows[0].canManageOriginalExports)
+    throw new Error("Original-file export permissions are unavailable.");
 }
 
 export type Database = ReturnType<typeof openDatabase>["db"];

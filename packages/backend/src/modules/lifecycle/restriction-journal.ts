@@ -26,7 +26,41 @@ const membershipEvent = z.strictObject({
   membershipGeneration: z.uuid(),
   generation: z.int().positive().max(2_147_483_647),
 });
-export const restrictionEvent = z.union([identityEvent, membershipEvent]);
+const sourceWithdrawalEvent = z.strictObject({
+  version: z.literal(3),
+  id: z.uuid(),
+  operation: z.literal("source_withdrawal"),
+  accountId: z.uuid(),
+  journeyId: z.uuid(),
+  sourceId: z.uuid(),
+  generation: z.int().min(2).max(2_147_483_647),
+});
+const capabilityRemovalEvent = membershipEvent.extend({
+  version: z.literal(4),
+  operation: z.literal("capability_removal"),
+  capability: z.enum(["coauthor", "publisher"]),
+});
+const sourceNarrowingEvent = sourceWithdrawalEvent.extend({
+  version: z.literal(5),
+  operation: z.literal("source_grant_narrowing"),
+});
+const originalExportRevocationEvent = z.strictObject({
+  version: z.literal(6),
+  id: z.uuid(),
+  operation: z.literal("original_export_revocation"),
+  accountId: z.uuid(),
+  journeyId: z.uuid(),
+  grantId: z.uuid(),
+  generation: z.literal(1),
+});
+export const restrictionEvent = z.union([
+  identityEvent,
+  membershipEvent,
+  sourceWithdrawalEvent,
+  capabilityRemovalEvent,
+  sourceNarrowingEvent,
+  originalExportRevocationEvent,
+]);
 export type IdentityRestriction = z.infer<typeof identityEvent>;
 export type RestrictionEvent = z.infer<typeof restrictionEvent>;
 
@@ -58,11 +92,23 @@ export interface RestrictionJournal {
   ): Promise<{ event: RestrictionEvent; receipt: Receipt }>;
 }
 
+function restrictionScope(event: RestrictionEvent) {
+  switch (event.version) {
+    case 1:
+      return [event.sessionId];
+    case 2:
+      return [event.journeyId, event.membershipGeneration];
+    case 3:
+    case 5:
+      return [event.journeyId, event.sourceId];
+    case 4:
+      return [event.journeyId, event.membershipGeneration, event.capability];
+    case 6:
+      return [event.journeyId, event.grantId];
+  }
+}
+
 export function restrictionDigest(event: RestrictionEvent) {
-  const scope =
-    event.version === 1
-      ? [event.sessionId]
-      : [event.journeyId, event.membershipGeneration];
   return createHash("sha256")
     .update(
       JSON.stringify([
@@ -70,7 +116,7 @@ export function restrictionDigest(event: RestrictionEvent) {
         event.id,
         event.operation,
         event.accountId,
-        ...scope,
+        ...restrictionScope(event),
         event.generation,
       ]),
     )

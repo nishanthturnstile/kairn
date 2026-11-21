@@ -71,9 +71,11 @@ else
     fi
     sleep 1
   done
-  KAIRN_TEST_SMTP_URL="smtp://127.0.0.1:$smtp_port" \
-    KAIRN_TEST_MAILPIT_URL="http://127.0.0.1:$inbox_port" \
-    KAIRN_INTEGRATION=1 KAIRN_JOURNEY_TEST=isolated pnpm exec vp test run --no-file-parallelism \
-    tests/integration/journeys.test.ts tests/integration/domain.test.ts \
-    tests/integration/journey-invitations.test.ts tests/integration/journey-membership.test.ts
+  export KAIRN_TEST_SMTP_URL="smtp://127.0.0.1:$smtp_port"
+  export KAIRN_TEST_MAILPIT_URL="http://127.0.0.1:$inbox_port"
+  export KAIRN_INTEGRATION=1 KAIRN_JOURNEY_TEST=isolated
+  # Run the mail worker before other suites enqueue mail for auto-verified fixtures.
+  pnpm exec vp test run tests/integration/journey-invitations.test.ts
+  pnpm exec vp test run --no-file-parallelism tests/integration/journeys.test.ts \
+    tests/integration/domain.test.ts tests/integration/journey-membership.test.ts
 fi

@@ -4,6 +4,7 @@ import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
 import { logger } from "../../logger.js";
+import type { createAuth } from "../identity/auth.js";
 import { session, verification } from "../identity/auth-schema.js";
 import {
   accounts,
@@ -17,6 +18,7 @@ import {
   identityIsCurrent,
   localRecoveryEpoch,
 } from "../identity/state.js";
+import { originalExportGrants } from "../sources/schema.js";
 import {
   type IdentityRestriction,
   type JournalCheckpoint,
@@ -100,10 +102,7 @@ async function readRecordedRestriction(tx: DatabaseTransaction, id: string) {
     .from(restrictionEvents)
     .innerJoin(auditEvents, eq(auditEvents.id, restrictionEvents.auditEventId))
     .where(
-      and(
-        eq(restrictionEvents.id, id),
-        isNull(restrictionEvents.affectedMembershipGeneration),
-      ),
+      and(eq(restrictionEvents.id, id), eq(auditEvents.targetKind, "account")),
     );
   if (row) {
     const {
@@ -129,7 +128,13 @@ async function readRecordedRestriction(tx: DatabaseTransaction, id: string) {
   }
 
   const { rows } = await tx.execute<{ record: unknown }>(sql`
-    select kairn.read_membership_restriction(${id}::uuid) as record
+    select coalesce(
+      kairn.read_membership_restriction(${id}::uuid),
+      kairn.read_source_withdrawal(${id}::uuid),
+      kairn.read_editorial_capability_removal(${id}::uuid),
+      kairn.read_source_narrowing(${id}::uuid),
+      kairn.read_original_export_revocation(${id}::uuid)
+    ) as record
   `);
   return z
     .object({
@@ -152,14 +157,46 @@ export async function confirmRecordedRestriction(
   if (restrictionDigest(event) !== digest)
     throw new Error("Invalid restriction digest.");
   if (confirmed) return;
-  // Restoring a backup from before a rejoin requires the earlier generation's deny.
+  // Recovery needs the earlier denial before it can apply the later restriction.
   if (earlierPending)
-    throw new Error("An earlier membership restriction awaits confirmation.");
+    throw new Error("An earlier restriction awaits confirmation.");
 
   const receipt = verifyReceipt(event, await journal.append(event));
   if (event.version === 2) {
     await tx.execute(sql`
       select kairn.confirm_membership_restriction(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 3) {
+    await tx.execute(sql`
+      select kairn.confirm_source_withdrawal(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 4) {
+    await tx.execute(sql`
+      select kairn.confirm_editorial_capability_removal(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 5) {
+    await tx.execute(sql`
+      select kairn.confirm_source_narrowing(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 6) {
+    await tx.execute(sql`
+      select kairn.confirm_original_export_revocation(
         ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
       )
     `);
@@ -177,6 +214,24 @@ export async function confirmRecordedRestriction(
         isNull(restrictionEvents.journalSequence),
       ),
     );
+}
+
+export async function finishRecordedRestriction(
+  auth: Pick<ReturnType<typeof createAuth>, "withCurrentRecoveryEpoch">,
+  journal: RestrictionJournal | undefined,
+  { eventId, confirmed }: { eventId: string; confirmed: boolean },
+) {
+  if (confirmed)
+    return { status: 200, eventId, confirmation: "confirmed" } as const;
+  if (journal) {
+    const result = await auth.withCurrentRecoveryEpoch(async (tx) => {
+      await confirmRecordedRestriction(tx, journal, eventId);
+      return { status: 200 };
+    });
+    if (result.status === 200)
+      return { status: 200, eventId, confirmation: "confirmed" } as const;
+  }
+  return { status: 202, eventId, confirmation: "pending" } as const;
 }
 
 export async function confirmRestriction(
@@ -299,6 +354,7 @@ export async function replayIdentityRestrictions(
         );
       }
       const local = localReceipts.get(BigInt(sequence));
+      let receiptPersisted = local !== undefined;
       if (
         local &&
         (event.id !== local.id ||
@@ -329,6 +385,7 @@ export async function replayIdentityRestrictions(
               journalReceipt: receipt.receipt,
             })
             .where(eq(restrictionEvents.id, event.id));
+          receiptPersisted = true;
         }
       }
 
@@ -339,6 +396,71 @@ export async function replayIdentityRestrictions(
             ${event.journeyId}::uuid, ${event.accountId}::uuid, ${event.membershipGeneration}::uuid, ${event.generation}::integer
           )
         `);
+        continue;
+      }
+      if (event.version === 3) {
+        await tx.execute(sql`
+          select kairn.apply_source_withdrawal(
+            ${event.journeyId}::uuid, ${event.sourceId}::uuid, ${event.accountId}::uuid, ${event.generation}::integer
+          )
+        `);
+        continue;
+      }
+      if (event.version === 4) {
+        await tx.execute(sql`
+          select kairn.apply_editorial_capability_removal(
+            ${event.journeyId}::uuid, ${event.accountId}::uuid, ${event.membershipGeneration}::uuid,
+            ${event.capability}::kairn.journey_capability, ${event.generation}::integer
+          )
+        `);
+        continue;
+      }
+      if (event.version === 5) {
+        await tx.execute(sql`
+          select kairn.apply_source_restriction(
+            ${event.journeyId}::uuid, ${event.sourceId}::uuid, ${event.accountId}::uuid, ${event.generation}::integer, false
+          )
+        `);
+        continue;
+      }
+      if (event.version === 6) {
+        await tx.execute(sql`
+          select kairn.apply_original_export_revocation(
+            ${event.journeyId}::uuid, ${event.grantId}::uuid, ${event.accountId}::uuid
+          )
+        `);
+        if (!receiptPersisted) {
+          const [grant] = await tx
+            .select({ id: originalExportGrants.id })
+            .from(originalExportGrants)
+            .where(
+              and(
+                eq(originalExportGrants.id, event.grantId),
+                eq(originalExportGrants.journeyId, event.journeyId),
+                eq(originalExportGrants.ownerId, event.accountId),
+              ),
+            );
+          // The owner can retry against the original receipt after restoring an older request.
+          if (grant) {
+            await tx.insert(auditEvents).values({
+              id: event.id,
+              actorId: event.accountId,
+              action: event.operation,
+              targetKind: "original_export_grant",
+              targetId: grant.id,
+              journeyId: event.journeyId,
+            });
+            await tx.insert(restrictionEvents).values({
+              id: event.id,
+              auditEventId: event.id,
+              operation: event.operation,
+              policyGeneration: event.generation,
+              integrityDigest: receipt.digest,
+              journalSequence: BigInt(receipt.sequence),
+              journalReceipt: receipt.receipt,
+            });
+          }
+        }
         continue;
       }
       const account = await identityAccount(tx, event.accountId);

@@ -132,6 +132,7 @@ describe.runIf(process.env.KAIRN_JOURNEY_TEST === "isolated")(
       email: string,
       expectedSubject: string,
       eventId?: string,
+      timeout = 24_000,
     ) {
       let received: { html: string; text: string } | undefined;
       await expect
@@ -164,7 +165,7 @@ describe.runIf(process.env.KAIRN_JOURNEY_TEST === "isolated")(
             }
             return false;
           },
-          { timeout: 24_000 },
+          { timeout },
         )
         .toBe(true);
       if (!received) throw new Error("Fixture mail is missing");
@@ -193,9 +194,9 @@ describe.runIf(process.env.KAIRN_JOURNEY_TEST === "isolated")(
       return item.invitationId;
     }
 
-    async function inviteToken(email: string, id: string) {
+    async function inviteToken(email: string, id: string, timeout?: number) {
       await startInvitationWorker();
-      const message = await findMail(email, subject, id);
+      const message = await findMail(email, subject, id, timeout);
       expect(message.text).toContain("Participant");
       expect(message.text).not.toContain(title);
       expect(message.html).not.toContain(title);
@@ -1056,7 +1057,8 @@ describe.runIf(process.env.KAIRN_JOURNEY_TEST === "isolated")(
         });
       try {
         const id = await sendInvite(organiser, journeyId, address);
-        await inviteToken(address, id);
+        // The queue can wait behind other jobs before its 10–20 second retry delay.
+        await inviteToken(address, id, 35_000);
         expect(attempts).toHaveLength(2);
         expect(attempts[1]).toEqual(attempts[0]);
         await expect
@@ -1075,7 +1077,7 @@ describe.runIf(process.env.KAIRN_JOURNEY_TEST === "isolated")(
       } finally {
         delivery.mockRestore();
       }
-    }, 40_000);
+    }, 45_000);
 
     it("rolls back a failed queue write and denies invitation access while recovery is closed", async () => {
       const organiser = await account();

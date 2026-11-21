@@ -1,11 +1,24 @@
 import type { PrivateJourney } from "@kairn/contracts";
 import {
+  editorialCapability,
+  editorialCapabilityResult,
   journeyInvitationBatchResult,
   journeyInvitationPage,
   journeyPath,
   journeyPeoplePage,
   membershipRestrictionResult,
 } from "@kairn/contracts/journeys";
+import {
+  createEditorialAttemptStore,
+  type EditorialAction,
+  editorialActionLabel,
+  editorialAttemptActionLabel,
+  editorialAttemptNotice,
+  editorialChangeDescription,
+  editorialChangeNotice,
+  editorialRoleKey,
+  editorialRoles,
+} from "@kairn/shared/journey-editorial";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { cn } from "cn";
@@ -73,10 +86,49 @@ type Person = ReturnType<typeof journeyPeoplePage.parse>["items"][number];
 type Invitation = ReturnType<
   typeof journeyInvitationPage.parse
 >["items"][number];
-type Action = (
-  | { type: "remove" | "leave"; person: Person }
-  | { type: "cancel" | "resend"; invitation: Invitation }
-) & { key: string };
+const roleAttemptStore = createEditorialAttemptStore(
+  (key) => sessionStorage.getItem(key),
+  (key, value) => sessionStorage.setItem(key, value),
+);
+type Action =
+  | ((
+      | { type: "remove" | "leave"; person: Person }
+      | { type: "cancel" | "resend"; invitation: Invitation }
+    ) & { key: string })
+  | EditorialAction;
+
+function actionTitle(action: Action) {
+  switch (action.type) {
+    case "editorial":
+      return editorialActionLabel(action.capability, action.enabled);
+    case "remove":
+      return "Remove member";
+    case "leave":
+      return "Leave journey";
+    case "resend":
+      return "Resend invitation";
+    case "cancel":
+      return "Cancel invitation";
+  }
+}
+
+function actionDescription(action: Action, journeyTitle: string) {
+  switch (action.type) {
+    case "editorial":
+      return `${action.person.displayName} · ${editorialChangeDescription(
+        action.capability,
+        action.enabled,
+      )}`;
+    case "remove":
+      return `${action.person.displayName} will immediately lose access to ${journeyTitle}.`;
+    case "leave":
+      return `You’ll immediately lose access to ${journeyTitle}.`;
+    case "resend":
+      return "The new invitation will replace the previous link.";
+    case "cancel":
+      return "The email may stay in the recipient’s inbox. Its link will no longer work.";
+  }
+}
 
 function PeopleRoute() {
   const { journeyId } = Route.useParams();
@@ -112,7 +164,7 @@ function PeopleRoute() {
       )}
       {journey && (
         <People
-          key={journey.id}
+          key={`${scope.accountId}:${journey.id}`}
           journey={journey}
           scope={scope}
           suspended={detail.revalidating || detail.isError}
@@ -224,6 +276,11 @@ function People({
   const [failure, setFailure] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState<Action>();
+  const [roleEditor, setRoleEditor] = useState<string>();
+  const roleStorageKey = `kairn.editorial.${scope.accountId}.${journey.id}`;
+  const [roleAttempts, setRoleAttempts] = useState(() =>
+    roleAttemptStore.load(roleStorageKey),
+  );
   const request = useRef<AbortController>(null);
   const focusReturn = useRef<HTMLElement>(null);
   const heading = useRef<HTMLDivElement>(null);
@@ -280,15 +337,52 @@ function People({
   }
 
   async function run(next: Action) {
-    if (request.current || suspended) return;
+    if (request.current || suspended || (next.type === "editorial" && !admin))
+      return;
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
     setFailure("");
-    const options = { header: { "idempotency-key": next.key } };
     let departure: ReturnType<typeof saveDeparture> | undefined;
     try {
-      if ("person" in next) {
+      if (next.type === "editorial") {
+        const { person, capability, expectedRevision, enabled } = next;
+        setRoleAttempts(
+          roleAttemptStore.update(roleStorageKey, next, "uncertain"),
+        );
+        const response = await scope.api.POST(
+          "/api/v1/journeys/{journeyId}/members/{memberId}/editorial-capability",
+          {
+            params: { path: { journeyId, memberId: person.accountId } },
+            body: {
+              membershipGeneration: person.membershipGeneration,
+              capability,
+              expectedRevision,
+              enabled,
+            },
+            signal: controller.signal,
+          },
+        );
+        controller.signal.throwIfAborted();
+        const result = editorialCapabilityResult.parse(
+          journeyResult(response, scope, refresh),
+        );
+        const awaitingConfirmation =
+          !result.enabled && result.confirmation === "pending";
+        setNotice(
+          awaitingConfirmation
+            ? ""
+            : editorialChangeNotice(capability, result.enabled),
+        );
+        setRoleAttempts(
+          roleAttemptStore.update(
+            roleStorageKey,
+            next,
+            awaitingConfirmation ? "pending" : undefined,
+          ),
+        );
+        await refreshJourneyViews(scope);
+      } else if ("person" in next) {
         const body = { membershipGeneration: next.person.membershipGeneration };
         if (next.type === "leave" && scope.accountId) {
           const saved = readDeparture(scope, journeyId);
@@ -321,7 +415,7 @@ function People({
           "/api/v1/journeys/{journeyId}/members/{memberId}/remove",
           {
             params: {
-              ...options,
+              header: { "idempotency-key": next.key },
               path: { journeyId, memberId: next.person.accountId },
             },
             body,
@@ -347,7 +441,7 @@ function People({
             : "/api/v1/journeys/{journeyId}/invitations/{invitationId}/resend";
         const response = await scope.api.POST(route, {
           params: {
-            ...options,
+            header: { "idempotency-key": next.key },
             path: { journeyId, invitationId: next.invitation.id },
           },
           signal: controller.signal,
@@ -388,9 +482,21 @@ function People({
         await refreshJourneyViews(scope);
       } else if (code === "last_administrator") {
         setFailure("This journey needs an active administrator.");
-      } else if (code === "membership_changed") {
+      } else if (
+        code === "membership_changed" ||
+        code === "capability_changed" ||
+        (next.type === "editorial" &&
+          error instanceof JourneyRequestError &&
+          error.status === 404)
+      ) {
         setAction(undefined);
-        setNotice("This membership changed. The roster has been refreshed.");
+        if (next.type === "editorial")
+          setRoleAttempts(roleAttemptStore.update(roleStorageKey, next));
+        setNotice(
+          next.type === "editorial"
+            ? "Roles or membership changed. The roster has been refreshed."
+            : "This membership changed. The roster has been refreshed.",
+        );
         await refreshJourneyViews(scope);
       } else {
         setFailure("Couldn’t confirm this change. Try again.");
@@ -493,6 +599,29 @@ function People({
           )}
         </Alert>
       )}
+      {admin &&
+        roleAttempts.map((attempt) => (
+          <Alert
+            key={editorialRoleKey(attempt.action)}
+            role="status"
+            variant="warning"
+          >
+            <AlertDescription>
+              {editorialAttemptNotice(attempt)}
+            </AlertDescription>
+            <Button
+              variant="outline"
+              className="justify-self-start"
+              disabled={busy || sending || Boolean(action)}
+              aria-label={editorialAttemptActionLabel(attempt)}
+              onClick={() => void run(attempt.action)}
+            >
+              {attempt.state === "pending"
+                ? "Check confirmation"
+                : "Retry role change"}
+            </Button>
+          </Alert>
+        ))}
       {failure && !action && (
         <Alert variant="destructive">
           <AlertDescription>{failure}</AlertDescription>
@@ -524,6 +653,14 @@ function People({
                 <ul className="grid">
                   {roster.map((person) => {
                     const you = person.accountId === scope.accountId;
+                    const revisions = person.editorialRevisions;
+                    const editor = `${person.accountId}:${person.membershipGeneration}`;
+                    const rolesOpen = roleEditor === editor;
+                    const availableRoles = editorialCapability.options.filter(
+                      (capability) =>
+                        journey.state !== "archived" ||
+                        person.capabilities.includes(capability),
+                    );
                     const capabilities = person.capabilities
                       .map((role) => roleLabels[role])
                       .join(", ");
@@ -544,27 +681,93 @@ function People({
                             </p>
                           </div>
                         </div>
-                        {(you || admin) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={sending || busy}
-                            aria-label={
-                              you ? undefined : `Remove ${person.displayName}`
-                            }
-                            onClick={(event) =>
-                              choose(
-                                {
-                                  type: you ? "leave" : "remove",
-                                  person,
-                                  key: crypto.randomUUID(),
-                                },
-                                event.currentTarget,
-                              )
-                            }
-                          >
-                            {you ? "Leave journey" : "Remove"}
-                          </Button>
+                        <div className="flex min-w-0 flex-wrap gap-1">
+                          {admin && revisions && availableRoles.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={sending || busy}
+                              aria-label={`Manage roles for ${person.displayName}`}
+                              aria-expanded={rolesOpen}
+                              onClick={() =>
+                                setRoleEditor(rolesOpen ? undefined : editor)
+                              }
+                            >
+                              Manage roles
+                            </Button>
+                          )}
+                          {(you || admin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={sending || busy}
+                              aria-label={
+                                you ? undefined : `Remove ${person.displayName}`
+                              }
+                              onClick={(event) =>
+                                choose(
+                                  {
+                                    type: you ? "leave" : "remove",
+                                    person,
+                                    key: crypto.randomUUID(),
+                                  },
+                                  event.currentTarget,
+                                )
+                              }
+                            >
+                              {you ? "Leave journey" : "Remove"}
+                            </Button>
+                          )}
+                        </div>
+                        {admin && revisions && rolesOpen && (
+                          <fieldset className="grid min-w-0 basis-full gap-2 rounded-control bg-muted px-3 py-2">
+                            <legend className="sr-only">
+                              Roles for {person.displayName}
+                            </legend>
+                            {availableRoles.map((capability) => {
+                              const assigned =
+                                person.capabilities.includes(capability);
+                              const role = editorialRoles[capability];
+                              return (
+                                <div
+                                  key={capability}
+                                  className="flex min-w-0 flex-wrap items-center justify-between gap-2 py-1"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="font-semibold">
+                                      {role.label}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Can {role.permission}.
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={sending || busy}
+                                    onClick={(event) =>
+                                      choose(
+                                        {
+                                          type: "editorial",
+                                          person,
+                                          capability,
+                                          enabled: !assigned,
+                                          expectedRevision:
+                                            revisions[capability],
+                                        },
+                                        event.currentTarget,
+                                      )
+                                    }
+                                  >
+                                    {editorialActionLabel(
+                                      capability,
+                                      !assigned,
+                                    )}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </fieldset>
                         )}
                       </li>
                     );
@@ -748,23 +951,9 @@ function People({
             }}
           >
             <SheetHeader className="p-0">
-              <SheetTitle>
-                {action.type === "remove"
-                  ? "Remove member"
-                  : action.type === "leave"
-                    ? "Leave journey"
-                    : action.type === "resend"
-                      ? "Resend invitation"
-                      : "Cancel invitation"}
-              </SheetTitle>
+              <SheetTitle>{actionTitle(action)}</SheetTitle>
               <SheetDescription>
-                {action.type === "remove" && "person" in action
-                  ? `${action.person.displayName} will immediately lose access to ${journey.title}.`
-                  : action.type === "leave"
-                    ? `You’ll immediately lose access to ${journey.title}.`
-                    : action.type === "resend"
-                      ? "The new invitation will replace the previous link."
-                      : "The email may stay in the recipient’s inbox. Its link will no longer work."}
+                {actionDescription(action, journey.title)}
               </SheetDescription>
             </SheetHeader>
             {failure && (
@@ -774,19 +963,16 @@ function People({
             )}
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={action.type === "resend" ? "default" : "destructive"}
+                variant={
+                  action.type === "resend" ||
+                  (action.type === "editorial" && action.enabled)
+                    ? "default"
+                    : "destructive"
+                }
                 disabled={busy}
                 onClick={() => void run(action)}
               >
-                {busy
-                  ? "Working…"
-                  : action.type === "remove"
-                    ? "Remove member"
-                    : action.type === "leave"
-                      ? "Leave journey"
-                      : action.type === "resend"
-                        ? "Resend invitation"
-                        : "Cancel invitation"}
+                {busy ? "Working…" : actionTitle(action)}
               </Button>
               <Button
                 variant="outline"

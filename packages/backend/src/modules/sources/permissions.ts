@@ -53,11 +53,13 @@ export function sourceAccess(context: SourceContext) {
     canReadReview: owner || (access.canReadDraft && contribution !== undefined),
     canApproveSourceReuse:
       access.canApprovePublication &&
-      contribution?.scope === "publication_reuse",
+      contribution?.scope === "publication_reuse" &&
+      contribution.publicationConsent === "members_unlisted_public_v1",
   };
 }
 
 interface ExportContext extends SourceContext {
+  membership?: Membership & { generation: string };
   asset: typeof sourceAssets.$inferSelect;
   exportGrant: typeof originalExportGrants.$inferSelect;
   selection: typeof exportGrantAssets.$inferSelect;
@@ -79,6 +81,9 @@ export function canExportGrantedOriginal(context: ExportContext) {
 
   return (
     journeyAccess(actor, journeyId, membership).isActiveMember &&
+    exportGrant.recipientMembershipGeneration !== null &&
+    exportGrant.recipientMembershipGeneration === membership?.generation &&
+    exportGrant.decision === "approved" &&
     contribution !== undefined &&
     exportGrant.journeyId === journeyId &&
     exportGrant.recipientId === actor.accountId &&

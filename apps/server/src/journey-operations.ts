@@ -1,8 +1,11 @@
 import {
   type createAuth,
+  createJourneyEditorialService,
   createJourneyInvitationService,
   createJourneyMembershipService,
   createJourneyService,
+  createOriginalExportService,
+  createSourceReviewService,
 } from "@kairn/backend";
 import type { JourneyOperations } from "./http/journeys.js";
 
@@ -17,6 +20,9 @@ export function createJourneyOperations(
     verifySession: auth.verifySession,
     invitations: createJourneyInvitationService(auth, config),
     restrictMembership: createJourneyMembershipService(auth, config),
+    updateEditorialCapability: createJourneyEditorialService(auth, config),
+    sourceReview: createSourceReviewService(auth, config),
+    originalExport: createOriginalExportService(auth, config),
     ...createJourneyService(auth, config),
   } satisfies JourneyOperations;
 }

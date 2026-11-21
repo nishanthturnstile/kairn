@@ -2,8 +2,8 @@ import { sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import type { createAuth, VerifiedSession } from "../identity/auth.js";
 import {
-  confirmRecordedRestriction,
   enqueueRestrictionConfirmation,
+  finishRecordedRestriction,
 } from "../lifecycle/identity-restrictions.js";
 import type { RestrictionJournal } from "../lifecycle/restriction-journal.js";
 
@@ -47,17 +47,6 @@ export function createJourneyMembershipService(
     });
     if (result.status !== 200) return result;
 
-    const { confirmed, eventId } = result;
-    if (confirmed)
-      return { status: 200, eventId, confirmation: "confirmed" } as const;
-    if (journal) {
-      const appended = await auth.withCurrentRecoveryEpoch(async (tx) => {
-        await confirmRecordedRestriction(tx, journal, eventId);
-        return { status: 200 } as const;
-      });
-      if (appended.status === 200)
-        return { status: 200, eventId, confirmation: "confirmed" } as const;
-    }
-    return { status: 202, eventId, confirmation: "pending" } as const;
+    return finishRecordedRestriction(auth, journal, result);
   };
 }

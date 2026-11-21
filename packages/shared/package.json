@@ -6,6 +6,13 @@
     "typescript": "6.0.3"
   },
   "exports": {
+    "./journey-editorial": {
+      "types": "./src/journey-editorial.ts",
+      "react-native": "./src/journey-editorial.ts",
+      "browser": "./src/journey-editorial.ts",
+      "development": "./src/journey-editorial.ts",
+      "import": "./dist/journey-editorial.js"
+    },
     "./journey-form": {
       "types": "./src/journey-form.ts",
       "react-native": "./src/journey-form.ts",
