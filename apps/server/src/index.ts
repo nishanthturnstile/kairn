@@ -3,6 +3,7 @@ import {
   checkDatabaseReadiness,
   checkJourneyReadiness,
   createAuth,
+  createCompanionSetupService,
   createOnboardingService,
   createProfileService,
   initializeLocalIdentity,
@@ -14,6 +15,7 @@ import {
   parseServerEnvironment,
 } from "@kairn/backend";
 import { createApp } from "./app.js";
+import { invitationAssociations } from "./http/invitation-associations.js";
 import { createJourneyOperations } from "./journey-operations.js";
 import { loadReader } from "./reader.js";
 
@@ -31,6 +33,7 @@ const {
   NODE_ENV,
   READER_BUILD_DIR,
 } = parseServerEnvironment(process.env);
+const nativeAssociations = invitationAssociations(process.env, BETTER_AUTH_URL);
 const { db } = openDatabase(DATABASE_URL);
 const boss = openJobQueue(DATABASE_URL);
 await boss.start();
@@ -60,6 +63,7 @@ const journeys = identityAvailable
   ? createJourneyOperations(auth, identityConfig)
   : undefined;
 const app = createApp({
+  nativeAssociations,
   authHandler: identityAvailable
     ? auth.handler
     : async () =>
@@ -79,6 +83,7 @@ const app = createApp({
     writeOrigins: journeys.writeOrigins,
     dashboard: journeys.dashboard,
     onboarding: createOnboardingService(auth),
+    companionSetup: createCompanionSetupService(auth),
     profile: createProfileService(auth),
   },
   checkReadiness: async () => {

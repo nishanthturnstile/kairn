@@ -1,5 +1,17 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq, gt, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  exists,
+  gt,
+  gte,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { DatabaseTransaction } from "../../db/index.js";
 import type { createAuth, VerifiedSession } from "../identity/auth.js";
 import {
@@ -68,6 +80,30 @@ function selectMemberJourneys(tx: DatabaseTransaction, accountId: string) {
 }
 
 type JourneyRow = Awaited<ReturnType<typeof selectMemberJourneys>>[number];
+
+function invitableJourney(row: JourneyRow) {
+  return { id: row.id, title: row.title, schedule: projectedSchedule(row) };
+}
+
+function invitableJourneyFilter(tx: DatabaseTransaction, accountId: string) {
+  const administrator = tx
+    .select({ capability: journeyCapabilities.capability })
+    .from(journeyCapabilities)
+    .where(
+      and(
+        eq(journeyCapabilities.journeyId, journeys.id),
+        eq(journeyCapabilities.accountId, accountId),
+        eq(journeyCapabilities.capability, "administrator"),
+      ),
+    );
+  return and(isNull(journeys.archivedAt), exists(administrator));
+}
+
+async function scopeJourneys(tx: DatabaseTransaction, accountId: string) {
+  await tx.execute(
+    sql`select set_config('kairn.journey_account', ${accountId}, true)`,
+  );
+}
 
 function projectedMinute(
   local: string | null,
@@ -246,9 +282,7 @@ export function createJourneyService(
     operation: (tx: DatabaseTransaction, accountId: string) => Promise<Result>,
   ) {
     return auth.withCurrentSession(session, async (tx) => {
-      await tx.execute(
-        sql`select set_config('kairn.journey_account', ${session.accountId}, true)`,
-      );
+      await scopeJourneys(tx, session.accountId);
       return operation(tx, session.accountId);
     });
   }
@@ -293,6 +327,54 @@ export function createJourneyService(
   }
 
   return {
+    people(session: VerifiedSession, journeyId: string, cursor?: string) {
+      return withJourneyScope(session, async (tx) => {
+        const { rows } = await tx.execute<{
+          items:
+            | {
+                accountId: string;
+                membershipGeneration: string;
+                displayName: string;
+                capabilities: Membership["capabilities"][number][];
+              }[]
+            | null;
+        }>(sql`
+          select kairn.read_journey_people(${journeyId}::uuid, ${cursor ?? null}::uuid) as items
+        `);
+        const people = rows[0]?.items;
+        if (!people) return { status: 404 } as const;
+        const items = people.slice(0, pageSize);
+        return {
+          status: 200,
+          page: {
+            items,
+            nextCursor:
+              people.length > pageSize ? items[pageSize - 1].accountId : null,
+          },
+        } as const;
+      });
+    },
+    invitable(session: VerifiedSession, cursor?: string) {
+      return withJourneyScope(session, async (tx, accountId) => {
+        const rows = await selectMemberJourneys(tx, accountId)
+          .where(
+            and(
+              invitableJourneyFilter(tx, accountId),
+              cursor === undefined ? undefined : gt(journeys.id, cursor),
+            ),
+          )
+          .orderBy(asc(journeys.id))
+          .limit(pageSize + 1);
+        const page = rows.slice(0, pageSize);
+        return {
+          status: 200,
+          page: {
+            items: page.map(invitableJourney),
+            nextCursor: rows.length > pageSize ? page[pageSize - 1].id : null,
+          },
+        } as const;
+      });
+    },
     dashboard(session: VerifiedSession) {
       return withJourneyScope(session, async (tx, accountId) => {
         const asOf = now().toISOString();

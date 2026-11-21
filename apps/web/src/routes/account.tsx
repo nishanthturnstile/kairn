@@ -7,6 +7,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BadgeCheck, LogOut, MonitorSmartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AuthForm, type AuthMode } from "../components/auth-form";
+import { InviteDiscoverySetting } from "../components/invite-discovery-setting";
 import { JourneyLoading } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { ProfileName } from "../components/profile-name";
@@ -15,6 +16,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { authClient } from "../lib/auth";
+import { readInvitationHandoff } from "../lib/invitation-handoff";
 import { journeyReturnTo, saveJourneyReturnTo } from "../lib/journey-return";
 import { useOnboarding } from "../lib/onboarding";
 import { useSessionAccess } from "../lib/session-access";
@@ -70,7 +72,10 @@ function AccountPage() {
     signInAccount,
     setSignInAccount,
   } = useSessionAccess();
-  const { returnTo, verification: confirmed } = verification;
+  const { verification: confirmed } = verification;
+  const returnTo =
+    verification.returnTo ??
+    (confirmed && readInvitationHandoff() ? "/journey-invitations" : undefined);
   const progress = useOnboarding();
   const [hadGuestForm, setHadGuestForm] = useState(state === "signed-out");
   useEffect(() => {
@@ -167,6 +172,10 @@ function AccountPage() {
                     Verified
                   </dd>
                 </dl>
+                <InviteDiscoverySetting
+                  scope={scope}
+                  accountId={scope.accountId}
+                />
               </CardContent>
             </Card>
           </section>
@@ -280,7 +289,12 @@ function SignedInDevices({ id }: { id: string }) {
           <h2 id="account-devices" className="text-xl font-semibold">
             Signed-in devices
           </h2>
-          <Button type="button" variant="outline" size="sm" onClick={signOut}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => signOut()}
+          >
             <LogOut aria-hidden="true" data-icon="inline-start" />
             Sign out
           </Button>

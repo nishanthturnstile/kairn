@@ -11,6 +11,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { useAppearancePreference } from "../appearance";
 import { mobileAuth } from "../auth";
 import { AccountAccess } from "../components/account-access";
+import { InviteDiscoverySetting } from "../components/invite-discovery-setting";
 import { ProfileName } from "../components/profile-name";
 import {
   Action,
@@ -21,6 +22,7 @@ import {
   StatusNotice,
   touchTarget,
 } from "../components/ui";
+import { clearInvitationHandoff } from "../invitation-handoff";
 import { useMobileSession } from "../mobile-session";
 import type { AppearancePreference } from "../theme";
 import { useWorkspace } from "../workspace";
@@ -64,6 +66,7 @@ function Account({ client }: { client: Client }) {
   }
 
   async function leave(accountId: string) {
+    clearInvitationHandoff();
     setSignOutAttempt({ accountId, status: "pending" });
     const success = await signOut().catch(() => false);
     setSignOutAttempt(success ? undefined : { accountId, status: "error" });
@@ -125,6 +128,7 @@ function Account({ client }: { client: Client }) {
                 />
               </View>
             </View>
+            <InviteDiscoverySetting scope={scope} />
             <AppearanceSettings stacked={stacked} />
           </View>
         )}

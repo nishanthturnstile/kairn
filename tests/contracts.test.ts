@@ -113,6 +113,13 @@ describe("versioned HTTP contracts", () => {
     expect(
       Object.keys(document.paths).some((path) => path.startsWith("/api/auth")),
     ).toBe(false);
+    expect(
+      document.components.schemas.CompanionSetupV1.properties.checkpoint
+        .oneOf[0].properties.journey.anyOf,
+    ).toEqual([
+      { $ref: "#/components/schemas/InvitableJourneyV1" },
+      { type: "null" },
+    ]);
   });
 });
 
@@ -123,6 +130,7 @@ const session = {
   sessionId: "dc48aaff-7946-4a46-9c97-4240f95622b1",
 };
 const journeyId = "da716ed6-bf00-410f-a3c5-09a0058a9d80";
+const membershipGeneration = "cdd359dc-0a82-405d-b525-3a8163055f90";
 const asOf = "2026-06-01T00:00:00Z";
 const createInput = {
   title: "  Coorg  ",
@@ -193,6 +201,25 @@ function journeyApiFixture() {
         ? { status: 200, journey: internalJourney }
         : { status: 404 },
     ),
+    people: vi.fn<JourneyOperations["people"]>(async () => ({
+      status: 200,
+      page: {
+        items: [
+          {
+            accountId,
+            membershipGeneration,
+            displayName: "Journey member",
+            capabilities: [],
+            email: "private@example.test",
+          },
+        ],
+        nextCursor: null,
+      },
+    })),
+    invitable: vi.fn<JourneyOperations["invitable"]>(async () => ({
+      status: 200,
+      page: { items: [internalJourney], nextCursor: null },
+    })),
   } satisfies JourneyOperations;
   const http = createApp({
     authHandler: async () => new Response(null, { status: 404 }),
@@ -226,6 +253,54 @@ async function expectJourneyProblem(
 }
 
 describe("private journey HTTP contracts", () => {
+  it("exposes paged People and eligible journeys with private projections", async () => {
+    const { fetch, operations, cookie } = journeyApiFixture();
+    const web = createWebApiClient();
+    const mobile = createMobileApiClient(webOrigin);
+    const people = await mobile.GET("/api/v1/journeys/{journeyId}/people", {
+      fetch,
+      headers: cookie,
+      params: {
+        path: { journeyId },
+        query: { cursor: accountId },
+      },
+    });
+    expect(people.data).toEqual({
+      items: [
+        {
+          accountId,
+          membershipGeneration,
+          displayName: "Journey member",
+          capabilities: [],
+        },
+      ],
+      nextCursor: null,
+    });
+    expect(people.response.headers.get("Cache-Control")).toBe(
+      "private, no-store",
+    );
+    expect(operations.people).toHaveBeenCalledWith(
+      session,
+      journeyId,
+      accountId,
+    );
+
+    const invitable = await web.GET("/api/v1/journeys/invitable", {
+      baseUrl: webOrigin,
+      fetch,
+      headers: cookie,
+    });
+    expect(invitable.data).toEqual({
+      items: [
+        { id: journeyId, title: journey.title, schedule: journey.schedule },
+      ],
+      nextCursor: null,
+    });
+    expect(invitable.response.headers.get("Cache-Control")).toBe(
+      "private, no-store",
+    );
+  });
+
   it("returns the canonical ID at creation and replay and forwards a verified actor and normalized input", async () => {
     const { fetch, operations, cookie } = journeyApiFixture();
     const web = createWebApiClient();

@@ -10,10 +10,10 @@ import { Skeleton } from "../ui/skeleton";
 
 export function JourneyLoading({ label }: { label: string }) {
   return (
-    <output className="grid gap-3 rounded-card control-border bg-card p-4">
+    <output className="grid w-full min-w-0 grid-cols-1 gap-3 rounded-card control-border bg-card p-4">
       <span className="text-muted-foreground">{label}</span>
-      <Skeleton className="h-4 w-40 max-w-full" />
-      <Skeleton className="h-4 w-64 max-w-full" />
+      <Skeleton className="h-4 w-full max-w-40" />
+      <Skeleton className="h-4 w-full max-w-64" />
     </output>
   );
 }

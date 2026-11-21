@@ -69,6 +69,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/journeys/invitable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listInvitableJourneys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listJourneyPeople"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/journeys/{journeyId}": {
         parameters: {
             query?: never;
@@ -79,6 +111,182 @@ export interface paths {
         get: operations["getJourney"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/invitees/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["searchJourneyInvitees"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listJourneyInvitations"];
+        put?: never;
+        post: operations["issueJourneyInvitations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resendJourneyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/invitations/{invitationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelJourneyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journey-invitations/continue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["exchangeJourneyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journey-invitations/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reviewJourneyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journey-invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acceptJourneyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journey-invitations/acceptance-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["getJourneyInvitationAcceptance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/members/{memberId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["removeJourneyMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["leaveJourney"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/companions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCompanionSetup"];
+        put?: never;
+        post: operations["advanceCompanionSetup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -217,12 +425,12 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "checkpoint_changed" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
+            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "checkpoint_changed" | "invitation_accepted" | "last_administrator" | "membership_changed" | "rate_limited" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
             /** Format: uuid */
             requestId: string;
             issues?: ({
                 /** @enum {string} */
-                field: "body" | "title" | "intendedStart" | "intendedEnd" | "timeZone" | "startOffset" | "endOffset" | "idempotency-key" | "x-expected-account" | "cursor" | "section" | "journeyId";
+                field: "body" | "title" | "intendedStart" | "intendedEnd" | "timeZone" | "startOffset" | "endOffset" | "idempotency-key" | "x-expected-account" | "cursor" | "section" | "journeyId" | "memberId" | "membershipGeneration" | "invitationId" | "emails" | "query" | "recipients" | "continuation" | "operationId" | "token";
                 /** @enum {string} */
                 code: "invalid_value" | "invalid_calendar_date" | "unsupported_timezone" | "nonexistent_time" | "invalid_offset" | "offset_without_end" | "date_out_of_range" | "end_before_start" | "invalid_cursor";
             } | {
@@ -298,6 +506,148 @@ export interface components {
             section: "active" | "upcoming" | "past" | "incomplete" | "recent";
             page: components["schemas"]["JourneyHistoryPageV1"];
         };
+        InvitableJourneysPageV1: {
+            items: components["schemas"]["InvitableJourneyV1"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        InvitableJourneyV1: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            schedule: {
+                timeZone: string;
+                intendedStart: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                };
+                intendedEnd: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                } | null;
+            } | null;
+        };
+        JourneyPeoplePageV1: {
+            items: components["schemas"]["JourneyPersonV1"][];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        JourneyPersonV1: {
+            /** Format: uuid */
+            accountId: string;
+            /** Format: uuid */
+            membershipGeneration: string;
+            displayName: string;
+            capabilities: ("administrator" | "coauthor" | "publisher")[];
+        };
+        JourneyInviteeMatchesV1: {
+            items: {
+                displayName: string;
+                selection: string;
+                ambiguous: boolean;
+            }[];
+        };
+        JourneyInvitationPageV1: {
+            items: {
+                /** Format: uuid */
+                id: string;
+                /** Format: email */
+                email?: string;
+                displayName?: string;
+                /** Format: date-time */
+                expiresAt: string;
+                /** @enum {string} */
+                decision: "pending" | "expired";
+                /** @enum {string} */
+                delivery: "queued" | "sent" | "failed" | "expired";
+            }[];
+            /** Format: uuid */
+            nextCursor: string | null;
+        };
+        JourneyInvitationBatchResultV1: {
+            items: ({
+                /** @enum {string} */
+                status: "queued" | "cancelled";
+                /** Format: uuid */
+                invitationId: string;
+            } | {
+                /** @enum {string} */
+                status: "invalid_email" | "duplicate" | "already_member" | "already_pending" | "rate_limited";
+            })[];
+        };
+        IssueJourneyInvitationsV1: {
+            emails: string[];
+        } | {
+            recipients: ({
+                email: string;
+            } | {
+                selection: string;
+            })[];
+        };
+        JourneyInvitationContinuationV1: {
+            continuation: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        JourneyInvitationReviewV1: {
+            /** @enum {string} */
+            state: "ready";
+            title: string;
+            inviter: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @enum {string} */
+            scope: "participant";
+            schedule: {
+                timeZone: string;
+                intendedStart: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                };
+                intendedEnd: {
+                    local: string;
+                    /** Format: date-time */
+                    instant: string;
+                    offset: string;
+                } | null;
+            } | null;
+            continuation: string;
+        } | {
+            /** @enum {string} */
+            state: "joined";
+            /** Format: uuid */
+            journeyId: string;
+        } | {
+            /** @enum {string} */
+            state: "wrong_account" | "unavailable" | "expired" | "cancelled";
+        };
+        MembershipRestrictionResultV1: {
+            /** Format: uuid */
+            eventId: string;
+            /** @enum {string} */
+            confirmation: "confirmed" | "pending";
+        };
+        RestrictJourneyMembershipV1: {
+            /** Format: uuid */
+            membershipGeneration: string;
+        };
+        CompanionSetupV1: {
+            progress: components["schemas"]["OnboardingProgressV1"];
+            checkpoint: {
+                /** @enum {string} */
+                state: "open";
+                journey: components["schemas"]["InvitableJourneyV1"] | null;
+            } | {
+                /** @enum {string} */
+                state: "unavailable" | "skipped" | "done" | "expired";
+            };
+        };
         OnboardingProgressV1: {
             /** @enum {string} */
             state: "pending";
@@ -310,6 +660,23 @@ export interface components {
         } | {
             /** @enum {string} */
             state: "exempt";
+        };
+        AdvanceCompanionSetupV1: {
+            /** @enum {string} */
+            action: "complete";
+            /** @enum {string} */
+            intent?: "plan" | "record";
+        } | {
+            /** @enum {string} */
+            action: "select";
+            /** Format: uuid */
+            journeyId: string;
+        } | {
+            /** @enum {string} */
+            action: "skip";
+        } | {
+            /** @enum {string} */
+            action: "done";
         };
         AdvanceOnboardingV1: {
             /** @enum {number} */
@@ -325,9 +692,11 @@ export interface components {
         };
         AccountProfileV1: {
             displayName: string;
+            inviteDiscoverable?: boolean;
         };
         UpdateProfileV1: {
-            displayName: string;
+            displayName?: string;
+            inviteDiscoverable?: boolean;
         };
         DashboardSummaryV1: {
             /** Format: date-time */
@@ -721,6 +1090,206 @@ export interface operations {
             };
         };
     };
+    listInvitableJourneys: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Non-archived journeys the caller can administer. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitableJourneysPageV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The verified account changed (account_changed). */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listJourneyPeople: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active members visible to a current journey member. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyPeoplePageV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The verified account changed (account_changed). */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
     getJourney: {
         parameters: {
             query?: never;
@@ -809,6 +1378,1698 @@ export interface operations {
                 };
             };
             /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    searchJourneyInvitees: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    query: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Opted-in members with short-lived invitation selections. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInviteeMatchesV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The organiser has reached the invitation operation limit. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listJourneyInvitations: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending and expired invitations visible to a current administrator. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationPageV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    issueJourneyInvitations: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueJourneyInvitationsV1"];
+            };
+        };
+        responses: {
+            /** @description The recorded outcome for each address in request order. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationBatchResultV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 16384 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The organiser has reached the invitation operation limit. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    resendJourneyInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path: {
+                journeyId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recorded decision for the scoped invitation. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationBatchResultV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The organiser has reached the invitation operation limit. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    cancelJourneyInvitation: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path: {
+                journeyId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recorded decision for the scoped invitation. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationBatchResultV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The organiser has reached the invitation operation limit. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    exchangeJourneyInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A brief opaque continuation for private review. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationContinuationV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    reviewJourneyInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    continuation: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A verified recipient's private invitation review or a generic state. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInvitationReviewV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    acceptJourneyInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    continuation: string;
+                    /** Format: uuid */
+                    operationId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The ID of the existing journey joined as a Participant. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedJourneyV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getJourneyInvitationAcceptance: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    operationId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description A committed acceptance whose membership generation is still current. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedJourneyV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    removeJourneyMember: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path: {
+                journeyId: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestrictJourneyMembershipV1"];
+            };
+        };
+        responses: {
+            /** @description Access is removed and the independent journal confirmed the restriction. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipRestrictionResultV1"];
+                };
+            };
+            /** @description Access is removed. Independent confirmation is pending. */
+            202: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipRestrictionResultV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or member is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The last administrator cannot depart, the membership or account changed, or the operation key belongs to another request. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    leaveJourney: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "idempotency-key": string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestrictJourneyMembershipV1"];
+            };
+        };
+        responses: {
+            /** @description Access is removed and the independent journal confirmed the restriction. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipRestrictionResultV1"];
+                };
+            };
+            /** @description Access is removed. Independent confirmation is pending. */
+            202: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipRestrictionResultV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or member is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The last administrator cannot depart, the membership or account changed, or the operation key belongs to another request. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    getCompanionSetup: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified account’s required and optional setup checkpoints. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanionSetupV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    advanceCompanionSetup: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvanceCompanionSetupV1"];
+            };
+        };
+        responses: {
+            /** @description The verified account’s required and optional setup checkpoints. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanionSetupV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable for invitations. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account or onboarding checkpoint changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds 1024 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
             503: {
                 headers: {
                     /** @description Server-generated request ID */

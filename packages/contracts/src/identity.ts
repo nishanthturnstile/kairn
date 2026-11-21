@@ -11,6 +11,7 @@ export interface RestrictionConfirmation {
 }
 
 import { z } from "zod";
+import { invitableJourney } from "./journeys.js";
 
 export const onboardingIntent = z.enum(["plan", "record"]);
 export type OnboardingIntent = z.infer<typeof onboardingIntent>;
@@ -39,8 +40,40 @@ export const onboardingProgress = z
   .meta({ id: "OnboardingProgressV1" });
 export type OnboardingProgress = z.infer<typeof onboardingProgress>;
 
+export const advanceCompanionSetup = z
+  .discriminatedUnion("action", [
+    z.strictObject({
+      action: z.literal("complete"),
+      intent: onboardingIntent.optional(),
+    }),
+    z.strictObject({ action: z.literal("select"), journeyId: z.uuid() }),
+    z.strictObject({ action: z.literal("skip") }),
+    z.strictObject({ action: z.literal("done") }),
+  ])
+  .meta({ id: "AdvanceCompanionSetupV1" });
+export type AdvanceCompanionSetup = z.infer<typeof advanceCompanionSetup>;
+
+export const companionSetup = z
+  .object({
+    progress: onboardingProgress,
+    checkpoint: z.discriminatedUnion("state", [
+      z.object({
+        state: z.literal("open"),
+        journey: z.union([invitableJourney, z.null()]),
+      }),
+      z.object({
+        state: z.enum(["unavailable", "skipped", "done", "expired"]),
+      }),
+    ]),
+  })
+  .meta({ id: "CompanionSetupV1" });
+export type CompanionSetup = z.infer<typeof companionSetup>;
+
 export const accountProfile = z
-  .object({ displayName: z.string() })
+  .object({
+    displayName: z.string(),
+    inviteDiscoverable: z.boolean().optional(),
+  })
   .meta({ id: "AccountProfileV1" });
 
 export const updateProfile = z
@@ -55,6 +88,12 @@ export const updateProfile = z
           !name.includes("\u0000") &&
           !name.includes("\r") &&
           !name.includes("\n"),
-      ),
+      )
+      .optional(),
+    inviteDiscoverable: z.boolean().optional(),
   })
+  .refine(
+    ({ displayName, inviteDiscoverable }) =>
+      displayName !== undefined || inviteDiscoverable !== undefined,
+  )
   .meta({ id: "UpdateProfileV1" });

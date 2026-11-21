@@ -50,7 +50,7 @@ interface CreatePageProps {
   scope: AccountScope;
   accountId: string;
   intent?: OnboardingIntent;
-  openJourney: (journeyId: string) => void;
+  openJourney: (journeyId: string, invitePeople: boolean) => void;
 }
 
 export function CreateJourneyPage(props: CreatePageProps) {
@@ -164,6 +164,8 @@ function JourneyForm({
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting.current || scope.signal.aborted) return;
+    const invitePeople =
+      event.nativeEvent.submitter?.getAttribute("value") === "invite";
     let submitted = attempt;
     const result = submitted ? undefined : validateJourneyDraft(draft);
     if (result?.errors) {
@@ -216,7 +218,7 @@ function JourneyForm({
       await clearJourneyAttempt(accountId, submitted.key).catch(() => {});
       if (scope.signal.aborted) return;
       void scope.queryClient.invalidateQueries({ queryKey: historyKey(scope) });
-      if (visible()) openJourney(saved.id);
+      if (visible()) openJourney(saved.id, invitePeople);
     } catch (error) {
       if (!visible()) return;
       if (
@@ -380,7 +382,7 @@ function JourneyForm({
           </section>
         </FieldGroup>
         {saving && <output className="sr-only">Saving…</output>}
-        <div className="grid items-center gap-3 rounded-b-card border-t bg-background p-4 @min-[28rem]/journey-form:flex @min-[28rem]/journey-form:justify-between @min-[28rem]/journey-form:px-6">
+        <div className="grid items-center gap-3 rounded-b-card border-t bg-background p-4 @min-[28rem]/journey-form:px-6">
           <p
             id="journey-visibility"
             className="flex items-start gap-2 text-sm text-muted-foreground"
@@ -391,14 +393,25 @@ function JourneyForm({
             />
             <span>Only you can see this journey when you save it.</span>
           </p>
-          <Button
-            type="submit"
-            className="@min-[28rem]/journey-form:shrink-0"
-            disabled={saving}
-            aria-describedby="journey-visibility"
-          >
-            {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              disabled={saving}
+              aria-describedby="journey-visibility"
+            >
+              {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
+            </Button>
+            <Button
+              type="submit"
+              value="invite"
+              variant="outline"
+              disabled={saving}
+            >
+              {attempt
+                ? "Retry save & invite people"
+                : "Create & invite people"}
+            </Button>
+          </div>
         </div>
       </form>
       <JourneyPreview draft={draft} hasEnd={hasEnd} />

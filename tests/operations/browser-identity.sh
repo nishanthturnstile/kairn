@@ -19,7 +19,7 @@ web_port="${KAIRN_TEST_WEB_PORT:-58082}"
 export BETTER_AUTH_URL="http://127.0.0.1:$web_port" NODE_ENV=development HOST=127.0.0.1
 export PORT="${KAIRN_TEST_API_PORT:-58083}"
 export READER_BUILD_DIR="$PWD/apps/web/dist"
-export AUTH_FROM_EMAIL=accounts@example.test SMTP_URL=smtp://127.0.0.1:51025
+export AUTH_FROM_EMAIL=accounts@example.test SMTP_URL="${KAIRN_TEST_SMTP_URL:-smtp://127.0.0.1:51025}"
 BETTER_AUTH_SECRET=$(openssl rand -hex 32)
 AUTH_MAIL_KEY=$(openssl rand -hex 32)
 export BETTER_AUTH_SECRET AUTH_MAIL_KEY
@@ -28,6 +28,10 @@ suites=(tests/web/identity.playwright.ts tests/web/journeys.playwright.ts tests/
 if [[ "${KAIRN_WEB_ONBOARDING:-0}" == 1 ]]; then
   export ONBOARDING_STARTS_AT=2000-01-01T00:00:00Z
   suites=(tests/web/onboarding.playwright.ts)
+fi
+if [[ "${KAIRN_WEB_INVITATIONS:-0}" == 1 ]]; then
+  export ONBOARDING_STARTS_AT=2000-01-01T00:00:00Z
+  suites=(tests/web/journey-people.playwright.ts)
 fi
 
 node apps/server/dist/index.js >"$scratch/server.log" 2>&1 &

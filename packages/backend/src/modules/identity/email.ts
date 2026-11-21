@@ -1,15 +1,11 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  randomUUID,
-} from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
 import { logger } from "../../logger.js";
 import type { openMailTransport } from "../../mail.js";
+import { sealPayload, unsealPayload } from "../../sealed-payload.js";
 import { user, verification } from "./auth-schema.js";
 import { identityMail } from "./schema.js";
 import {
@@ -30,36 +26,7 @@ const accountData = {
 type Link = { url: string; token: string };
 type MailKind = typeof identityMail.$inferSelect.kind;
 
-function seal(key: string, id: string, link: Link) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", Buffer.from(key, "hex"), iv);
-  cipher.setAAD(Buffer.from(id));
-  const payload = Buffer.concat([
-    cipher.update(JSON.stringify(link)),
-    cipher.final(),
-  ]);
-  return Buffer.concat([iv, cipher.getAuthTag(), payload]).toString(
-    "base64url",
-  );
-}
-
-function unseal(key: string, id: string, value: string) {
-  const bytes = Buffer.from(value, "base64url");
-  const decipher = createDecipheriv(
-    "aes-256-gcm",
-    Buffer.from(key, "hex"),
-    bytes.subarray(0, 12),
-  );
-  decipher.setAAD(Buffer.from(id));
-  decipher.setAuthTag(bytes.subarray(12, 28));
-  const data = Buffer.concat([
-    decipher.update(bytes.subarray(28)),
-    decipher.final(),
-  ]).toString();
-  return z
-    .object({ url: z.url(), token: z.string().min(1) })
-    .parse(JSON.parse(data));
-}
+const mailLink = z.object({ url: z.url(), token: z.string().min(1) });
 
 export async function enqueueIdentityMail(
   tx: DatabaseTransaction,
@@ -76,7 +43,7 @@ export async function enqueueIdentityMail(
     kind,
     accountId,
     epochDigest,
-    ciphertext: seal(key, id, link),
+    ciphertext: sealPayload(Buffer.from(key, "hex"), id, link),
     expiresAt: new Date(Date.now() + authLinkAge * 1000),
   });
   const jobId = await boss.send(
@@ -144,7 +111,13 @@ export async function registerIdentityMail(
               .where(eq(identityMail.id, id));
             return;
           }
-          const link = unseal(config.key, id, message.ciphertext);
+          const link = mailLink.parse(
+            unsealPayload(
+              Buffer.from(config.key, "hex"),
+              id,
+              message.ciphertext,
+            ),
+          );
           const reset = message.kind === "reset";
           const token =
             reset &&

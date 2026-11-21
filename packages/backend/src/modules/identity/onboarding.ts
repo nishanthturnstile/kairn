@@ -4,6 +4,10 @@ import { user } from "./auth-schema.js";
 import { accounts, type onboardingIntent } from "./schema.js";
 
 type Intent = (typeof onboardingIntent.enumValues)[number];
+type CompanionAction =
+  | { action: "complete"; intent?: Intent }
+  | { action: "select"; journeyId: string }
+  | { action: "skip" | "done" };
 
 function progress(step: number | null, intent?: Intent | null) {
   if (step === 1) return { state: "pending", step: 1 } as const;
@@ -50,8 +54,35 @@ export function createOnboardingService(auth: ReturnType<typeof createAuth>) {
     });
 }
 
+export function createCompanionSetupService(
+  auth: ReturnType<typeof createAuth>,
+) {
+  const onboarding = createOnboardingService(auth);
+  // Older clients can finish required setup through the previous endpoint.
+  return async (session: VerifiedSession, command?: CompanionAction) => {
+    const result = await onboarding(
+      session,
+      command?.action === "complete"
+        ? { step: 2, intent: command.intent }
+        : undefined,
+    );
+    if (result.status !== 200) return result;
+    return {
+      status: 200,
+      setup: {
+        progress: result.progress,
+        checkpoint: { state: "unavailable" },
+      },
+    } as const;
+  };
+}
+
 export function createProfileService(auth: ReturnType<typeof createAuth>) {
-  return (session: VerifiedSession, displayName?: string) =>
+  return (
+    session: VerifiedSession,
+    displayName?: string,
+    inviteDiscoverable?: boolean,
+  ) =>
     auth.withCurrentSession(session, async (tx) => {
       const ownsProfile = eq(user.id, session.accountId);
       const [profile] =
@@ -65,8 +96,19 @@ export function createProfileService(auth: ReturnType<typeof createAuth>) {
               .set({ name: displayName })
               .where(ownsProfile)
               .returning({ displayName: user.name });
-      return profile
-        ? ({ status: 200, profile } as const)
+      const [settings] =
+        inviteDiscoverable === undefined
+          ? await tx
+              .select({ inviteDiscoverable: accounts.inviteDiscoverable })
+              .from(accounts)
+              .where(eq(accounts.id, session.accountId))
+          : await tx
+              .update(accounts)
+              .set({ inviteDiscoverable })
+              .where(eq(accounts.id, session.accountId))
+              .returning({ inviteDiscoverable: accounts.inviteDiscoverable });
+      return profile && settings
+        ? ({ status: 200, profile: { ...profile, ...settings } } as const)
         : ({ status: 401 } as const);
     });
 }

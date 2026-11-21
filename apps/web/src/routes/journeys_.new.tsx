@@ -23,12 +23,15 @@ function CreateJourneyRoute() {
     <JourneyGate title="Create journey" returnTo="/journeys/new">
       {scope.accountId && (
         <CreateJourneyPage
+          key={scope.accountId}
           scope={scope}
           accountId={scope.accountId}
           intent={intent}
-          openJourney={(journeyId) =>
+          openJourney={(journeyId, invitePeople) =>
             void navigate({
-              to: "/journeys/$journeyId",
+              to: invitePeople
+                ? "/journeys/$journeyId/invite"
+                : "/journeys/$journeyId",
               params: { journeyId },
               replace: true,
             })

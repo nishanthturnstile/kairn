@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { openJobQueue, workerCheckQueue } from "../src/jobs.js";
 import { identityMailQueue } from "../src/modules/identity/email.js";
+import { journeyInvitationMailQueue } from "../src/modules/journeys/invitation-mail.js";
 import { restrictionQueue } from "../src/modules/lifecycle/identity-restrictions.js";
 
 const databaseUrl = z
@@ -12,6 +13,7 @@ try {
   await boss.start();
   await boss.createQueue(workerCheckQueue);
   await boss.createQueue(identityMailQueue);
+  await boss.createQueue(journeyInvitationMailQueue);
   await boss.createQueue(restrictionQueue);
 } finally {
   await boss.stop();

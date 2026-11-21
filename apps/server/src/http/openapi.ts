@@ -1,4 +1,6 @@
 import { apiProblem } from "@kairn/contracts/schemas";
+import { createMiddleware } from "hono/factory";
+import { problem, type RequestEnvironment } from "./problem.js";
 
 export const requestIdHeader = {
   "X-Request-Id": {
@@ -32,4 +34,13 @@ export function errorResponse(description: string, headers = requestIdHeader) {
     headers,
     content: { "application/problem+json": { schema: apiProblem } },
   };
+}
+
+export function requireJson<Environment extends RequestEnvironment>() {
+  return createMiddleware<Environment>(async (context, next) => {
+    const mediaType = context.req.header("content-type")?.split(";")[0];
+    if (mediaType?.trim().toLowerCase() !== "application/json")
+      return problem(context, 415);
+    await next();
+  });
 }

@@ -6,10 +6,12 @@ export type {
   CreateJourney,
   DashboardJourney,
   DashboardSummary,
+  InvitableJourneysPage,
   JourneyHistory,
   JourneyHistoryQuery,
   JourneyInputField,
   JourneyInputIssue,
+  JourneyPeoplePage,
   JourneySchedule,
   PrivateJourney,
 } from "./journeys.js";
@@ -19,7 +21,9 @@ export function createApiClient(options?: ClientOptions): Client<paths> {
   return createClient<paths>(options);
 }
 export type {
+  AdvanceCompanionSetup,
   AdvanceOnboarding,
+  CompanionSetup,
   IdentityDevices,
   OnboardingIntent,
   OnboardingProgress,

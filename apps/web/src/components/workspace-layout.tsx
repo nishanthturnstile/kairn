@@ -107,7 +107,11 @@ export function WorkspaceLayout({
             <Alert variant="destructive" role="alert" className="mb-4">
               <AlertTitle>Couldn’t sign out.</AlertTitle>
               <AlertAction>
-                <Button type="button" variant="outline" onClick={signOut}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => signOut()}
+                >
                   Try again
                 </Button>
               </AlertAction>
@@ -328,7 +332,7 @@ function AccountMenu({
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onSelect={signOut}>
+          <DropdownMenuItem variant="destructive" onSelect={() => signOut()}>
             <LogOut aria-hidden="true" />
             Sign out
           </DropdownMenuItem>

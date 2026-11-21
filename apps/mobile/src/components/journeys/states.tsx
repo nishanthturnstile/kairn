@@ -26,15 +26,22 @@ export const journeyStyles = StyleSheet.create(
 export function JourneyScreen({
   children,
   top = false,
+  safeBottom = false,
   scrollRef,
 }: {
   children: ReactNode;
   top?: boolean;
+  safeBottom?: boolean;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
   return (
     <SafeAreaView
-      edges={top ? ["top", "left", "right"] : ["left", "right"]}
+      edges={[
+        "left",
+        "right",
+        ...(top ? (["top"] as const) : []),
+        ...(safeBottom ? (["bottom"] as const) : []),
+      ]}
       style={journeyStyles.screen}
     >
       <ScrollView

@@ -64,6 +64,14 @@ function Navigation() {
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="onboarding/companions"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="journey-invitations"
+          options={{ headerShown: false }}
+        />
       </Stack>
     </ThemeProvider>
   );

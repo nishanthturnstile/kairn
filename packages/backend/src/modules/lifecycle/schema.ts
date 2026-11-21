@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -26,6 +27,7 @@ export const auditTargetKind = kairn.enum("audit_target_kind", [
   "account",
   "journey",
   "membership",
+  "journey_invitation",
   "source",
   "original_export_grant",
 ]);
@@ -73,6 +75,7 @@ export const restrictionEvents = kairn
       operation: restrictionOperation("operation").notNull(),
       policyGeneration: integer("policy_generation").notNull(),
       affectedSessionId: uuid("affected_session_id"),
+      affectedMembershipGeneration: uuid("affected_membership_generation"),
       integrityDigest: text("integrity_digest").notNull(),
       journalSequence: bigint("journal_sequence", { mode: "bigint" }).unique(),
       journalReceipt: text("journal_receipt"),
@@ -85,6 +88,10 @@ export const restrictionEvents = kairn
       check(
         "restriction_events_device_scope",
         sql`(${event.operation}::text = 'device_session_revoked') = (${event.affectedSessionId} IS NOT NULL)`,
+      ),
+      check(
+        "restriction_events_membership_scope",
+        sql`(${event.operation}::text = 'membership_revocation') = (${event.affectedMembershipGeneration} IS NOT NULL)`,
       ),
       check(
         "restriction_events_digest_sha256",
@@ -103,5 +110,22 @@ export const restrictionEvents = kairn
         sql`length(${event.journalReceipt}) BETWEEN 1 AND 2048`,
       ),
     ],
+  )
+  .enableRLS();
+
+export const membershipRestrictionAttempts = kairn
+  .table(
+    "membership_restriction_attempts",
+    {
+      actorId: uuid("actor_id")
+        .notNull()
+        .references(() => accounts.id),
+      key: uuid("key").notNull(),
+      eventId: uuid("event_id")
+        .notNull()
+        .unique()
+        .references(() => restrictionEvents.id),
+    },
+    (attempt) => [primaryKey({ columns: [attempt.actorId, attempt.key] })],
   )
   .enableRLS();

@@ -74,14 +74,172 @@ const journeySchedule = z.object({
   intendedStart: resolvedMinute,
   intendedEnd: resolvedMinute.nullable(),
 });
+const journeyCapability = z.enum(["administrator", "coauthor", "publisher"]);
 export const privateJourney = createdJourney
   .extend({
     title: z.string(),
     state: z.enum(["draft", "archived"]),
     schedule: journeySchedule.nullable(),
-    capabilities: z.array(z.enum(["administrator", "coauthor", "publisher"])),
+    capabilities: z.array(journeyCapability),
   })
   .meta({ id: "PrivateJourneyV1" });
+
+const journeyPageCursor = z.uuid();
+export const journeyPageQuery = z.strictObject({
+  cursor: journeyPageCursor.optional(),
+});
+
+const journeyPerson = z
+  .object({
+    accountId: z.uuid(),
+    membershipGeneration: z.uuid(),
+    displayName: z.string(),
+    capabilities: z.array(journeyCapability),
+  })
+  .meta({ id: "JourneyPersonV1" });
+export const invitableJourney = privateJourney
+  .pick({ id: true, title: true, schedule: true })
+  .meta({ id: "InvitableJourneyV1" });
+
+export const journeyPeoplePage = z
+  .object({
+    items: z.array(journeyPerson),
+    nextCursor: journeyPageCursor.nullable(),
+  })
+  .meta({ id: "JourneyPeoplePageV1" });
+export const invitableJourneysPage = journeyPeoplePage
+  .extend({ items: z.array(invitableJourney) })
+  .meta({ id: "InvitableJourneysPageV1" });
+
+export const journeyMemberPath = journeyPath.extend({ memberId: z.uuid() });
+export const restrictJourneyMembership = z
+  .strictObject({
+    membershipGeneration: z.uuid(),
+  })
+  .meta({ id: "RestrictJourneyMembershipV1" });
+export const membershipRestrictionResult = z
+  .object({
+    eventId: z.uuid(),
+    confirmation: z.enum(["confirmed", "pending"]),
+  })
+  .meta({ id: "MembershipRestrictionResultV1" });
+
+const invitationToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+const continuationHandle = z
+  .string()
+  .min(60)
+  .max(512)
+  .regex(/^[A-Za-z0-9_-]+$/);
+export const journeyInvitationPath = journeyPath.extend({
+  invitationId: z.uuid(),
+});
+const inviteeSelection = z
+  .string()
+  .min(60)
+  .max(1024)
+  .regex(/^[A-Za-z0-9_-]+$/);
+export const invitationEmail = z.email().max(254);
+export const invitationRecipient = z.union([
+  z.strictObject({ email: z.string().max(254) }),
+  z.strictObject({ selection: inviteeSelection }),
+]);
+export const issueJourneyInvitations = z
+  .union([
+    z.strictObject({ emails: z.array(z.string().max(254)).min(1).max(10) }),
+    z.strictObject({ recipients: z.array(invitationRecipient).min(1).max(10) }),
+  ])
+  .meta({ id: "IssueJourneyInvitationsV1" });
+export const searchJourneyInvitees = z.strictObject({
+  query: z
+    .string()
+    .trim()
+    .min(3)
+    .max(254)
+    .refine((value) => !value.includes("\u0000")),
+});
+export const journeyInviteeMatches = z
+  .object({
+    items: z.array(
+      z.object({
+        displayName: z.string(),
+        selection: inviteeSelection,
+        ambiguous: z.boolean(),
+      }),
+    ),
+  })
+  .meta({ id: "JourneyInviteeMatchesV1" });
+export const journeyInvitationBatchResult = z
+  .object({
+    items: z.array(
+      z.union([
+        z.object({
+          status: z.enum(["queued", "cancelled"]),
+          invitationId: z.uuid(),
+        }),
+        z.object({
+          status: z.enum([
+            "invalid_email",
+            "duplicate",
+            "already_member",
+            "already_pending",
+            "rate_limited",
+          ]),
+        }),
+      ]),
+    ),
+  })
+  .meta({ id: "JourneyInvitationBatchResultV1" });
+export const journeyInvitationPage = z
+  .object({
+    items: z.array(
+      z.object({
+        id: z.uuid(),
+        email: z.email().optional(),
+        displayName: z.string().optional(),
+        expiresAt: z.iso.datetime(),
+        decision: z.enum(["pending", "expired"]),
+        delivery: z.enum(["queued", "sent", "failed", "expired"]),
+      }),
+    ),
+    nextCursor: journeyPageCursor.nullable(),
+  })
+  .meta({ id: "JourneyInvitationPageV1" });
+
+export const exchangeJourneyInvitation = z.strictObject({
+  token: invitationToken,
+});
+export const journeyInvitationContinuation = z
+  .object({
+    continuation: continuationHandle,
+    expiresAt: z.iso.datetime(),
+  })
+  .meta({ id: "JourneyInvitationContinuationV1" });
+export const reviewJourneyInvitation = z.strictObject({
+  continuation: continuationHandle,
+});
+export const journeyInvitationReview = z
+  .union([
+    z.object({
+      state: z.literal("ready"),
+      title: z.string(),
+      inviter: z.string(),
+      expiresAt: z.iso.datetime(),
+      scope: z.literal("participant"),
+      schedule: journeySchedule.nullable(),
+      continuation: continuationHandle,
+    }),
+    z.object({ state: z.literal("joined"), journeyId: z.uuid() }),
+    z.object({
+      state: z.enum(["wrong_account", "unavailable", "expired", "cancelled"]),
+    }),
+  ])
+  .meta({ id: "JourneyInvitationReviewV1" });
+export const journeyInvitationOperation = z.strictObject({
+  operationId: z.uuid(),
+});
+export const acceptJourneyInvitation = reviewJourneyInvitation.extend(
+  journeyInvitationOperation.shape,
+);
 
 const dashboardJourney = privateJourney
   .omit({ capabilities: true })
@@ -143,6 +301,15 @@ export const journeyInputField = z.enum([
   "cursor",
   "section",
   "journeyId",
+  "memberId",
+  "membershipGeneration",
+  "invitationId",
+  "emails",
+  "query",
+  "recipients",
+  "continuation",
+  "operationId",
+  "token",
 ]);
 export const journeyInputIssue = z.union([
   z.object({
@@ -173,5 +340,7 @@ export type JourneyInputIssue = z.infer<typeof journeyInputIssue>;
 export type JourneyHistoryQuery = z.infer<typeof journeyHistoryQuery>;
 export type JourneyHistory = z.infer<typeof journeyHistory>;
 export type PrivateJourney = z.infer<typeof privateJourney>;
+export type JourneyPeoplePage = z.infer<typeof journeyPeoplePage>;
+export type InvitableJourneysPage = z.infer<typeof invitableJourneysPage>;
 export type DashboardJourney = z.infer<typeof dashboardJourney>;
 export type DashboardSummary = z.infer<typeof dashboardSummary>;

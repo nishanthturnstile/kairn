@@ -5,15 +5,19 @@ import type { VerifiedMobileScope } from "./session";
 
 export const historyKey = ["journeys", "history"] as const;
 export const detailKey = (id: string) => ["journeys", "detail", id] as const;
+export const journeyInvitationsKey = (id: string) =>
+  ["journeys", "invitations", id] as const;
 
 export class JourneyRequestError extends Error {
   readonly status: number;
   readonly issues: JourneyInputIssue[];
+  readonly code?: string;
 
-  constructor(status: number, issues: JourneyInputIssue[]) {
+  constructor(status: number, issues: JourneyInputIssue[], code?: string) {
     super("The journey request did not complete.");
     this.status = status;
     this.issues = issues;
+    this.code = code;
   }
 }
 
@@ -38,5 +42,17 @@ export function journeyResult<Result>(
       if (parsed.success) issues.push(parsed.data);
     }
   }
-  throw new JourneyRequestError(status, issues);
+  throw new JourneyRequestError(status, issues, result.error?.code);
+}
+
+export async function refreshJourneyViews(scope: VerifiedMobileScope) {
+  await scope.queryClient.cancelQueries({
+    predicate: ({ queryKey }) =>
+      queryKey[0] === "journeys" || queryKey[0] === "dashboard",
+  });
+  ensureActive(scope.signal);
+  void scope.queryClient.invalidateQueries({
+    predicate: ({ queryKey }) =>
+      queryKey[0] === "journeys" || queryKey[0] === "dashboard",
+  });
 }

@@ -23,6 +23,10 @@ export const apiProblemCode = z.enum([
   "idempotency_conflict",
   "account_changed",
   "checkpoint_changed",
+  "invitation_accepted",
+  "last_administrator",
+  "membership_changed",
+  "rate_limited",
   "request_too_large",
   "unsupported_media_type",
   "service_unavailable",
@@ -59,7 +63,9 @@ export const protocol = z.object({
 });
 export {
   accountProfile,
+  advanceCompanionSetup,
   advanceOnboarding,
+  companionSetup,
   onboardingProgress,
   updateProfile,
 } from "./identity.js";

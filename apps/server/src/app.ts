@@ -3,6 +3,11 @@ import { logger } from "@kairn/backend";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
+import {
+  androidAssociationPath,
+  appleAssociationPath,
+  type invitationAssociations,
+} from "./http/invitation-associations.js";
 import type { JourneyOperations } from "./http/journeys.js";
 import { problem, type RequestEnvironment } from "./http/problem.js";
 import { createV1Api, getOpenApiDocument } from "./http/v1.js";
@@ -13,6 +18,7 @@ interface AppDependencies {
   checkReadiness: () => Promise<void>;
   journeys?: JourneyOperations;
   workspace?: WorkspaceOperations;
+  nativeAssociations?: ReturnType<typeof invitationAssociations>;
   renderUnavailableReader?: () => string;
 }
 
@@ -21,6 +27,7 @@ export function createApp({
   checkReadiness,
   journeys,
   workspace,
+  nativeAssociations,
   renderUnavailableReader,
 }: AppDependencies) {
   const app = new Hono<RequestEnvironment>();
@@ -49,6 +56,20 @@ export function createApp({
 
   app.get("/", (context) => context.json({ service: "kairn-server" }));
   app.get("/api", (context) => context.json({ service: "kairn-server" }));
+  app.on("GET", [appleAssociationPath, androidAssociationPath], (context) => {
+    const association =
+      context.req.path === appleAssociationPath
+        ? nativeAssociations?.apple
+        : nativeAssociations?.android;
+    const trustedHost =
+      new URL(context.req.url).host === nativeAssociations?.host;
+    if (!association || !trustedHost) {
+      context.header("Cache-Control", "no-store");
+      return problem(context, 404);
+    }
+    context.header("Cache-Control", "public, max-age=300");
+    return context.json(association);
+  });
   app.on("GET", ["/read", "/read/*"], async (context) => {
     context.header("Cache-Control", "private, no-store");
     context.header("Referrer-Policy", "no-referrer");

@@ -32,7 +32,7 @@ try {
     checkpoint,
   );
   console.log(
-    "Verified identity restrictions and installed the new recovery epoch.",
+    "Verified identity and journey restrictions and installed the new recovery epoch.",
   );
 } finally {
   await database.pool.end();

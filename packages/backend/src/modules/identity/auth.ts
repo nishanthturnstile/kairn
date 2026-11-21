@@ -243,7 +243,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
       const eventId = event.id;
       if (config.journal) {
         try {
-          await confirmRestriction(db, config.journal, eventId);
+          await confirmRestriction(db, config.journal, eventId, config.epoch);
           return Response.json({
             status: true,
             eventId,
@@ -519,6 +519,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
   }
 
   return {
+    withCurrentRecoveryEpoch: withCurrentIdentity,
     verifySession(headers: Headers) {
       return withCurrentIdentity(async (tx) => {
         const auth = requestAuth(
