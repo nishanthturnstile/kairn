@@ -50,6 +50,8 @@ The [invitation and membership plan](plans/journey-invitations-and-membership.md
 
 ## Design review
 
+**PR #6 release smoke repair.** The smoke test now checks the signed-out reader’s `303` redirect to Sign in and its `private, no-store` response. The service-backed browser suite covers the signed-in `404`. Shell syntax and workspace checks passed locally. The release smoke and coordinated restore result is tracked on [PR #6](https://github.com/nishanthturnstile/kairn/pull/6).
+
 **PR #5 CI repair verified.** The [failed foundation job](https://github.com/nishanthturnstile/kairn/actions/runs/44361573931/job/135004090260) stopped because [workspace settings](../.vscode/settings.json) lacked a final newline. Restored it and reconciled the web-shell conflict with `development`, retaining the equivalent `max-w-248` utility. Both `foundation` and `release-smoke` passed in the [hosted validation run](https://github.com/nishanthturnstile/kairn/actions/runs/44362384404), including browser, integration, identity-recovery, and coordinated restore checks. Local formatting/types, API parity, 25 unit tests, builds, client-bundle scans, Expo dependency checks, and 15 browser tests also passed.
 
 The founder approved all seven design-system phases, including [governance and rollout](core/design-system/design-system-governance.md). The [route visual regressions](../tests/web/route-visual.playwright.ts) passed in all three appearances on macOS and Linux ARM64 and detected a deliberately incorrect solid estimate. Hosted AMD64 CI will exercise these baselines on the PR. The existing web and mobile screens now consume the approved system.
