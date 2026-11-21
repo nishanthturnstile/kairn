@@ -138,7 +138,9 @@ test("creates and reopens one journey after the committed reply is lost", async 
     form.requestSubmit();
     form.requestSubmit();
   });
-  await expect(page.getByRole("button", { name: "Retry save" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry save", exact: true }),
+  ).toBeVisible();
   expect(createRequests).toBe(1);
   const { id, key } = await committed.promise;
   await page.unroute(endpoint);
@@ -156,7 +158,7 @@ test("creates and reopens one journey after the committed reply is lost", async 
       }),
     { times: 1 },
   );
-  await page.getByRole("button", { name: "Retry save" }).click();
+  await page.getByRole("button", { name: "Retry save", exact: true }).click();
   await expect(
     page.getByText(
       "We couldn’t confirm the save. Retry with the same details.",
@@ -173,7 +175,7 @@ test("creates and reopens one journey after the committed reply is lost", async 
       response.request().method() === "POST" &&
       new URL(response.url()).pathname === "/api/v1/journeys",
   );
-  await page.getByRole("button", { name: "Retry save" }).click();
+  await page.getByRole("button", { name: "Retry save", exact: true }).click();
   const saved = await replay;
   expect(saved.status()).toBe(200);
   expect(saved.request().headers()["idempotency-key"]).toBe(key);
@@ -453,7 +455,7 @@ test("renders the form at 320px and keeps a pending save bound to the original a
     const restoredEndTime = page.getByLabel("End time", { exact: true });
     await expect(restoredEndTime).toHaveValue("03:15");
     await expect(restoredEndTime).toBeDisabled();
-    await page.getByRole("button", { name: "Retry save" }).click();
+    await page.getByRole("button", { name: "Retry save", exact: true }).click();
     await expect(page).toHaveURL(`${site}/journeys/${id}`);
     await expect(
       page.getByRole("heading", { name: "Private Coonoor" }),
