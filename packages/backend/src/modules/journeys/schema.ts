@@ -109,6 +109,8 @@ export const journeyMemberships = kairn
         .notNull(),
       revokedAt: timestamp("revoked_at", { withTimezone: true }),
       generation: uuid("generation").defaultRandom().notNull(),
+      coauthorRevision: integer("coauthor_revision").default(0).notNull(),
+      publisherRevision: integer("publisher_revision").default(0).notNull(),
     },
     (membership) => [
       primaryKey({ columns: [membership.journeyId, membership.accountId] }),
@@ -119,6 +121,10 @@ export const journeyMemberships = kairn
       check(
         "journey_memberships_revocation_order",
         sql`${membership.revokedAt} >= ${membership.joinedAt}`,
+      ),
+      check(
+        "journey_memberships_editorial_revisions",
+        sql`${membership.coauthorRevision} >= 0 AND ${membership.publisherRevision} >= 0`,
       ),
     ],
   )

@@ -353,6 +353,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       ).toEqual({
         accountId: organiser.id,
         membershipGeneration: expect.any(String),
+        editorialRevisions: { coauthor: 0, publisher: 0 },
         capabilities,
         displayName: "Journey test account",
       });
@@ -361,6 +362,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       ).toEqual({
         accountId: participant.id,
         membershipGeneration: expect.any(String),
+        editorialRevisions: { coauthor: 0, publisher: 0 },
         capabilities: [],
         displayName: "Journey test account",
       });

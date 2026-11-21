@@ -16,10 +16,15 @@ const publicationGrant = {
   sourceId: source.id,
   ownerId: source.ownerId,
   scope: "publication_reuse",
+  publicationConsent: "members_unlisted_public_v1",
   revision: 2,
   withdrawnAt: null,
 } as const;
-const reviewGrant = { ...publicationGrant, scope: "journey_review" } as const;
+const reviewGrant = {
+  ...publicationGrant,
+  scope: "journey_review",
+  publicationConsent: null,
+} as const;
 
 const scenarios = [
   {
@@ -117,6 +122,12 @@ describe("foundational journey and source permissions", () => {
     expect(
       sourceAccess({ ...context, sourceGrant: reviewGrant }),
     ).toMatchObject({ canReadReview: true, canApproveSourceReuse: false });
+    expect(
+      sourceAccess({
+        ...context,
+        sourceGrant: { ...publicationGrant, publicationConsent: null },
+      }),
+    ).toMatchObject({ canReadReview: true, canApproveSourceReuse: false });
     expect(sourceAccess(context).canReadReview).toBe(false);
     expect(
       sourceAccess({
@@ -164,11 +175,12 @@ describe("foundational journey and source permissions", () => {
 
 it("checks recipient, exact asset, active membership, expiry, and source revision for original exports", () => {
   const actor = { accountId: "recipient", restrictedAt: null };
-  const membership: Membership = {
+  const membership = {
     accountId: actor.accountId,
     journeyId,
     revokedAt: null,
     capabilities: [],
+    generation: "recipient-membership",
   };
   const asset = { id: "asset", sourceId: source.id, deletedAt: null };
   const exportGrant = {
@@ -176,6 +188,9 @@ it("checks recipient, exact asset, active membership, expiry, and source revisio
     journeyId,
     ownerId: source.ownerId,
     recipientId: actor.accountId,
+    recipientMembershipGeneration: membership.generation,
+    requestKey: "request-key",
+    decision: "approved" as const,
     createdAt: now,
     expiresAt: new Date(now.getTime() + 1000),
     revokedAt: null,
@@ -206,6 +221,9 @@ it("checks recipient, exact asset, active membership, expiry, and source revisio
     { sourceGrant: { ...reviewGrant, revision: 3 } },
     { sourceGrant: { ...publicationGrant, withdrawnAt: now } },
     { membership: { ...membership, revokedAt: now } },
+    { membership: { ...membership, generation: "joined-again" } },
+    { exportGrant: { ...exportGrant, recipientMembershipGeneration: null } },
+    { exportGrant: { ...exportGrant, decision: "pending" as const } },
     { exportGrant: { ...exportGrant, recipientId: "different-recipient" } },
     { exportGrant: { ...exportGrant, revokedAt: now } },
     { now: exportGrant.expiresAt },

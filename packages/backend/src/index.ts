@@ -23,6 +23,7 @@ export {
   initializeLocalIdentity,
   localRecoveryEpoch,
 } from "./modules/identity/state.js";
+export { createJourneyEditorialService } from "./modules/journeys/editorial.js";
 export { registerJourneyInvitationMail } from "./modules/journeys/invitation-mail.js";
 export { createJourneyInvitationService } from "./modules/journeys/invitations.js";
 export { createJourneyMembershipService } from "./modules/journeys/membership.js";
@@ -35,6 +36,8 @@ export {
   journalCheckpoint,
   openRestrictionJournal,
 } from "./modules/lifecycle/restriction-journal.js";
+export { createOriginalExportService } from "./modules/sources/original-export.js";
+export { createSourceReviewService } from "./modules/sources/review.js";
 export { openObjectStore } from "./storage.js";
 
 const databaseUrl = z.url({ protocol: /^postgres(?:ql)?$/ });

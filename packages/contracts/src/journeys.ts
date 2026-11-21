@@ -75,6 +75,9 @@ const journeySchedule = z.object({
   intendedEnd: resolvedMinute.nullable(),
 });
 const journeyCapability = z.enum(["administrator", "coauthor", "publisher"]);
+export const editorialCapability = z.enum(["coauthor", "publisher"]);
+export type EditorialCapability = z.infer<typeof editorialCapability>;
+const editorialRevision = z.int().min(0).max(2_147_483_647);
 export const privateJourney = createdJourney
   .extend({
     title: z.string(),
@@ -93,6 +96,12 @@ const journeyPerson = z
   .object({
     accountId: z.uuid(),
     membershipGeneration: z.uuid(),
+    editorialRevisions: z
+      .object({
+        coauthor: editorialRevision,
+        publisher: editorialRevision,
+      })
+      .optional(),
     displayName: z.string(),
     capabilities: z.array(journeyCapability),
   })
@@ -112,6 +121,105 @@ export const invitableJourneysPage = journeyPeoplePage
   .meta({ id: "InvitableJourneysPageV1" });
 
 export const journeyMemberPath = journeyPath.extend({ memberId: z.uuid() });
+export const journeySourcePath = journeyPath.extend({ sourceId: z.uuid() });
+const sourceGrantRevision = z.int().min(0).max(2_147_483_647);
+export const updateSourceReview = z
+  .discriminatedUnion("action", [
+    z.strictObject({
+      action: z.literal("share"),
+      expectedRevision: sourceGrantRevision,
+    }),
+    z.strictObject({
+      action: z.literal("withdraw"),
+      expectedRevision: sourceGrantRevision.min(1),
+    }),
+    z.strictObject({
+      action: z.literal("allow_publication_reuse"),
+      expectedRevision: sourceGrantRevision,
+      consent: z
+        .literal("members_unlisted_public_v1")
+        .describe(
+          "The owner explicitly allows this source in approved publications and shares of this journey. Designated publishers can choose members-only, unlisted, or public visibility.",
+        ),
+    }),
+    z.strictObject({
+      action: z.literal("narrow_to_review"),
+      expectedRevision: sourceGrantRevision.min(1),
+    }),
+  ])
+  .meta({ id: "UpdateSourceReviewV1" });
+export const journeySourceReview = z
+  .object({
+    sourceId: z.uuid(),
+    scope: z.enum(["only_me", "journey_review", "publication_reuse"]),
+    revision: sourceGrantRevision,
+  })
+  .meta({ id: "JourneySourceReviewV1" });
+export const sourceReviewWithdrawal = z
+  .object({
+    eventId: z.uuid(),
+    revision: sourceGrantRevision.min(2),
+    confirmation: z.enum(["confirmed", "pending"]),
+  })
+  .meta({ id: "SourceReviewWithdrawalV1" });
+export const sourceReviewNarrowing = sourceReviewWithdrawal
+  .extend({
+    scope: z.literal("journey_review"),
+  })
+  .meta({ id: "SourceReviewNarrowingV1" });
+export const originalExportPath = journeyPath.extend({ grantId: z.uuid() });
+export const originalExportMetadataNotice =
+  "Original files can include private metadata omitted from published versions. People can keep copies they download.";
+const originalExportSelection = z.object({
+  assetIds: z.array(z.uuid()),
+  expiresAt: z.iso.datetime({ precision: 3 }),
+});
+export const requestOriginalExport = z
+  .strictObject({
+    ownerId: z.uuid(),
+    assetIds: originalExportSelection.shape.assetIds.min(1).max(50),
+    expiresAt: z.iso
+      .datetime({ offset: true })
+      .describe(
+        "A future timestamp normalized to UTC at millisecond precision.",
+      ),
+  })
+  .meta({ id: "RequestOriginalExportV1" });
+export const decideOriginalExport = z
+  .discriminatedUnion("decision", [
+    z.strictObject({
+      decision: z.literal("approve"),
+      metadataAcknowledged: z
+        .literal(true)
+        .describe(originalExportMetadataNotice),
+    }),
+    z.strictObject({ decision: z.literal("decline") }),
+  ])
+  .meta({ id: "DecideOriginalExportV1" });
+export const originalExportAuthorization = originalExportSelection
+  .extend({ grantId: z.uuid() })
+  .meta({ id: "OriginalExportAuthorizationV1" });
+export const originalExportRequest = originalExportAuthorization
+  .extend({
+    ownerId: z.uuid(),
+    recipient: z.object({ accountId: z.uuid(), displayName: z.string() }),
+    state: z.enum([
+      "pending",
+      "approved",
+      "declined",
+      "expired",
+      "revoked",
+      "unavailable",
+    ]),
+    metadataNotice: z.literal(originalExportMetadataNotice),
+  })
+  .meta({ id: "OriginalExportRequestV1" });
+export const originalExportPage = z
+  .object({
+    items: z.array(originalExportRequest),
+    nextCursor: journeyPageCursor.nullable(),
+  })
+  .meta({ id: "OriginalExportPageV1" });
 export const restrictJourneyMembership = z
   .strictObject({
     membershipGeneration: z.uuid(),
@@ -123,6 +231,29 @@ export const membershipRestrictionResult = z
     confirmation: z.enum(["confirmed", "pending"]),
   })
   .meta({ id: "MembershipRestrictionResultV1" });
+export const updateEditorialCapability = z
+  .strictObject({
+    membershipGeneration: z.uuid(),
+    capability: editorialCapability,
+    expectedRevision: editorialRevision,
+    enabled: z.boolean(),
+  })
+  .meta({ id: "UpdateEditorialCapabilityV1" });
+export type UpdateEditorialCapability = z.infer<
+  typeof updateEditorialCapability
+>;
+export const editorialCapabilityRemoval = membershipRestrictionResult
+  .extend({
+    enabled: z.literal(false),
+    revision: editorialRevision,
+  })
+  .meta({ id: "EditorialCapabilityRemovalV1" });
+export const editorialCapabilityResult = z
+  .union([
+    z.object({ enabled: z.literal(true), revision: editorialRevision }),
+    editorialCapabilityRemoval,
+  ])
+  .meta({ id: "EditorialCapabilityResultV1" });
 
 const invitationToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 const continuationHandle = z

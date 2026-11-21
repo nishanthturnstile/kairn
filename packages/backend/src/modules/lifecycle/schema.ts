@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { kairn } from "../../db/namespaces.js";
 import { accounts } from "../identity/schema.js";
+import { journeyCapability } from "../journeys/schema.js";
 
 export const restrictionOperation = kairn.enum("restriction_operation", [
   "account_restriction",
@@ -76,6 +77,7 @@ export const restrictionEvents = kairn
       policyGeneration: integer("policy_generation").notNull(),
       affectedSessionId: uuid("affected_session_id"),
       affectedMembershipGeneration: uuid("affected_membership_generation"),
+      affectedCapability: journeyCapability("affected_capability"),
       integrityDigest: text("integrity_digest").notNull(),
       journalSequence: bigint("journal_sequence", { mode: "bigint" }).unique(),
       journalReceipt: text("journal_receipt"),
@@ -91,7 +93,11 @@ export const restrictionEvents = kairn
       ),
       check(
         "restriction_events_membership_scope",
-        sql`(${event.operation}::text = 'membership_revocation') = (${event.affectedMembershipGeneration} IS NOT NULL)`,
+        sql`(${event.operation}::text IN ('membership_revocation', 'capability_removal')) = (${event.affectedMembershipGeneration} IS NOT NULL)`,
+      ),
+      check(
+        "restriction_events_editorial_scope",
+        sql`(${event.operation}::text = 'capability_removal') = (${event.affectedCapability} IS NOT NULL) AND (${event.affectedCapability} IS NULL OR ${event.affectedCapability} IN ('coauthor', 'publisher'))`,
       ),
       check(
         "restriction_events_digest_sha256",

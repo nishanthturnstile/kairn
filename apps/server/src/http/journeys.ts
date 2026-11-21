@@ -1,7 +1,10 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type {
+  createJourneyEditorialService,
   createJourneyInvitationService,
   createJourneyMembershipService,
+  createOriginalExportService,
+  createSourceReviewService,
   VerifiedSession,
 } from "@kairn/backend";
 import type {
@@ -31,10 +34,13 @@ import type { MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { registerJourneyEditorialRoute } from "./journey-editorial.js";
 import { registerJourneyInvitationRoutes } from "./journey-invitations.js";
 import { registerJourneyMembershipRoutes } from "./journey-membership.js";
 import { allowsWriteOrigin, errorResponse, privateHeaders } from "./openapi.js";
+import { registerOriginalExportRoutes } from "./original-export.js";
 import { problem, type RequestEnvironment } from "./problem.js";
+import { registerSourceReviewRoutes } from "./source-review.js";
 
 interface Unavailable {
   status: 503;
@@ -44,6 +50,9 @@ export interface JourneyOperations {
   writeOrigins: readonly string[];
   invitations?: ReturnType<typeof createJourneyInvitationService>;
   restrictMembership?: ReturnType<typeof createJourneyMembershipService>;
+  updateEditorialCapability?: ReturnType<typeof createJourneyEditorialService>;
+  sourceReview?: ReturnType<typeof createSourceReviewService>;
+  originalExport?: ReturnType<typeof createOriginalExportService>;
   verifySession(
     headers: Headers,
   ): Promise<
@@ -396,5 +405,8 @@ export function createJourneysApi(operations?: JourneyOperations) {
   };
   registerJourneyInvitationRoutes(api, guards);
   registerJourneyMembershipRoutes(api, guards);
+  registerJourneyEditorialRoute(api, guards);
+  registerSourceReviewRoutes(api, guards);
+  registerOriginalExportRoutes(api, guards);
   return api;
 }
