@@ -69,8 +69,13 @@ function CreatorApp() {
     !current.error && current.data?.user?.emailVerified
       ? current.data.user.id
       : null;
+  // The automatic sign-out refresh can replace the explicit session request.
+  const signOutPending =
+    signOutRequested &&
+    (rechecking || (accountId !== null && current.isRefetching));
+  const checking = current.isPending || rechecking || signOutPending;
   useEffect(() => {
-    if (!current.isPending && !rechecking) {
+    if (!checking) {
       if (
         !current.error &&
         previousAccount.current &&
@@ -83,7 +88,7 @@ function CreatorApp() {
       if (!current.error) previousAccount.current = accountId;
       session.setVerifiedAccount(accountId);
     }
-  }, [accountId, current.error, current.isPending, rechecking]);
+  }, [accountId, checking, current.error]);
   const scope = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const router = useMemo(() => createCreatorRouter(scope), [scope]);
   const refetch = current.refetch;
@@ -128,16 +133,15 @@ function CreatorApp() {
       }
     });
   }
-  const state =
-    rechecking || current.isPending
-      ? "checking"
-      : current.error
-        ? "unavailable"
-        : accountId !== scope.accountId
-          ? "checking"
-          : accountId
-            ? "verified"
-            : "signed-out";
+  const state = checking
+    ? "checking"
+    : current.error
+      ? "unavailable"
+      : accountId !== scope.accountId
+        ? "checking"
+        : accountId
+          ? "verified"
+          : "signed-out";
   const showSignedOut = signOutRequested && state === "signed-out";
   useEffect(() => {
     if (signOutRequested && state === "verified") setSignOutRequested(false);
@@ -152,7 +156,7 @@ function CreatorApp() {
         refresh,
         signOut,
         signOutFailed,
-        signOutPending: signOutRequested && rechecking,
+        signOutPending,
         signInAccount,
         setSignInAccount,
       }}
