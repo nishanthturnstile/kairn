@@ -1,6 +1,9 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import * as schemas from "@kairn/contracts/schemas";
+import { createJourneysApi, type JourneyOperations } from "./journeys.js";
+import { errorResponse, requestIdHeader } from "./openapi.js";
 import { problem, type RequestEnvironment } from "./problem.js";
+import { createWorkspaceApi, type WorkspaceOperations } from "./workspace.js";
 
 const documentOptions = {
   openapi: "3.1.0",
@@ -9,22 +12,6 @@ const documentOptions = {
 
 const minimumVersion = 1;
 
-const headers = {
-  "X-Request-Id": {
-    description: "Server-generated request ID",
-    required: true,
-    schema: { type: "string", format: "uuid" },
-  },
-} as const;
-
-function errorResponse(description: string) {
-  return {
-    description,
-    headers,
-    content: { "application/problem+json": { schema: schemas.apiProblem } },
-  };
-}
-
 const healthRoute = createRoute({
   method: "get",
   path: "/api/v1/health",
@@ -32,7 +19,7 @@ const healthRoute = createRoute({
   responses: {
     200: {
       description: "The HTTP process is alive",
-      headers,
+      headers: requestIdHeader,
       content: { "application/json": { schema: schemas.health } },
     },
   },
@@ -45,7 +32,7 @@ const readinessRoute = createRoute({
   responses: {
     200: {
       description: "The HTTP process can reach its migrated database",
-      headers,
+      headers: requestIdHeader,
       content: { "application/json": { schema: schemas.readiness } },
     },
     503: errorResponse("The database is unavailable or requires migration"),
@@ -60,14 +47,18 @@ const protocolRoute = createRoute({
   responses: {
     200: {
       description: "Supported sync protocol version range",
-      headers,
+      headers: requestIdHeader,
       content: { "application/json": { schema: schemas.protocol } },
     },
     400: errorResponse("The requested version is malformed"),
   },
 });
 
-export function createV1Api(checkReadiness: () => Promise<void>) {
+export function createV1Api(
+  checkReadiness: () => Promise<void>,
+  journeys?: JourneyOperations,
+  workspace?: WorkspaceOperations,
+) {
   const api = new OpenAPIHono<RequestEnvironment>({
     defaultHook: (result, context) => {
       if (!result.success) return problem(context, 400);
@@ -75,7 +66,6 @@ export function createV1Api(checkReadiness: () => Promise<void>) {
   });
 
   const registry = api.openAPIRegistry;
-  registry.register("ApiProblem", schemas.apiProblem);
   registry.register("CommandEnvelopeV1", schemas.commandEnvelope);
   registry.register("RevisionedCommandV1", schemas.revisionedCommand);
   registry.register("RevisionConflictV1", schemas.revisionConflict);
@@ -118,7 +108,9 @@ export function createV1Api(checkReadiness: () => Promise<void>) {
     );
   });
 
-  return api;
+  return api
+    .route("/", createJourneysApi(journeys))
+    .route("/", createWorkspaceApi(workspace));
 }
 
 export function getOpenApiDocument(api: ReturnType<typeof createV1Api>) {

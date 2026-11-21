@@ -3,245 +3,223 @@ import type {
   RestrictionConfirmation,
 } from "@kairn/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { type SubmitEvent, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BadgeCheck, LogOut, MonitorSmartphone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AuthForm, type AuthMode } from "../components/auth-form";
+import { JourneyLoading } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
+import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
-import { Input } from "../components/ui/input";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { Skeleton } from "../components/ui/skeleton";
 import { authClient } from "../lib/auth";
+import { journeyReturnTo, saveJourneyReturnTo } from "../lib/journey-return";
+import { useOnboarding } from "../lib/onboarding";
+import { useSessionAccess } from "../lib/session-access";
 
 export const Route = createFileRoute("/account")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { verification?: "confirmed"; error?: string } => ({
+  ): {
+    mode?: AuthMode;
+    verification?: "confirmed";
+    passwordReset?: "complete" | "pending";
+    error?: string;
+    returnTo?: ReturnType<typeof journeyReturnTo>;
+  } => ({
+    mode:
+      search.mode === "sign-up" ||
+      search.mode === "recover" ||
+      search.mode === "resend"
+        ? search.mode
+        : undefined,
     verification:
       search.verification === "confirmed" ? ("confirmed" as const) : undefined,
+    passwordReset:
+      search.passwordReset === "complete" || search.passwordReset === "pending"
+        ? search.passwordReset
+        : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
+    returnTo: journeyReturnTo(search.returnTo),
   }),
   component: AccountPage,
 });
-
-type FormMode = "sign-in" | "sign-up" | "recover" | "resend";
-
-const modeLabels = {
-  "sign-in": "Sign in",
-  "sign-up": "Create account",
-  recover: "Reset password",
-  resend: "Resend verification",
-};
 
 type Feedback = {
   text: string;
   variant: "default" | "destructive" | "success" | "warning";
 };
 
-const feedbackTextClass = {
-  default: "text-muted-foreground",
-  destructive: "text-destructive",
-  success: "text-success",
-  warning: "text-warning",
-};
+const sessionDate = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 function AccountPage() {
-  const { data, isPending, error } = authClient.useSession();
+  const { data } = authClient.useSession();
+  const { scope } = Route.useRouteContext();
   const verification = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const {
+    state,
+    refresh,
+    signOutFailed,
+    signOutPending,
+    signInAccount,
+    setSignInAccount,
+  } = useSessionAccess();
+  const { returnTo, verification: confirmed } = verification;
+  const progress = useOnboarding();
+  const [hadGuestForm, setHadGuestForm] = useState(state === "signed-out");
+  useEffect(() => {
+    if (state === "signed-out") setHadGuestForm(true);
+  }, [state]);
+  useEffect(() => {
+    const accountId = state === "verified" ? scope.accountId : null;
+    if (returnTo && state !== "checking")
+      saveJourneyReturnTo(returnTo, accountId ?? undefined);
+    if (!accountId || (!returnTo && signInAccount !== accountId)) return;
+    setSignInAccount(null);
+    void navigate({ to: "/", replace: true });
+  }, [
+    navigate,
+    returnTo,
+    scope.accountId,
+    setSignInAccount,
+    signInAccount,
+    state,
+  ]);
+  if (state === "checking" && (!hadGuestForm || signOutPending))
+    return (
+      <JourneyLoading
+        label={signOutPending ? "Signing out" : "Checking your session"}
+      />
+    );
+  if (state === "unavailable")
+    return (
+      <section className="grid gap-4 rounded-card control-border bg-card p-4 sm:p-8">
+        <PageHeading title="Sign in" />
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>
+            Account access is temporarily unavailable.
+          </AlertDescription>
+        </Alert>
+        <Button
+          variant="outline"
+          className="justify-self-start"
+          onClick={() => refresh()}
+        >
+          Try again
+        </Button>
+      </section>
+    );
+  if (
+    state === "verified" &&
+    scope.accountId &&
+    data?.user.id === scope.accountId
+  ) {
+    if (returnTo || signInAccount === scope.accountId)
+      return <output className="text-muted-foreground">Opening Kairn</output>;
+    return (
+      <div className="@container/account grid gap-6">
+        <PageHeading title="Account" />
+        {signOutFailed && (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>Couldn’t sign out. Try again.</AlertDescription>
+          </Alert>
+        )}
+        {progress.data?.state === "pending" && (
+          <Button asChild className="justify-self-start">
+            <Link to="/onboarding">Resume setup</Link>
+          </Button>
+        )}
+        <div className="grid items-start gap-4 @min-[48rem]/account:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+          <section aria-labelledby="account-profile" className="min-w-0">
+            <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+              <CardHeader>
+                <h2 id="account-profile" className="text-xl font-semibold">
+                  Profile
+                </h2>
+              </CardHeader>
+              <CardContent className="grid min-w-0 divide-y divide-border/50">
+                <div className="pb-4">
+                  <ProfileName
+                    accountId={scope.accountId}
+                    scope={scope}
+                    embedded
+                    fallbackName={data.user.name}
+                  />
+                </div>
+                <dl className="grid gap-1 pt-4">
+                  <dt className="text-sm font-semibold text-muted-foreground">
+                    Email address
+                  </dt>
+                  <dd className="font-semibold wrap-anywhere">
+                    {data.user.email}
+                  </dd>
+                  <dd className="flex items-center gap-1.5 text-sm font-semibold text-success">
+                    <BadgeCheck
+                      aria-hidden="true"
+                      className="size-4 shrink-0"
+                    />
+                    Verified
+                  </dd>
+                </dl>
+              </CardContent>
+            </Card>
+          </section>
+          <SignedInDevices id={scope.accountId} />
+        </div>
+      </div>
+    );
+  }
   return (
-    <section className="grid max-w-lg gap-6">
-      <PageHeading title="Account" />
+    <div className="grid gap-4">
       {verification.error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" role="alert">
           <AlertDescription>
             That verification link is invalid or has expired.
           </AlertDescription>
         </Alert>
       )}
-      {verification.verification && !verification.error && (
-        <Alert variant="success" role="status">
-          <AlertDescription>
-            Your email is verified. You can sign in now.
-          </AlertDescription>
-        </Alert>
-      )}
-      {isPending && (
-        <output className="text-muted-foreground">Checking your session</output>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            Account access is temporarily unavailable.
-          </AlertDescription>
-        </Alert>
-      )}
-      {data?.user ? (
-        <SignedInAccount email={data.user.email} id={data.user.id} />
-      ) : (
-        <AccountForm />
-      )}
-    </section>
-  );
-}
-
-function AccountForm() {
-  const [mode, setMode] = useState<FormMode>("sign-in");
-  const [feedback, setFeedback] = useState<Feedback>();
-  const [busy, setBusy] = useState(false);
-  const focusHeading = useRef(false);
-
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const input = new FormData(event.currentTarget);
-    const email = String(input.get("email")).trim();
-    const password = String(input.get("password") ?? "");
-    setBusy(true);
-    setFeedback(undefined);
-    try {
-      if (mode === "sign-in") {
-        const { error } = await authClient.signIn.email({ email, password });
-        if (error)
-          setFeedback({
-            variant: "destructive",
-            text:
-              error.code === "EMAIL_NOT_VERIFIED"
-                ? "Verify your email before signing in."
-                : "Couldn’t sign in. Check your email and password.",
-          });
-      } else if (mode === "sign-up") {
-        const { error } = await authClient.signUp.email({
-          email,
-          password,
-          name: String(input.get("name")).trim(),
-        });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t register. Check your details and try again."
-            : "Check your inbox for a verification link.",
-        });
-      } else if (mode === "recover") {
-        const { error } = await authClient.requestPasswordReset({ email });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t request a reset email. Try again later."
-            : "If that account can receive a reset email, check your inbox.",
-        });
-      } else {
-        const { error } = await authClient.sendVerificationEmail({ email });
-        setFeedback({
-          variant: error ? "destructive" : "default",
-          text: error
-            ? "Couldn’t request a verification email. Try again later."
-            : "If that email still needs verification, check your inbox.",
-        });
-      }
-    } catch {
-      setFeedback({
-        variant: "destructive",
-        text: "Couldn’t connect to Kairn. Try again.",
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form
-      className="grid gap-4 rounded-card control-border bg-card p-4"
-      onSubmit={(event) => void submit(event)}
-    >
-      <h2
-        className="text-xl font-semibold"
-        ref={(heading) => {
-          if (heading && focusHeading.current) {
-            heading.focus();
-            focusHeading.current = false;
+      {verification.passwordReset && (
+        <Alert
+          variant={
+            verification.passwordReset === "pending" ? "warning" : "success"
           }
-        }}
-        tabIndex={-1}
-      >
-        {modeLabels[mode]}
-      </h2>
-      <FieldGroup>
-        {mode === "sign-up" && (
-          <Field>
-            <FieldLabel htmlFor="account-name">Name</FieldLabel>
-            <Input id="account-name" name="name" autoComplete="name" required />
-          </Field>
-        )}
-        <Field>
-          <FieldLabel htmlFor="account-email">Email</FieldLabel>
-          <Input
-            id="account-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-          />
-        </Field>
-        {(mode === "sign-in" || mode === "sign-up") && (
-          <Field>
-            <FieldLabel htmlFor="account-password">Password</FieldLabel>
-            <Input
-              key={mode}
-              id="account-password"
-              name="password"
-              type="password"
-              autoComplete={
-                mode === "sign-up" ? "new-password" : "current-password"
-              }
-              minLength={mode === "sign-up" ? 12 : undefined}
-              aria-describedby={
-                mode === "sign-up" ? "account-password-hint" : undefined
-              }
-              required
-            />
-            {mode === "sign-up" && (
-              <p
-                id="account-password-hint"
-                className="text-sm text-muted-foreground"
-              >
-                Use at least 12 characters.
-              </p>
-            )}
-          </Field>
-        )}
-      </FieldGroup>
-      <Button type="submit" className="justify-self-start" disabled={busy}>
-        {busy ? "Please wait…" : modeLabels[mode]}
-      </Button>
-      {feedback && (
-        <p className={feedbackTextClass[feedback.variant]} role="status">
-          {feedback.text}
-        </p>
+          role="status"
+        >
+          <AlertDescription>
+            {verification.passwordReset === "pending"
+              ? "Password changed and devices signed out. Recovery confirmation is pending."
+              : "Password changed. Sign in with your new password."}
+          </AlertDescription>
+        </Alert>
       )}
-      <div className="flex flex-wrap gap-1 border-t pt-2">
-        {(Object.keys(modeLabels) as FormMode[])
-          .filter((option) => option !== mode)
-          .map((option) => (
-            <Button
-              key={option}
-              type="button"
-              variant="link"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                focusHeading.current = true;
-                setMode(option);
-                setFeedback(undefined);
-              }}
-            >
-              {modeLabels[option]}
-            </Button>
-          ))}
-      </div>
-    </form>
+      <AuthForm
+        mode={verification.mode ?? "sign-in"}
+        canResumeUnbound={Boolean(returnTo || confirmed)}
+        emailVerificationConfirmed={
+          confirmed === "confirmed" && !verification.error
+        }
+        showResend={Boolean(verification.error)}
+        onModeChange={(mode) =>
+          void navigate({
+            search: (previous) => ({
+              ...previous,
+              mode: mode === "sign-in" ? undefined : mode,
+            }),
+          })
+        }
+      />
+    </div>
   );
 }
 
-function SignedInAccount({ email, id }: { email: string; id: string }) {
-  const { signOut } = Route.useRouteContext();
+function SignedInDevices({ id }: { id: string }) {
+  const { signOut } = useSessionAccess();
   const [feedback, setFeedback] = useState<Feedback>();
   const [revoking, setRevoking] = useState(false);
   const devices = useQuery({
@@ -289,73 +267,119 @@ function SignedInAccount({ email, id }: { email: string; id: string }) {
     }
   }
 
+  const currentDeviceId = devices.data?.currentDeviceId;
+  const sessions = devices.data?.devices.toSorted(
+    (a, b) =>
+      Number(b.id === currentDeviceId) - Number(a.id === currentDeviceId),
+  );
+
   return (
-    <div className="grid min-w-0 gap-4 rounded-card control-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-        <p className="min-w-0 font-semibold">{email}</p>
-        <Button
-          variant="outline"
-          onClick={async () => {
-            const success = await signOut();
-            if (!success)
-              setFeedback({
-                variant: "destructive",
-                text: "Couldn’t sign out. Try again.",
-              });
-          }}
-        >
-          Sign out
-        </Button>
-      </div>
-      <h2 className="text-xl font-semibold">Signed-in devices</h2>
-      {devices.isPending && (
-        <output className="text-muted-foreground">Loading devices</output>
-      )}
-      {devices.isError && (
-        <p className="text-destructive" role="alert">
-          Couldn’t load your devices.
-        </p>
-      )}
-      {devices.data && (
-        <ul className="grid gap-3">
-          {devices.data.devices.map((device) => (
-            <li
-              key={device.id}
-              className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
-            >
-              {device.id === devices.data?.currentDeviceId ? (
-                <p>This device</p>
-              ) : (
-                <>
-                  <p>
-                    Session started{" "}
-                    <time dateTime={device.createdAt}>
-                      {new Date(device.createdAt).toLocaleString("en-IN")}
-                    </time>
-                  </p>
-                  <Button
-                    variant="outline"
-                    disabled={revoking}
-                    onClick={() => void revoke(device.id)}
+    <section aria-labelledby="account-devices" className="min-w-0">
+      <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="account-devices" className="text-xl font-semibold">
+            Signed-in devices
+          </h2>
+          <Button type="button" variant="outline" size="sm" onClick={signOut}>
+            <LogOut aria-hidden="true" data-icon="inline-start" />
+            Sign out
+          </Button>
+        </CardHeader>
+        <CardContent className="@container/device-list grid gap-3">
+          {devices.isPending && (
+            <output className="grid gap-2 text-muted-foreground">
+              Loading devices
+              <Skeleton className="h-12" />
+            </output>
+          )}
+          {devices.isError && (
+            <Alert variant="destructive">
+              <AlertDescription>Couldn’t load your devices.</AlertDescription>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={devices.isFetching}
+                className="justify-self-start"
+                onClick={() => void devices.refetch()}
+              >
+                Try again
+              </Button>
+            </Alert>
+          )}
+          {sessions?.length ? (
+            <ul className="grid gap-2">
+              {sessions.map((device) => {
+                const current = device.id === currentDeviceId;
+                return (
+                  <li
+                    key={device.id}
+                    data-current={current}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-border/50 px-2 py-3 sm:px-3 data-[current=true]:border-transparent data-[current=true]:bg-accent data-[current=true]:text-accent-foreground"
                   >
-                    Revoke device
-                  </Button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {feedback && (
-        <p className={feedbackTextClass[feedback.variant]} role="status">
-          {feedback.text}
-        </p>
-      )}
-      {!feedback && Boolean(devices.data?.pendingRestrictions) && (
-        <p className="text-warning" role="status">
-          Account changes await recovery confirmation.
-        </p>
-      )}
-    </div>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <MonitorSmartphone
+                        aria-hidden="true"
+                        className="mt-0.5 hidden size-5 shrink-0 @min-[12rem]/device-list:block"
+                      />
+                      <div className="grid min-w-0 gap-0.5">
+                        <p className="font-semibold">
+                          {current ? "This device" : "Other device"}
+                        </p>
+                        <p
+                          className={
+                            current
+                              ? "text-sm"
+                              : "text-sm text-muted-foreground"
+                          }
+                        >
+                          Signed in{" "}
+                          <time dateTime={device.createdAt}>
+                            {sessionDate.format(new Date(device.createdAt))}
+                          </time>
+                        </p>
+                      </div>
+                    </div>
+                    {!current && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="px-2 sm:px-3"
+                        disabled={revoking}
+                        onClick={() => void revoke(device.id)}
+                      >
+                        Revoke device
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            sessions && (
+              <p className="text-muted-foreground">
+                No signed-in devices to show.
+              </p>
+            )
+          )}
+          {feedback && (
+            <Alert
+              variant={feedback.variant}
+              role={feedback.variant === "destructive" ? "alert" : "status"}
+            >
+              <AlertDescription>{feedback.text}</AlertDescription>
+            </Alert>
+          )}
+          {!feedback && Boolean(devices.data?.pendingRestrictions) && (
+            <Alert variant="warning" role="status">
+              <AlertDescription>
+                Account changes await recovery confirmation.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   );
 }

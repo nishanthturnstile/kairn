@@ -60,6 +60,8 @@ The Compose stack binds each published port to loopback.
 
 Generate a development secret with `pnpm dlx auth@1.7.25 secret` and set `BETTER_AUTH_SECRET` in `apps/server/.env.local`. Use the Caddy origin for `BETTER_AUTH_URL`. [Better Auth CLI](https://better-auth.com/docs/concepts/cli#secret)
 
+To test first-run web onboarding, set `ONBOARDING_STARTS_AT` in `apps/server/.env.local` to a UTC timestamp at or before the test account’s email verification time. Restart the server after changing it. When the setting is absent, new accounts go straight to Dashboard. Accounts verified before the cutoff keep their existing access.
+
 Run `pnpm dev --host 127.0.0.1` and `pnpm dev:server` on the Mac in separate terminals. Caddy serves web and `/api` on one origin and sends `/media` requests to the Node server. Media returns 404 until the application implements its access checks. The S3 endpoint requires signing credentials and stays on the local development network. The example database connections are for the loopback stack. The server and worker use the runtime database role. The migration commands and synthetic database fixtures use the migration role.
 
 `pnpm test:integration` runs the local conformance suite against the default Compose stack. Run it with the development worker stopped so the suite controls worker start and stop. `pnpm services:down` stops the stack and preserves its named volumes.
@@ -91,7 +93,7 @@ The Node images run as the `node` user. Pass the runtime `DATABASE_URL` to the s
 
 ## Web reader and browser tests
 
-The web build emits the creator and reader clients in `apps/web/dist/client` and the Node reader renderer in `apps/web/dist/server`. The reader uses the deployment's client manifest to load its hashed assets. The Node route at `/read/*` serves the generic unavailable page until publication is implemented.
+The web build emits the creator and reader clients in `apps/web/dist/client` and the Node reader renderer in `apps/web/dist/server`. The reader uses the deployment's client manifest to load its hashed assets. The Node route at `/read/*` requires a verified session and routes unfinished accounts to onboarding. It serves the generic unavailable page until publication is implemented.
 
 ```sh
 pnpm --filter @kairn/web build
@@ -112,6 +114,7 @@ Run `pnpm dev:mobile --localhost` to start Metro for an existing development bui
 Run `pnpm db:migrate` and `pnpm db:queue` after updating the workspace. Generate a local 32-byte hex key with `openssl rand -hex 32`. Set the same `AUTH_MAIL_KEY` in the server and worker environment files. This key encrypts the queued links and is separate from `BETTER_AUTH_SECRET`. Set the worker's `SMTP_URL` and `AUTH_FROM_EMAIL` from its development example. Start the server, web, and worker, then open `/account` through Caddy and use the Mailpit inbox on port `58025` to follow verification and password reset links. Use synthetic email addresses in development. [Better Auth email and password](https://better-auth.com/docs/authentication/email-password)
 
 - Run `pnpm test:web:identity` after building and migrating, with PostgreSQL and Mailpit running. It starts temporary application processes and exercises verification, device revocation and password recovery. CI runs this command.
+- Run `KAIRN_WEB_ONBOARDING=1 pnpm test:web:identity --workers=1` to exercise first-run progress, sign-in return and Dashboard. The test runner sets its own cutoff.
 - Run `pnpm check:client-bundles` to scan temporary browser, Android and iOS source maps for server-only packages.
 - Run `pnpm test:identity:recovery` with the local Mailpit running. It starts a disposable database and checks SMTP idempotency headers, rejects incomplete journal checkpoints and verifies recovery at an independently approved address.
 - For native identity validation, start Metro and use Account on each development client. Open verification and reset emails from Mailpit on the host. Set `EXPO_PUBLIC_API_ORIGIN` to the HTTPS API origin for distributed builds. [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo)

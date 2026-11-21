@@ -6,6 +6,27 @@
     "typescript": "6.0.3"
   },
   "exports": {
+    "./journey-form": {
+      "types": "./src/journey-form.ts",
+      "react-native": "./src/journey-form.ts",
+      "browser": "./src/journey-form.ts",
+      "development": "./src/journey-form.ts",
+      "import": "./dist/journey-form.js"
+    },
+    "./journey-intent-copy": {
+      "types": "./src/journey-intent-copy.ts",
+      "react-native": "./src/journey-intent-copy.ts",
+      "browser": "./src/journey-intent-copy.ts",
+      "development": "./src/journey-intent-copy.ts",
+      "import": "./dist/journey-intent-copy.js"
+    },
+    "./journey-time": {
+      "types": "./src/journey-time.ts",
+      "react-native": "./src/journey-time.ts",
+      "browser": "./src/journey-time.ts",
+      "development": "./src/journey-time.ts",
+      "import": "./dist/journey-time.js"
+    },
     ".": {
       "types": "./src/index.ts",
       "react-native": "./src/index.ts",
@@ -19,6 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@kairn/contracts": "workspace:*",
     "zod": "4.6.7"
   }
 }

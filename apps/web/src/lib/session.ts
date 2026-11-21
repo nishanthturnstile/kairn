@@ -14,9 +14,19 @@ function createAccountScope(accountId: string | null, origin: string) {
   api.use({
     onRequest({ request }) {
       lifetime.signal.throwIfAborted();
-      if (new URL(request.url).origin !== origin)
+      const url = new URL(request.url);
+      if (url.origin !== origin)
         throw new Error("API requests must use the application origin.");
+      const headers = new Headers(request.headers);
+      if (
+        accountId &&
+        (url.pathname === "/api/v1/journeys" ||
+          url.pathname.startsWith("/api/v1/journeys/"))
+      ) {
+        headers.set("X-Expected-Account", accountId);
+      }
       return new Request(request, {
+        headers,
         signal: AbortSignal.any([request.signal, lifetime.signal]),
         redirect: "error",
         cache: "no-store",
@@ -32,6 +42,7 @@ function createAccountScope(accountId: string | null, origin: string) {
     accountId,
     api,
     queryClient,
+    signal: lifetime.signal,
     dispose() {
       lifetime.abort();
       void queryClient.cancelQueries();

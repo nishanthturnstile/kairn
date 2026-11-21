@@ -5,7 +5,7 @@ export const appearanceOptions = [
   "outdoor",
 ] as const;
 
-type Appearance = (typeof appearanceOptions)[number];
+export type Appearance = (typeof appearanceOptions)[number];
 const storageKey = "kairn.appearance";
 const listeners = new Set<() => void>();
 let currentAppearance: Appearance | undefined;

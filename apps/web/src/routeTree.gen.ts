@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as JourneysRouteImport } from './routes/journeys'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as AccountResetRouteImport } from './routes/account_.reset'
+import { Route as JourneysJourneyIdRouteImport } from './routes/journeys_.$journeyId'
+import { Route as JourneysNewRouteImport } from './routes/journeys_.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -36,6 +45,11 @@ const JourneysRoute = JourneysRouteImport.update({
   path: '/journeys',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/onboarding.lazy').then((d) => d.Route))
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -46,55 +60,104 @@ const AccountResetRoute = AccountResetRouteImport.update({
   path: '/account/reset',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JourneysJourneyIdRoute = JourneysJourneyIdRouteImport.update({
+  id: '/journeys_/$journeyId',
+  path: '/journeys/$journeyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JourneysNewRoute = JourneysNewRouteImport.update({
+  id: '/journeys_/new',
+  path: '/journeys/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
+  '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys/new': typeof JourneysNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account/reset': typeof AccountResetRoute
+  '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys/new': typeof JourneysNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/journeys': typeof JourneysRoute
+  '/onboarding': typeof OnboardingRoute
   '/saved': typeof SavedRoute
   '/account_/reset': typeof AccountResetRoute
+  '/journeys_/$journeyId': typeof JourneysJourneyIdRoute
+  '/journeys_/new': typeof JourneysNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
+    | '/'
+    | '/account'
+    | '/dashboard'
+    | '/discover'
+    | '/journeys'
+    | '/onboarding'
+    | '/saved'
+    | '/account/reset'
+    | '/journeys/$journeyId'
+    | '/journeys/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/discover' | '/journeys' | '/saved' | '/account/reset'
+  to:
+    | '/'
+    | '/account'
+    | '/dashboard'
+    | '/discover'
+    | '/journeys'
+    | '/onboarding'
+    | '/saved'
+    | '/account/reset'
+    | '/journeys/$journeyId'
+    | '/journeys/new'
   id:
     | '__root__'
     | '/'
     | '/account'
+    | '/dashboard'
     | '/discover'
     | '/journeys'
+    | '/onboarding'
     | '/saved'
     | '/account_/reset'
+    | '/journeys_/$journeyId'
+    | '/journeys_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  DashboardRoute: typeof DashboardRoute
   DiscoverRoute: typeof DiscoverRoute
   JourneysRoute: typeof JourneysRoute
+  OnboardingRoute: typeof OnboardingRoute
   SavedRoute: typeof SavedRoute
   AccountResetRoute: typeof AccountResetRoute
+  JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
+  JourneysNewRoute: typeof JourneysNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -113,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/discover': {
       id: '/discover'
       path: '/discover'
@@ -125,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/journeys'
       fullPath: '/journeys'
       preLoaderRoute: typeof JourneysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/saved': {
@@ -141,16 +218,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountResetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journeys_/$journeyId': {
+      id: '/journeys_/$journeyId'
+      path: '/journeys/$journeyId'
+      fullPath: '/journeys/$journeyId'
+      preLoaderRoute: typeof JourneysJourneyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journeys_/new': {
+      id: '/journeys_/new'
+      path: '/journeys/new'
+      fullPath: '/journeys/new'
+      preLoaderRoute: typeof JourneysNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  DashboardRoute: DashboardRoute,
   DiscoverRoute: DiscoverRoute,
   JourneysRoute: JourneysRoute,
+  OnboardingRoute: OnboardingRoute,
   SavedRoute: SavedRoute,
   AccountResetRoute: AccountResetRoute,
+  JourneysJourneyIdRoute: JourneysJourneyIdRoute,
+  JourneysNewRoute: JourneysNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

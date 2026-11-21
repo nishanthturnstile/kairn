@@ -7,7 +7,7 @@ import {
   freshSessionMiddleware,
   sensitiveSessionMiddleware,
 } from "better-auth/api";
-import { and, count, eq, gt, isNull, like } from "drizzle-orm";
+import { and, count, eq, exists, gt, isNull, like, sql } from "drizzle-orm";
 import type { PgBoss } from "pg-boss";
 import { z } from "zod";
 import type { Database, DatabaseTransaction } from "../../db/index.js";
@@ -74,12 +74,34 @@ interface AuthConfiguration {
   boss: PgBoss;
   mailKey?: string;
   journal?: RestrictionJournal;
+  onboardingStartsAt?: Date;
+}
+
+export interface VerifiedSession {
+  accountId: string;
+  sessionId: string;
 }
 
 export function createAuth(db: Database, config: AuthConfiguration) {
   const publicOrigin = new URL(config.baseURL).origin;
   const digest = identityEpoch(config.epoch);
   const secret = epochSigningSecret(config.secret, config.epoch);
+
+  async function withCurrentIdentity<Result>(
+    operation: (tx: DatabaseTransaction) => Promise<Result>,
+  ) {
+    try {
+      return await db.transaction(async (tx) => {
+        if (!(await identityIsCurrent(tx, digest))) {
+          return { status: 503 } as const;
+        }
+        return operation(tx);
+      });
+    } catch {
+      logger.error("Authenticated operation transaction failed");
+      return { status: 503 } as const;
+    }
+  }
 
   async function handle(request: Request, requestId?: string) {
     const url = new URL(request.url);
@@ -179,6 +201,12 @@ export function createAuth(db: Database, config: AuthConfiguration) {
           () => {
             mailFailed = true;
           },
+          path === "/sign-in/email"
+            ? {
+                supportsOnboarding:
+                  request.headers.get("x-kairn-onboarding") === "1",
+              }
+            : undefined,
         );
         const response = await auth.handler(request);
         if (mailFailed) {
@@ -255,6 +283,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
     tx: DatabaseTransaction,
     onRestriction: (event: IdentityRestriction) => void,
     onMailFailure: () => void,
+    signIn?: { supportsOnboarding: boolean },
   ) {
     const saveLink = async (
       kind: "verify" | "reset",
@@ -436,6 +465,18 @@ export function createAuth(db: Database, config: AuthConfiguration) {
         autoSignInAfterVerification: false,
         sendVerificationEmail: async ({ user, url, token }) =>
           saveLink("verify", user, { url, token }),
+        beforeEmailVerification: async (user) => {
+          await identityAccount(tx, user.id);
+        },
+        afterEmailVerification: async (user) => {
+          await scopeIdentity(tx, user.id);
+          await tx
+            .update(accounts)
+            .set({ firstVerifiedAt: sql`clock_timestamp()` })
+            .where(
+              and(eq(accounts.id, user.id), isNull(accounts.firstVerifiedAt)),
+            );
+        },
       },
       databaseHooks: {
         user: {
@@ -452,7 +493,24 @@ export function createAuth(db: Database, config: AuthConfiguration) {
         session: {
           create: {
             before: async (session) => {
-              await requireActiveIdentity(tx, session.userId);
+              const account = await requireActiveIdentity(tx, session.userId);
+              const cutoff = config.onboardingStartsAt;
+              if (
+                signIn &&
+                cutoff &&
+                new Date() >= cutoff &&
+                account.onboardingStep === null
+              ) {
+                const eligible =
+                  account.firstVerifiedAt && account.firstVerifiedAt >= cutoff;
+                await tx
+                  .update(accounts)
+                  .set({
+                    onboardingStep:
+                      eligible && signIn.supportsOnboarding ? 1 : 0,
+                  })
+                  .where(eq(accounts.id, session.userId));
+              }
             },
           },
         },
@@ -461,6 +519,52 @@ export function createAuth(db: Database, config: AuthConfiguration) {
   }
 
   return {
+    verifySession(headers: Headers) {
+      return withCurrentIdentity(async (tx) => {
+        const auth = requestAuth(
+          tx,
+          () => {},
+          () => {},
+        );
+        const current = await auth.api.getSession({
+          headers,
+          query: { disableCookieCache: true, disableRefresh: true },
+        });
+        if (
+          !current?.user.emailVerified ||
+          !(await identitySessionIsCurrent(
+            tx,
+            current.user.id,
+            current.session.id,
+          ))
+        ) {
+          return { status: 401 } as const;
+        }
+        return {
+          status: 200,
+          accountId: current.user.id,
+          sessionId: current.session.id,
+        } as const;
+      });
+    },
+    withCurrentSession<Result>(
+      session: VerifiedSession,
+      operation: (tx: DatabaseTransaction) => Promise<Result>,
+    ) {
+      return withCurrentIdentity(async (tx) => {
+        if (
+          !(await identitySessionIsCurrent(
+            tx,
+            session.accountId,
+            session.sessionId,
+            true,
+          ))
+        ) {
+          return { status: 401 } as const;
+        }
+        return operation(tx);
+      });
+    },
     async handler(request: Request, requestId?: string) {
       const result = await handle(request, requestId);
       const headers = new Headers(result.headers);
@@ -504,16 +608,18 @@ async function requireActiveIdentity(tx: DatabaseTransaction, id: string) {
     throw new APIError("FORBIDDEN", {
       message: "Account access is unavailable.",
     });
+  return account;
 }
 
 async function identitySessionIsCurrent(
   tx: DatabaseTransaction,
   id: string,
   sessionId: string,
+  lockSession = false,
 ) {
   const account = await identityAccount(tx, id);
   if (!account || account.restrictedAt) return false;
-  const [session] = await tx
+  const query = tx
     .select({ id: authSchema.session.id })
     .from(authSchema.session)
     .where(
@@ -521,8 +627,20 @@ async function identitySessionIsCurrent(
         eq(authSchema.session.id, sessionId),
         eq(authSchema.session.userId, id),
         gt(authSchema.session.expiresAt, new Date()),
+        exists(
+          tx
+            .select({ id: authSchema.user.id })
+            .from(authSchema.user)
+            .where(
+              and(
+                eq(authSchema.user.id, id),
+                eq(authSchema.user.emailVerified, true),
+              ),
+            ),
+        ),
       ),
     );
+  const [session] = await (lockSession ? query.for("share") : query);
   return session !== undefined;
 }
 

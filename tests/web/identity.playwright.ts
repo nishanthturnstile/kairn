@@ -1,61 +1,71 @@
 import { randomUUID } from "node:crypto";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { mailLink, site } from "./identity-fixture";
+import { openAccount } from "./workspace-fixture";
 
-const site = process.env.KAIRN_WEB_ORIGIN ?? "http://127.0.0.1:58080";
-const inbox = "http://127.0.0.1:58025";
 const password = "Synthetic-browser-password";
-
-async function mailLink(email: string, subject: string) {
-  let id: string | undefined;
-  await expect
-    .poll(
-      async () => {
-        const messages = await fetch(
-          `${inbox}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`,
-        ).then((response) => response.json());
-        id = messages.messages?.find(
-          (message: { Subject: string }) => message.Subject === subject,
-        )?.ID;
-        return Boolean(id);
-      },
-      { timeout: 15_000 },
-    )
-    .toBe(true);
-  const mail = await fetch(`${inbox}/api/v1/message/${id}`).then((response) =>
-    response.json(),
-  );
-  const link = String(mail.Text)
-    .split(/\s+/)
-    .find((part) => part.startsWith(`${site}/api/auth/`));
-  if (!link) throw new Error("Fixture email did not contain a local link.");
-  return link;
-}
 
 test("browser account flows verify email, revoke another session, and reset the password", async ({
   page,
   browser,
-}) => {
+}, testInfo) => {
   test.skip(
     process.env.KAIRN_WEB_IDENTITY !== "1",
     "Requires the local server, web, worker and Mailpit.",
   );
   test.setTimeout(80_000);
+  await page.context().setExtraHTTPHeaders({ "X-Forwarded-For": "198.18.0.1" });
   const email = `browser-${randomUUID()}@example.test`;
+  const guestStory = await page.request.get(`${site}/read/example`, {
+    maxRedirects: 0,
+  });
+  expect(guestStory.status()).toBe(303);
+  expect(guestStory.headers().location).toBe("/account");
+  expect(guestStory.headers()["cache-control"]).toBe("private, no-store");
+  expect(await guestStory.text()).not.toContain("Story unavailable");
   await page.goto(`${site}/account`);
   await page.getByRole("button", { name: "Create account" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Create account" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Kairn", exact: true }).click();
+  await expect(page).toHaveURL(`${site}/account`);
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await page.getByRole("button", { name: "Create account" }).click();
   await page
-    .getByLabel("Name", { exact: true })
+    .getByLabel("Display name", { exact: true })
     .fill("Synthetic browser account");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
+  await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await page.getByRole("button", { name: "Show password" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
+    "type",
+    "text",
+  );
+  await page.getByRole("button", { name: "Hide password" }).click();
+  await expect(page.getByLabel("Password", { exact: true })).toHaveValue(
+    password,
+  );
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
     page.getByText("Check your inbox for a verification link."),
   ).toBeVisible();
-  await page.goto(await mailLink(email, "Verify your Kairn email"));
   await expect(
-    page.getByText("Your email is verified. You can sign in now."),
+    page.getByRole("button", { name: "Resend verification" }),
   ).toBeVisible();
+  await page.goto(await mailLink(email, "Verify your Kairn email"));
+  const verificationMessage = "Your email is verified. You can sign in now.";
+  await expect(page.getByRole("main").getByRole("status")).toHaveText(
+    verificationMessage,
+  );
+  const signInHeading = page.getByRole("heading", { name: "Sign in" });
+  await expect(signInHeading).toBeFocused();
+  await expect(signInHeading).toHaveAccessibleDescription(verificationMessage);
 
   const other = await browser.newContext();
   try {
@@ -67,7 +77,65 @@ test("browser account flows verify email, revoke another session, and reset the 
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.getByText(email)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard" }),
+    ).toBeVisible();
+    const verifiedStory = await page.request.get(`${site}/read/example`, {
+      maxRedirects: 0,
+    });
+    expect(verifiedStory.status()).toBe(404);
+    expect(await verifiedStory.text()).toContain("Story unavailable");
+    await openAccount(page);
+    const profile = page.getByRole("region", { name: "Profile" });
+    const devices = page.getByRole("region", { name: "Signed-in devices" });
+    await expect(profile.getByText(email, { exact: true })).toBeVisible();
+    await expect(profile.getByText("Verified", { exact: true })).toBeVisible();
+    const current = devices.getByRole("listitem").first();
+    await expect(current).toContainText("This device");
+    await expect(
+      current.getByRole("button", { name: "Revoke device" }),
+    ).toHaveCount(0);
+    await profile.getByRole("button", { name: "Edit name" }).click();
+    const displayName = profile.getByRole("textbox", { name: "Display name" });
+    await expect(displayName).toBeFocused();
+    await displayName.fill("Rhea Mehta");
+    await profile.getByRole("button", { name: "Save name" }).click();
+    await expect(
+      profile.getByText("Rhea Mehta", { exact: true }),
+    ).toBeVisible();
+    if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
+      await page.screenshot({
+        path: testInfo.outputPath("account-desktop.png"),
+        animations: "disabled",
+      });
+
+    const originalSize = page.viewportSize();
+    if (!originalSize) throw new Error("The account test requires a viewport.");
+    await page.setViewportSize({ width: 320, height: 840 });
+    const largeText = await page.addStyleTag({
+      content: "html { font-size: 200% !important; }",
+    });
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(320);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
+      await page.screenshot({
+        path: testInfo.outputPath("account-mobile-large-text.png"),
+        fullPage: true,
+        animations: "disabled",
+      });
+    await largeText.evaluate((style) => style.remove());
+    await page.setViewportSize(originalSize);
+    await page.getByRole("link", { name: "Kairn", exact: true }).click();
+    await expect(page).toHaveURL(`${site}/dashboard`);
+    await openAccount(page);
     await page.getByRole("button", { name: "Revoke device" }).click();
     await expect(
       page.getByText("Device signed out. Recovery confirmation is pending."),
@@ -81,7 +149,30 @@ test("browser account flows verify email, revoke another session, and reset the 
     await other.close();
   }
 
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  const sameSession = await page.context().newPage();
+  try {
+    await sameSession.goto(`${site}/saved`);
+    await expect(
+      sameSession.getByRole("heading", { name: "Saved", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    const toast = page
+      .getByRole("status")
+      .filter({ hasText: "You’re signed out." });
+    await expect(toast).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText("You’re signed out."),
+    ).toHaveCount(0);
+    await expect(
+      sameSession.getByRole("heading", { name: "Sign in" }),
+    ).toBeVisible();
+    await expect(
+      sameSession.getByRole("navigation", { name: "Main" }),
+    ).toHaveCount(0);
+    await expect(toast).toBeHidden({ timeout: 7_000 });
+  } finally {
+    await sameSession.close();
+  }
   await page
     .getByRole("button", { name: "Reset password", exact: true })
     .click();
@@ -98,4 +189,17 @@ test("browser account flows verify email, revoke another session, and reset the 
     ),
   ).toBeVisible();
   expect(new URL(page.url()).searchParams.has("token")).toBe(false);
+
+  await page.getByRole("link", { name: "Back to sign in" }).click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Couldn’t sign in. Check your email and password.",
+  );
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Synthetic-browser-replacement");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(`${site}/dashboard`);
 });

@@ -23,6 +23,8 @@ const storage = {
 export const mobileAuth = authOrigin
   ? createAuthClient({
       baseURL: authOrigin,
+      // The mobile session provider coordinates foreground checks with private screens.
+      sessionOptions: { refetchOnWindowFocus: false },
       plugins: [
         expoClient({
           scheme: "kairn",

@@ -15,7 +15,10 @@ export default defineConfig(({ isSsrBuild }) => ({
   ssr: { noExternal: true },
   preview: {
     proxy: process.env.KAIRN_BROWSER_IDENTITY_UPSTREAM
-      ? { "/api": process.env.KAIRN_BROWSER_IDENTITY_UPSTREAM }
+      ? {
+          "/api": process.env.KAIRN_BROWSER_IDENTITY_UPSTREAM,
+          "/read": process.env.KAIRN_BROWSER_IDENTITY_UPSTREAM,
+        }
       : undefined,
   },
   build: isSsrBuild

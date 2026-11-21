@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { openDatabaseAsync } from "expo-sqlite";
+import { createJourneyAttemptTable, journeyAttempts } from "./journey-attempt";
 import { localId } from "./namespace";
 
 const migrations = [
@@ -7,6 +8,7 @@ const migrations = [
     id TEXT PRIMARY KEY NOT NULL,
     text TEXT NOT NULL
   ) STRICT;`,
+  createJourneyAttemptTable,
 ] as const;
 
 export async function openAccountWorkspace(accountId: string) {
@@ -47,6 +49,7 @@ export async function openAccountWorkspace(accountId: string) {
   }
 
   return {
+    journeyAttempts: journeyAttempts(db),
     originalFile: (id: string) => new File(originals, localId(id)),
     getDraft: (id: string) =>
       db.getFirstAsync<{ text: string }>(

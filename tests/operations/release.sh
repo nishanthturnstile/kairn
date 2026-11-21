@@ -108,9 +108,13 @@ compose up -d --wait server worker edge
 edge=$(compose port edge 8080)
 curl -fsS --retry 5 --retry-connrefused "http://$edge/" | grep -q '<title>Kairn</title>'
 curl -fsS "http://$edge/api/v1/ready" | jq -e '.status == "ready"'
-reader_status=$(curl -sS -o "$temp/reader.html" -w '%{http_code}' "http://$edge/read/drill")
-[[ "$reader_status" == 404 ]]
-grep -q 'Story unavailable' "$temp/reader.html"
+reader_status=$(curl -sS -D "$temp/reader.headers" -o /dev/null -w '%{http_code}' "http://$edge/read/drill")
+if [[ "$reader_status" != 303 ]] ||
+  ! grep -Eiq '^location:[[:blank:]]*/account[[:space:]]*$' "$temp/reader.headers" ||
+  ! grep -Eiq '^cache-control:[[:blank:]]*private, no-store[[:space:]]*$' "$temp/reader.headers"; then
+  printf 'Expected the signed-out reader to redirect to /account with private, no-store (HTTP 303). Got HTTP %s.\n' "$reader_status" >&2
+  exit 1
+fi
 auth_status=$(curl -sS -o "$temp/auth.json" -w '%{http_code}' "http://$edge/api/auth/get-session")
 [[ "$auth_status" == 503 ]]
 jq -e '.code == "RECOVERY_REQUIRED"' "$temp/auth.json"

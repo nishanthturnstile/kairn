@@ -1,5 +1,5 @@
-import { Redirect } from "expo-router";
+import { WorkspaceWaiting } from "../workspace";
 
 export default function IndexRoute() {
-  return <Redirect href="/journeys" />;
+  return <WorkspaceWaiting />;
 }

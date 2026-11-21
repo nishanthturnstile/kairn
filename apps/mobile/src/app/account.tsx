@@ -2,253 +2,158 @@ import type {
   IdentityDevices,
   RestrictionConfirmation,
 } from "@kairn/contracts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { StyleSheet } from "react-native-unistyles";
 import { useAppearancePreference } from "../appearance";
 import { mobileAuth } from "../auth";
+import { AccountAccess } from "../components/account-access";
+import { ProfileName } from "../components/profile-name";
 import {
   Action,
   AppText,
-  Field,
+  focusOutline,
   type Notice,
   Panel,
   StatusNotice,
+  touchTarget,
 } from "../components/ui";
+import { useMobileSession } from "../mobile-session";
 import type { AppearancePreference } from "../theme";
+import { useWorkspace } from "../workspace";
 
 type Client = NonNullable<typeof mobileAuth>;
-const labels = {
-  signIn: "Sign in",
-  signUp: "Create account",
-  recover: "Reset password",
-  resend: "Resend verification",
-};
-type Mode = keyof typeof labels;
+const sessionDate = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 export default function AccountRoute() {
-  const { theme } = useUnistyles();
+  return mobileAuth ? <Account client={mobileAuth} /> : <AccountAccess />;
+}
+
+function Account({ client }: { client: Client }) {
+  const { state, scope, signOut } = useMobileSession();
+  const session = client.useSession();
+  const router = useRouter();
+  const { entry, progress, signedIn } = useWorkspace();
+  const { width, fontScale } = useWindowDimensions();
+  const [signOutAttempt, setSignOutAttempt] = useState<{
+    accountId: string;
+    status: "pending" | "error";
+  }>();
+  const wide = width >= 800 && fontScale <= 1.3;
+  const stacked = width < 365 || fontScale > 1.4;
+  const user =
+    session.data?.user.id === scope?.accountId ? session.data?.user : undefined;
+  const showMember = state === "verified" && user && scope;
+  if (!scope) {
+    return (
+      <AccountAccess
+        client={client}
+        signOutUnconfirmed={signOutAttempt?.status === "error"}
+        onSignIn={(accountId) => {
+          setSignOutAttempt(undefined);
+          signedIn({ accountId });
+        }}
+      />
+    );
+  }
+
+  async function leave(accountId: string) {
+    setSignOutAttempt({ accountId, status: "pending" });
+    const success = await signOut().catch(() => false);
+    setSignOutAttempt(success ? undefined : { accountId, status: "error" });
+  }
 
   return (
-    <SafeAreaView
-      edges={["bottom", "left", "right"]}
-      style={{ flex: 1, backgroundColor: theme.semantic.color.canvas }}
-    >
+    <SafeAreaView edges={["bottom", "left", "right"]} style={styles.screen}>
       <ScrollView
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
-        style={styles.screen}
         contentContainerStyle={styles.container}
       >
-        {mobileAuth ? (
-          <Account client={mobileAuth} />
-        ) : (
+        {user && (
+          <View
+            key={scope.accountId}
+            accessibilityElementsHidden={!showMember}
+            importantForAccessibility={
+              showMember ? "auto" : "no-hide-descendants"
+            }
+            style={showMember ? styles.group : styles.hidden}
+          >
+            {entry?.accountId === scope.accountId && progress.isError && (
+              <Panel>
+                <StatusNotice
+                  notice={{ text: "Couldn’t check your setup.", tone: "error" }}
+                />
+                <Action
+                  label="Try again"
+                  disabled={progress.isFetching}
+                  onPress={() => void progress.refetch()}
+                />
+              </Panel>
+            )}
+            {progress.data?.state === "pending" && (
+              <Action
+                label="Resume setup"
+                variant="primary"
+                onPress={() => router.dismissTo("/onboarding")}
+              />
+            )}
+            <View style={wide ? styles.columns : styles.group}>
+              <View style={wide && styles.column}>
+                <ProfileName
+                  scope={scope}
+                  account={{ email: user.email, stacked }}
+                />
+              </View>
+              <View style={wide && styles.column}>
+                <Devices
+                  client={client}
+                  accountId={user.id}
+                  stacked={stacked}
+                  signOut={() => void leave(user.id)}
+                  signOutStatus={
+                    signOutAttempt?.accountId === user.id
+                      ? signOutAttempt.status
+                      : undefined
+                  }
+                />
+              </View>
+            </View>
+            <AppearanceSettings stacked={stacked} />
+          </View>
+        )}
+        {state === "checking" && (
           <StatusNotice
-            notice={{ text: "Account access is unavailable.", tone: "error" }}
+            notice={{ text: "Checking your session", tone: "info" }}
           />
         )}
-        <AppearanceSettings />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Account({ client }: { client: Client }) {
-  const session = client.useSession();
-  const user = session.data?.user;
-  return (
-    <View style={styles.group}>
-      {session.error && (
-        <Panel>
-          <StatusNotice
-            notice={{
-              text: "Account access is temporarily unavailable.",
-              tone: "error",
-            }}
-          />
-          <Action
-            label="Try again"
-            disabled={session.isPending}
-            onPress={() => void session.refetch()}
-          />
-        </Panel>
-      )}
-      {user ? (
-        <Devices client={client} email={user.email} accountId={user.id} />
-      ) : session.isPending ? (
-        <StatusNotice
-          notice={{ text: "Checking your session", tone: "info" }}
-        />
-      ) : (
-        <AccountForm client={client} />
-      )}
-    </View>
-  );
-}
-
-function AccountForm({ client }: { client: Client }) {
-  const [mode, setMode] = useState<Mode>("signIn");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit() {
-    setBusy(true);
-    setNotice(null);
-    try {
-      if (mode === "signIn") {
-        const { error } = await client.signIn.email({
-          email: email.trim(),
-          password,
-        });
-        if (error) {
-          setNotice({
-            text:
-              error.code === "EMAIL_NOT_VERIFIED"
-                ? "Verify your email before signing in."
-                : "Couldn’t sign in. Check your email and password.",
-            tone: error.code === "EMAIL_NOT_VERIFIED" ? "warning" : "error",
-          });
-        }
-      } else if (mode === "signUp") {
-        const { error } = await client.signUp.email({
-          email: email.trim(),
-          name: name.trim(),
-          password,
-        });
-        setNotice({
-          text: error
-            ? "Couldn’t register. Check your details and try again."
-            : "Open the verification link in your email, then return to sign in.",
-          tone: error ? "error" : "info",
-        });
-      } else if (mode === "recover") {
-        const { error } = await client.requestPasswordReset({
-          email: email.trim(),
-        });
-        setNotice({
-          text: error
-            ? "Couldn’t request a reset email."
-            : "If the account can receive a reset email, open its link to set a new password.",
-          tone: error ? "error" : "info",
-        });
-      } else {
-        const { error } = await client.sendVerificationEmail({
-          email: email.trim(),
-        });
-        setNotice({
-          text: error
-            ? "Couldn’t request a verification email."
-            : "If your email still needs verification, check your inbox.",
-          tone: error ? "error" : "info",
-        });
-      }
-    } catch {
-      setNotice({
-        text: "Couldn’t connect to Kairn. Try again.",
-        tone: "error",
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const withPassword = mode === "signIn" || mode === "signUp";
-  return (
-    <Panel>
-      <View style={styles.group}>
-        <AppText
-          text={labels[mode]}
-          accessibilityRole="header"
-          variant="section"
-        />
-        {mode === "signUp" && (
-          <Field
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            autoComplete="name"
-            editable={!busy}
-          />
-        )}
-        <Field
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoComplete="email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!busy}
-        />
-        {withPassword && (
-          <Field
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!busy}
-            autoComplete={
-              mode === "signUp" ? "new-password" : "current-password"
-            }
-          />
-        )}
-        {mode === "signUp" && (
-          <AppText
-            text="Use at least 12 characters for your password."
-            subdued
-          />
-        )}
-        <Action
-          label={labels[mode]}
-          variant="primary"
-          accessibilityState={{ busy }}
-          disabled={
-            busy ||
-            !email.trim() ||
-            (withPassword && !password) ||
-            (mode === "signUp" && (!name.trim() || password.length < 12))
-          }
-          onPress={() => void submit()}
-        />
-        <StatusNotice notice={notice} />
-        <View style={styles.actions}>
-          {(Object.keys(labels) as Mode[])
-            .filter((option) => option !== mode)
-            .map((option) => (
-              <Action
-                key={option}
-                label={labels[option]}
-                disabled={busy}
-                onPress={() => {
-                  setMode(option);
-                  setNotice(null);
-                  setPassword("");
-                }}
-              />
-            ))}
-        </View>
-      </View>
-    </Panel>
-  );
-}
-
 function Devices({
   client,
-  email,
   accountId,
+  stacked,
+  signOut,
+  signOutStatus,
 }: {
   client: Client;
-  email: string;
   accountId: string;
+  stacked: boolean;
+  signOut: () => void;
+  signOutStatus?: "pending" | "error";
 }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
-  const queryClient = useQueryClient();
+  const signingOut = signOutStatus === "pending";
   const devices = useQuery({
     queryKey: [accountId, "devices"],
     async queryFn({ signal }) {
@@ -259,40 +164,35 @@ function Devices({
       return data;
     },
   });
+  const currentDeviceId = devices.data?.currentDeviceId;
+  const sessions = devices.data?.devices
+    .slice()
+    .sort(
+      (a, b) =>
+        Number(b.id === currentDeviceId) - Number(a.id === currentDeviceId),
+    );
 
-  async function act(deviceId?: string) {
+  async function revoke(deviceId: string) {
     setBusy(true);
     setNotice(null);
     try {
-      if (!deviceId) {
-        await queryClient.cancelQueries();
-        queryClient.clear();
-        const { error } = await client.signOut();
-        if (error) {
-          setNotice({
-            text: "Couldn’t sign out on the server. Try again.",
-            tone: "error",
-          });
-        }
-      } else {
-        const { data, error } = await client.$fetch<RestrictionConfirmation>(
-          "/devices/revoke",
-          { method: "POST", body: { id: deviceId } },
-        );
-        setNotice({
-          text: error
-            ? "Couldn’t revoke this session. Sign in again to refresh your session."
-            : data?.confirmation === "pending"
-              ? "Device signed out. Recovery confirmation is pending."
-              : "Device signed out.",
-          tone: error
-            ? "error"
-            : data?.confirmation === "pending"
-              ? "warning"
-              : "success",
-        });
-        await devices.refetch();
-      }
+      const { data, error } = await client.$fetch<RestrictionConfirmation>(
+        "/devices/revoke",
+        { method: "POST", body: { id: deviceId } },
+      );
+      setNotice({
+        text: error
+          ? "Couldn’t revoke this session. Sign in again to refresh your session."
+          : data?.confirmation === "pending"
+            ? "Device signed out. Recovery confirmation is pending."
+            : "Device signed out.",
+        tone: error
+          ? "error"
+          : data?.confirmation === "pending"
+            ? "warning"
+            : "success",
+      });
+      await devices.refetch();
     } catch {
       setNotice({ text: "Couldn’t reach Kairn. Try again.", tone: "error" });
     } finally {
@@ -301,54 +201,72 @@ function Devices({
   }
 
   return (
-    <View style={styles.group}>
+    <Panel>
       <AppText
         text="Signed-in devices"
         accessibilityRole="header"
         variant="section"
       />
-      <AppText text={email} subdued />
-      <View style={styles.actions}>
-        <Action label="Sign out" disabled={busy} onPress={() => void act()} />
-      </View>
       {devices.isPending && (
         <StatusNotice notice={{ text: "Loading devices", tone: "info" }} />
       )}
       {devices.isError && (
-        <Panel>
+        <View style={styles.deviceList}>
           <StatusNotice
             notice={{ text: "Couldn’t load your devices.", tone: "error" }}
           />
-          <Action
-            label="Try again"
-            disabled={devices.isFetching || busy}
-            onPress={() => void devices.refetch()}
-          />
-        </Panel>
-      )}
-      {devices.data?.devices.map((device) => {
-        const current = device.id === devices.data?.currentDeviceId;
-        const started = new Date(device.createdAt).toLocaleString("en-IN");
-        return (
-          <Panel key={device.id}>
-            <AppText
-              text={current ? "This device" : `Session started ${started}`}
-              variant="label"
+          <View style={styles.start}>
+            <Action
+              label="Try again"
+              disabled={devices.isFetching || busy || signingOut}
+              onPress={() => void devices.refetch()}
             />
-            {!current && (
-              <View style={styles.actions}>
-                <Action
-                  label="Revoke device"
-                  variant="danger"
-                  accessibilityLabel={`Revoke device, session started ${started}`}
-                  disabled={busy}
-                  onPress={() => void act(device.id)}
-                />
+          </View>
+        </View>
+      )}
+      {!!sessions?.length && (
+        <View style={styles.deviceList}>
+          {sessions.map((device) => {
+            const current = device.id === currentDeviceId;
+            const started = sessionDate.format(new Date(device.createdAt));
+            return (
+              <View
+                key={device.id}
+                style={[
+                  styles.deviceRow,
+                  stacked && styles.deviceStack,
+                  current && styles.currentDevice,
+                ]}
+              >
+                <View
+                  style={[styles.deviceCopy, !stacked && styles.deviceInline]}
+                >
+                  <AppText
+                    text={current ? "This device" : "Other device"}
+                    variant="label"
+                  />
+                  <AppText
+                    text={`Signed in ${started}`}
+                    variant="caption"
+                    subdued
+                  />
+                </View>
+                {!current && (
+                  <Action
+                    label="Revoke device"
+                    accessibilityLabel={`Revoke device, signed in ${started}`}
+                    disabled={busy || signingOut}
+                    onPress={() => void revoke(device.id)}
+                  />
+                )}
               </View>
-            )}
-          </Panel>
-        );
-      })}
+            );
+          })}
+        </View>
+      )}
+      {sessions?.length === 0 && (
+        <AppText text="No signed-in devices to show." subdued />
+      )}
       <StatusNotice
         notice={
           notice ??
@@ -360,7 +278,26 @@ function Devices({
             : null)
         }
       />
-    </View>
+      <StatusNotice
+        notice={
+          signOutStatus === "error"
+            ? {
+                text: "Couldn’t sign out on the server. Try again.",
+                tone: "error",
+              }
+            : null
+        }
+      />
+      <View style={styles.signOut}>
+        <Action
+          label={signingOut ? "Signing out…" : "Sign out"}
+          variant="danger"
+          disabled={busy || signingOut}
+          accessibilityState={{ busy: signingOut }}
+          onPress={signOut}
+        />
+      </View>
+    </Panel>
   );
 }
 
@@ -371,38 +308,138 @@ const appearances: readonly [AppearancePreference, string][] = [
   ["outdoor", "Outdoor"],
 ];
 
-function AppearanceSettings() {
+function AppearanceSettings({ stacked }: { stacked: boolean }) {
   const { preference, selectAppearance } = useAppearancePreference();
+  const [focused, setFocused] = useState<AppearancePreference>();
   return (
-    <Panel>
-      <AppText text="Appearance" accessibilityRole="header" variant="section" />
-      <AppText text="Outdoor uses stronger outlines for glare." subdued />
-      <View accessibilityRole="radiogroup" style={styles.actions}>
-        {appearances.map(([value, label]) => (
-          <Action
-            key={value}
-            label={label}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: value === preference }}
-            variant={value === preference ? "primary" : "secondary"}
-            onPress={() => selectAppearance(value)}
-          />
-        ))}
-      </View>
-    </Panel>
+    <View style={styles.appearance}>
+      <Panel>
+        <AppText
+          text="Appearance"
+          accessibilityRole="header"
+          variant="section"
+        />
+        <View
+          accessibilityRole="radiogroup"
+          style={[styles.optionList, !stacked && styles.optionGrid]}
+        >
+          {appearances.map(([value, label]) => (
+            <Pressable
+              key={value}
+              accessibilityRole="radio"
+              accessibilityLabel={label}
+              accessibilityState={{ checked: value === preference }}
+              onPress={() => selectAppearance(value)}
+              onFocus={() => setFocused(value)}
+              onBlur={() => setFocused(undefined)}
+              style={({ pressed }) => [
+                styles.option,
+                !stacked && styles.optionColumn,
+                value === preference && styles.selected,
+                pressed && styles.pressed,
+                focused === value && styles.focused,
+              ]}
+            >
+              <View
+                style={[
+                  styles.radio,
+                  value === preference && styles.checkedRadio,
+                ]}
+                accessible={false}
+              >
+                {value === preference && <View style={styles.radioDot} />}
+              </View>
+              <AppText text={label} variant="label" style={styles.optionText} />
+            </Pressable>
+          ))}
+        </View>
+        <AppText
+          text="Outdoor increases contrast in bright light."
+          variant="caption"
+          subdued
+        />
+      </Panel>
+    </View>
   );
 }
 
-const styles = StyleSheet.create(({ semantic: { color, space } }) => ({
-  screen: { flex: 1, backgroundColor: color.canvas },
-  container: {
-    padding: space.step24,
-    gap: space.step24,
-  },
-  group: { gap: space.step16 },
-  actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: space.step8,
-  },
-}));
+const styles = StyleSheet.create(
+  ({ semantic: { border, color, radius, space } }) => ({
+    screen: { flex: 1, backgroundColor: color.canvas },
+    container: {
+      width: "100%",
+      maxWidth: 1040,
+      alignSelf: "center",
+      padding: space.step16,
+      paddingBottom: space.step24,
+      gap: space.step16,
+    },
+    group: { gap: space.step16 },
+    columns: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: space.step16,
+    },
+    column: { flex: 1 },
+    hidden: { display: "none" },
+    deviceList: { gap: space.step8 },
+    deviceRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: space.step12,
+      padding: space.step12,
+      borderRadius: radius.control,
+      backgroundColor: color.canvas,
+    },
+    deviceStack: { flexDirection: "column", alignItems: "stretch" },
+    deviceCopy: { gap: space.step4 },
+    deviceInline: {
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 164,
+      minWidth: 164,
+    },
+    currentDevice: { backgroundColor: color.actionWash },
+    start: { alignItems: "flex-start" },
+    signOut: {
+      alignItems: "flex-start",
+      paddingTop: space.step8,
+    },
+    appearance: { width: "100%", maxWidth: 505 },
+    optionList: { gap: space.step8 },
+    optionGrid: { flexDirection: "row", flexWrap: "wrap" },
+    option: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: space.step8,
+      minHeight: touchTarget,
+      paddingHorizontal: space.step12,
+      paddingVertical: space.step8,
+      borderWidth: border.control,
+      borderColor: color.boundary,
+      borderRadius: radius.control,
+    },
+    optionColumn: { flexBasis: "46%", flexGrow: 1 },
+    optionText: { flexShrink: 1 },
+    selected: { borderColor: color.action, backgroundColor: color.actionWash },
+    pressed: { backgroundColor: color.canvas },
+    focused: { ...focusOutline(color.information) },
+    radio: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: border.control,
+      borderColor: color.boundary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    checkedRadio: { borderColor: color.action },
+    radioDot: {
+      width: space.step8,
+      height: space.step8,
+      borderRadius: space.step4,
+      backgroundColor: color.action,
+    },
+  }),
+);
