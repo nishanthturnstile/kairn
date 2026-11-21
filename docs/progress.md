@@ -1,8 +1,10 @@
 # Implementation progress
 
-Updated 2026-11-20. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
+Updated 2026-11-21. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
 
 ## Next milestone
+
+**Plan reviewed and revised with GPT-6.2 Astra · Journey invitations and membership.** The plan covers optional onboarding, a Mailpit email flow, acceptance into the existing journey, and revocation on web, iPhone and Android. Next, implement and validate the shared permission, invitation, delivery and restriction operations in isolated PostgreSQL and Mailpit. [Implementation plan and review](plans/journey-invitations-and-membership.md)
 
 **Verified locally · Web account access.** Sign in and Create account share an aligned layout with a new ferry illustration, in-field password visibility and a round appearance control. Browser checks covered 320 CSS px reflow, keyboard theme selection, wordmark destinations, registration, password reset, cross-tab sign-out and onboarding return. Next, implement native onboarding and Dashboard using the shared account contracts. [Design and verification](plans/web-account-access.md)
 
@@ -44,7 +46,7 @@ Updated 2026-11-20. Baseline [bootstrap PR #1](https://github.com/nishanthturnst
 
 **Post-acceptance review verified locally.** Fixed uncertain-save retries, foreground privacy and refresh, native validation focus and failed web sign-out recovery. The complete local checks passed, including the three browser engines, Android revocation and TalkBack, iPhone Simulator and Linux ARM64 coordinated restore. [Review results](plans/private-journey-creation-and-history.md#post-acceptance-review--19-november-2026)
 
-After onboarding and Dashboard, add invitations into the same journey and verify membership revocation before expanding into source and export grants. The complete workstream scope is in the [requirements sequence](core/product-requirements.md#182-dependency-aware-implementation-sequence).
+The [invitation and membership plan](plans/journey-invitations-and-membership.md) follows onboarding and Dashboard and precedes source and export grants. The complete workstream scope is in the [requirements sequence](core/product-requirements.md#182-dependency-aware-implementation-sequence).
 
 ## Design review
 

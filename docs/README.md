@@ -18,6 +18,7 @@ Start with [implementation progress](progress.md) for the current milestone, nex
 - [Web account access and sign-out](plans/web-account-access.md)
 - [First-run onboarding and Dashboard](plans/first-run-onboarding-and-dashboard.md)
 - [Create a private journey and show it in history](plans/private-journey-creation-and-history.md)
+- [Journey invitations and membership](plans/journey-invitations-and-membership.md)
 - [Application bootstrap](plans/bootstrap-plan.md)
 
 ## Runbooks and review material
