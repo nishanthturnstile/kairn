@@ -9,13 +9,10 @@ import {
   useRouter,
 } from "expo-router";
 import { useState } from "react";
-import { Image, useWindowDimensions, View } from "react-native";
+import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
-import {
-  Action,
-  AppText,
-  StatusNotice,
-} from "../../../../components/fold/primitives";
+import { Action, StatusNotice } from "../../../../components/fold/primitives";
+import { JourneyFlowHeading } from "../../../../components/journeys/flow";
 import { InviteComposer } from "../../../../components/journeys/invite-composer";
 import {
   JourneyGate,
@@ -26,8 +23,6 @@ import {
 import { journeyInvitationsKey, journeyResult } from "../../../../journey-api";
 import { useMobileSession } from "../../../../mobile-session";
 import type { VerifiedMobileScope } from "../../../../session";
-
-const ferry = require("../../../../../assets/onboarding/ferry.jpg");
 
 export default function InviteRoute() {
   const { journeyId } = useLocalSearchParams();
@@ -55,7 +50,6 @@ function JourneyInvitations({
   journeyId: string;
 }) {
   const router = useRouter();
-  const { width, fontScale } = useWindowDimensions();
   const { state, refresh } = useMobileSession();
   const focused = useIsFocused();
   const online = useNetworkState().isConnected !== false;
@@ -95,32 +89,11 @@ function JourneyInvitations({
   const enabled = active && !unavailable && !access.isFetching;
   return (
     <View style={journeyStyles.screen}>
-      <JourneyScreen>
-        {journey && (
-          <View style={styles.header}>
-            <View style={styles.headerCopy}>
-              <AppText
-                text="Journey saved"
-                variant="caption"
-                style={styles.onHeader}
-              />
-              <AppText
-                text="Invite people"
-                variant="title"
-                style={styles.onHeader}
-                accessibilityRole="header"
-              />
-              {enabled && (
-                <AppText text={journey.title} style={styles.onHeader} />
-              )}
-            </View>
-            {width >= 380 && fontScale <= 1.15 && (
-              <View style={styles.artFrame}>
-                <Image source={ferry} style={styles.art} accessible={false} />
-              </View>
-            )}
-          </View>
-        )}
+      <JourneyScreen density="compact">
+        <JourneyFlowHeading
+          title="Invite people"
+          description="Choose who can join your journey."
+        />
         {disconnected ? (
           <StatusNotice
             notice={{ text: "Reconnect to invite people.", tone: "info" }}
@@ -132,11 +105,13 @@ function JourneyInvitations({
             retry={() => void access.refetch()}
           />
         ) : (
-          !journey && (
-            <StatusNotice
-              notice={{ text: "Checking journey access", tone: "info" }}
-            />
-          )
+          <StatusNotice
+            notice={
+              journey
+                ? { text: "Journey saved", tone: "success" }
+                : { text: "Checking journey access", tone: "info" }
+            }
+          />
         )}
         {unavailable && !sending && (
           <Action
@@ -172,7 +147,7 @@ function JourneyInvitations({
         )}
       </JourneyScreen>
       {journey && active && !unavailable && access.isFetching && (
-        <View style={styles.recheckNotice} pointerEvents="none">
+        <View pointerEvents="none" style={styles.recheckNotice}>
           <StatusNotice
             notice={{ text: "Checking journey access", tone: "info" }}
           />
@@ -182,28 +157,13 @@ function JourneyInvitations({
   );
 }
 
-const styles = StyleSheet.create(({ semantic: { color, radius, space } }) => ({
-  header: {
-    flexDirection: "row",
-    overflow: "hidden",
-    borderRadius: radius.card,
-    backgroundColor: color.action,
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: "center",
-    gap: space.step4,
-    padding: space.step16,
-  },
-  onHeader: { color: color.onAction },
-  artFrame: { width: "28%", alignSelf: "stretch" },
-  art: { width: "100%", height: "100%", position: "absolute", top: 0, left: 0 },
+const styles = StyleSheet.create(({ semantic: { space } }) => ({
   concealed: { opacity: 0 },
   recheckNotice: {
     position: "absolute",
-    top: space.step8,
-    left: space.step24,
-    right: space.step24,
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: space.step16,
   },
 }));

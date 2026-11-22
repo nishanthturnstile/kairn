@@ -419,12 +419,67 @@ test("can skip inviting after creation and open the saved journey", async ({
     .click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await fillJourney(page, "Quiet trip");
-  await page.getByRole("button", { name: "Create & invite people" }).click();
+  const details = page.getByRole("region", { name: "Journey details" });
+  const preview = page.getByRole("complementary", { name: "Journey preview" });
+  await expect(preview).toContainText("Quiet trip");
+  for (const width of [1440, 900, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const [formBox, previewBox] = await Promise.all([
+      details.boundingBox(),
+      preview.boundingBox(),
+    ]);
+    expect(formBox).not.toBeNull();
+    expect(previewBox).not.toBeNull();
+    if (!formBox || !previewBox) throw new Error("Missing creation layout");
+    if (width === 1440) {
+      expect(previewBox.x).toBeGreaterThan(formBox.x + formBox.width);
+    } else {
+      expect(previewBox.y).toBeGreaterThan(formBox.y + formBox.height);
+    }
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(width);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   const heading = page.getByRole("heading", { name: "Invite people" });
-  await expect(heading).toBeFocused();
+  const initialCheck = Promise.withResolvers<void>();
+  await page.route(
+    /\/api\/v1\/journeys\/[a-f0-9-]+$/,
+    async (route) => {
+      await initialCheck.promise;
+      await route.continue();
+    },
+    { times: 1 },
+  );
+  try {
+    await page.getByRole("button", { name: "Create & invite people" }).click();
+    await expect(heading).toBeFocused();
+    await expect(page.getByText("Checking journey access")).toBeInViewport();
+  } finally {
+    initialCheck.resolve();
+  }
   await expect(page.getByText("Quiet trip", { exact: true })).toBeVisible();
   const journey = page.url().replace(/\/invite$/, "");
   expect(page.url()).toBe(`${journey}/invite`);
+  const finder = page.getByRole("region", { name: "Add recipients" });
+  const recipients = page.getByRole("region", { name: "Recipient list" });
+  for (const width of [1440, 900, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const [finderBox, recipientBox] = await Promise.all([
+      finder.boundingBox(),
+      recipients.boundingBox(),
+    ]);
+    if (!finderBox || !recipientBox)
+      throw new Error("Missing invitation layout");
+    if (width === 1440) {
+      expect(recipientBox.x).toBeGreaterThan(finderBox.x + finderBox.width);
+    } else {
+      expect(recipientBox.y).toBeGreaterThan(finderBox.y + finderBox.height);
+    }
+    await expect(
+      page.getByRole("button", { name: "Send invitations" }),
+    ).toBeDisabled();
+  }
   await page.setViewportSize({ width: 320, height: 800 });
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
   await expect
@@ -443,7 +498,6 @@ test("can skip inviting after creation and open the saved journey", async ({
     await addEmail.click();
   }
   await addressField.fill("still-typing@example.test");
-  const recipients = page.getByRole("region", { name: "Recipient list" });
   const removeFirst = page.getByRole("button", {
     name: "Remove draft-first@example.test from draft",
   });
@@ -457,6 +511,10 @@ test("can skip inviting after creation and open the saved journey", async ({
   await expect(recipients.getByRole("status")).toHaveText("1 recipient");
   await expect(addressField).toHaveValue("still-typing@example.test");
 
+  await page.setViewportSize({ width: 320, height: 550 });
+  await page.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight),
+  );
   const checking = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();
   const journeyId = new URL(journey).pathname.split("/").at(-1);
@@ -474,11 +532,15 @@ test("can skip inviting after creation and open the saved journey", async ({
     await checking.promise;
     await expect(heading).toBeVisible();
     await expect(recipients).toBeHidden();
-    await expect(page.getByText("Checking journey access")).toBeVisible();
+    await expect(page.getByText("Checking journey access")).toBeInViewport();
+    await expect(
+      page.getByRole("region", { name: "Journey access" }),
+    ).toBeFocused();
   } finally {
     release.resolve();
   }
   await expect(recipients).toBeVisible();
+  await expect(removeSecond).toBeFocused();
   await expect(addressField).toHaveValue("still-typing@example.test");
   await removeSecond.press("Enter");
   await expect(addressField).toBeFocused();
@@ -508,17 +570,32 @@ test("retries creation and invitation delivery for the same saved journey", asyn
   await fillJourney(page, "Konkan with companions");
 
   let journeyId = "";
+  const committed = Promise.withResolvers<void>();
+  const releaseCreate = Promise.withResolvers<void>();
   await page.route(
     "**/api/v1/journeys",
     async (route) => {
       const saved = await route.fetch();
       expect(saved.status()).toBe(201);
       journeyId = (await saved.json()).id;
+      committed.resolve();
+      await releaseCreate.promise;
       await route.abort("failed");
     },
     { times: 1 },
   );
   await page.getByRole("button", { name: "Create & invite people" }).click();
+  try {
+    await committed.promise;
+    await expect(
+      page.getByRole("button", { name: "Saving before invitations…" }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Save journey", exact: true }),
+    ).toBeDisabled();
+  } finally {
+    releaseCreate.resolve();
+  }
   await expect(
     page.getByText("We couldn’t confirm the save.", { exact: false }),
   ).toBeVisible();

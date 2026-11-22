@@ -119,9 +119,9 @@ Use the existing Problem Details shape and `X-Request-Id`. Return safe field cod
 
 ### Create journey redesign
 
-The web form groups the title and schedule, opens the optional end date on request, and puts the privacy message beside Save journey. The desktop preview reflects the draft title, local start and end, and timezone. The form stacks on narrow screens. A recovered attempt opens with its stored dates visible and locked for retry. [Create form](../../apps/web/src/components/journeys/create.tsx)
+The web form separates Journey details from Schedule and opens the optional end date on request. The privacy message sits beside Save journey and Create & invite people. The preview reflects the draft title, local start and end, and time zone. It sits beside the form when space allows and follows the save actions on narrower screens. A recovered attempt opens with its stored dates visible and locked for retry. The chosen save action describes its pending state while the other action keeps its original label. [Create form](../../apps/web/src/components/journeys/create.tsx) · [Invitation flow](journey-invitations-and-membership.md)
 
-Eight service-backed browser tests passed in each of Chromium and WebKit. The checks covered keyboard disclosure, clearing an end date, recovery with a stored end date, onboarding handoff and 320 CSS px reflow at 200% text in Light, Dark and Outdoor. A separate desktop check verified the live preview and passed the automated accessibility scan. The production web build and workspace checks passed. [Journey browser tests](../../tests/web/journeys.playwright.ts) · [Onboarding browser tests](../../tests/web/onboarding.playwright.ts)
+Browser tests cover the desktop preview, the desktop, tablet and phone layouts, keyboard disclosure, clearing and recovering an end date, save and invitation retries, the onboarding handoff and 320 CSS px reflow at 200% text in Light, Dark and Outdoor. [Journey browser tests](../../tests/web/journeys.playwright.ts) · [Onboarding browser tests](../../tests/web/onboarding.playwright.ts)
 
 ### Journeys timeline redesign
 
@@ -131,11 +131,15 @@ Twelve isolated database checks passed, including exact start and end boundaries
 
 ### Journey detail redesign
 
-The web detail page groups the title, privacy, archive state and schedule status in its header. The schedule groups the intended start, intended end and timezone. Its date markers line up horizontally on wide screens and stack on narrow screens. The page evaluates status from the server time and the same inclusive start and end rules as the Journeys timeline. It refreshes on reentry or when the window regains focus. [Web detail](../../apps/web/src/routes/journeys_.$journeyId.tsx)
+The web detail page leads with the journey title, privacy, archive state and schedule status. The main schedule panel separates each local date from its time and shows the stored time zone. Its date markers line up horizontally when the panel is wide enough and stack on narrow screens. People shows the viewer’s role and opens the existing access screen. It sits beside the schedule on wide screens and follows it on phones. The page uses the server clock and the Journeys timeline rules. While access is being checked, it hides private data and shows the check in progress. [Web detail view](../../apps/web/src/components/journeys/detail.tsx) · [Web access states](../../apps/web/src/routes/journeys_.$journeyId.tsx)
 
-Chromium and WebKit each passed eight service-backed checks, including detail recovery, server-clock status, and 320 CSS px reflow at 200% text. Visual and automated accessibility checks covered dated, open-ended, undated, and archived states. Twelve isolated database checks, 62 unit tests, OpenAPI parity, workspace checks, and builds passed. [Browser checks](../../tests/web/journeys.playwright.ts) · [Database checks](../../tests/integration/journeys.test.ts)
+Browser checks cover desktop, tablet and phone layouts, keyboard navigation to People, dated and open-ended schedules, an archived and undated fixture, and recovery without revealing protected data during the check. The narrow layout passed automated accessibility checks at 320 CSS px and 200% text in Light, Dark and Outdoor. [Browser checks](../../tests/web/journeys.playwright.ts) · [Database checks](../../tests/integration/journeys.test.ts)
+
+On web, keyboard navigation focuses the roster heading. An access check moves focus from the covered People link to the generic heading and returns it after access is confirmed. Both platforms display the assigned coauthor or publisher roles alongside the organiser and participant labels. [People route](../../apps/web/src/routes/journeys_.$journeyId_.people.tsx) · [Role labels](../../packages/shared/src/journey-editorial.ts)
 
 ## Step 4 · Native Android and iOS
+
+The native Create journey screen separates the title and schedule and updates the preview with the current title, start, end and time zone. The date and time inputs retain numeric entry and the platform pickers. The active save action shows its pending state. Save journey opens the saved detail, and Create & invite people opens the invitation handoff after confirmation. [Native create form](../../apps/mobile/src/components/journeys/create.tsx)
 
 ### Implementation sequence
 
@@ -171,6 +175,8 @@ Native session and SQLite regressions, eight isolated database checks, three ser
 ### Native Journeys redesign
 
 iPhone and Android use the illustrated empty state, the four server-paged schedule groups, and the private detail status used on web. Create journey groups the schedule with native date and time pickers and typed entry. End fields open on request or when restored values need them. A compact preview shows the entered local times before saving. The detail timeline stacks its date markers and uses the same shared status rules and server time as web. [Native Journey components](../../apps/mobile/src/components/journeys/) · [Shared status rules](../../packages/shared/src/journey-time.ts)
+
+Native details put the title and status above a vertical schedule with distinct date and time values. The People panel follows with the current role and a roster action. The route keeps a generic heading and a Back to Journeys action during access checks and failures. [Native layout](../../apps/mobile/src/components/journeys/detail.tsx) · [Route states](../../apps/mobile/src/app/(tabs)/journeys/%5BjourneyId%5D.tsx)
 
 The iPhone 17 Simulator and Android API 37 emulator verified the empty state, native date-picker entry point, typed creation with an end date, private detail, and all four timeline groups. Android retried a dropped save response and the server returned one saved entry. The timeline, detail, and optional end fields passed at the largest iOS Dynamic Type size and 200% Android text. Native bundle exports, workspace checks, client bundle scans, 63 unit tests and eight Chromium web regressions passed. [Shared timing tests](../../tests/journey-time.test.ts) · [Web regression harness](../../tests/operations/browser-identity.sh)
 

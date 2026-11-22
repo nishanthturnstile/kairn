@@ -1,0 +1,66 @@
+.journey-schedule {
+  --journey-marker-size: 0.625rem;
+  --journey-marker-center: calc(var(--journey-marker-size) / 2);
+  --journey-marker-top: var(--spacing);
+  display: grid;
+}
+
+.journey-schedule-stop {
+  padding-inline-start: calc(var(--spacing) * 6);
+}
+
+.journey-schedule-stop::after {
+  content: "";
+  position: absolute;
+  inset-block-start: var(--journey-marker-top);
+  inset-inline-start: 0;
+  inline-size: var(--journey-marker-size);
+  block-size: var(--journey-marker-size);
+  border: 1px solid var(--kairn-semantic-color-action);
+  border-radius: 50%;
+  background: var(--kairn-semantic-color-surface);
+}
+
+.journey-schedule-stop[data-dated="true"]::after {
+  background: var(--kairn-semantic-color-action);
+}
+
+.journey-schedule-stop:first-child {
+  padding-block-end: calc(var(--spacing) * 5);
+}
+
+.journey-schedule-stop:first-child::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--journey-marker-top) calc(0rem - var(--journey-marker-top));
+  inset-inline-start: var(--journey-marker-center);
+  border-inline-start: 1px solid var(--kairn-semantic-color-boundary);
+}
+
+.journey-schedule[data-open-ended="true"] .journey-schedule-stop::before {
+  border-style: dashed;
+}
+
+@container journey-schedule (min-width: 27rem) {
+  .journey-schedule {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    --journey-marker-top: 0rem;
+  }
+
+  .journey-schedule-stop {
+    padding-block-start: calc(var(--spacing) * 5);
+    padding-inline-start: 0;
+  }
+
+  .journey-schedule-stop:first-child {
+    padding-inline-end: calc(var(--spacing) * 5);
+    padding-block-end: 0;
+  }
+
+  .journey-schedule-stop:first-child::before {
+    inset-block: var(--journey-marker-center) auto;
+    inset-inline: var(--journey-marker-center) 0;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--kairn-semantic-color-boundary);
+  }
+}

@@ -11,7 +11,7 @@ export function FoldScreen({
   density = "standard",
 }: {
   children: ReactNode;
-  density?: "standard" | "catalog";
+  density?: "standard" | "compact" | "catalog";
   top?: boolean;
   safeBottom?: boolean;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
@@ -34,6 +34,7 @@ export function FoldScreen({
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
+          density !== "standard" && styles.compact,
           density === "catalog" && styles.catalog,
         ]}
       >
@@ -46,11 +47,11 @@ export function FoldScreen({
 const styles = StyleSheet.create(({ semantic: { color, space } }) => ({
   screen: { flex: 1, backgroundColor: color.canvas },
   content: { padding: space.step24, gap: space.step16 },
-  catalog: {
+  compact: {
     width: "100%",
     maxWidth: 640,
     alignSelf: "center",
     padding: space.step16,
-    gap: space.step12,
   },
+  catalog: { gap: space.step12 },
 }));

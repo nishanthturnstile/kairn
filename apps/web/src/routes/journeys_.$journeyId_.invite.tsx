@@ -3,8 +3,8 @@ import { journeyPath } from "@kairn/contracts/journeys";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { cn } from "cn";
 import { Check } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import ferry from "../assets/konkan-ferry.webp";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { JourneyFlow } from "../components/journeys/flow";
 import { InviteComposer } from "../components/journeys/invite-composer";
 import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { Alert, AlertTitle } from "../components/ui/alert";
@@ -63,7 +63,10 @@ function InviteRoute() {
     </div>
   );
   return (
-    <div className="@container/journey-invite mx-auto grid w-full min-w-0 max-w-5xl gap-4">
+    <JourneyFlow
+      title="Invite people"
+      description="Choose who can join your journey."
+    >
       {journey ? (
         <JourneyInvitations
           key={journey.id}
@@ -76,7 +79,7 @@ function InviteRoute() {
       ) : (
         accessNotice
       )}
-    </div>
+    </JourneyFlow>
   );
 }
 
@@ -93,49 +96,51 @@ function JourneyInvitations({
   accessNotice: ReactNode;
   onBusy: (busy: boolean) => void;
 }) {
-  const heading = useRef<HTMLHeadingElement>(null);
   const navigate = Route.useNavigate();
-  useEffect(() => heading.current?.focus(), []);
+  const composer = useRef<HTMLDivElement>(null);
+  const notice = useRef<HTMLElement>(null);
+  const previousFocus = useRef<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    const control = previousFocus.current;
+    if (!control?.isConnected) return;
+    const active = document.activeElement;
+    if (suspended) {
+      if (active === document.body || composer.current?.contains(active)) {
+        notice.current?.focus({ preventScroll: true });
+      }
+    } else if (active === document.body) {
+      control.focus({ preventScroll: true });
+    }
+  }, [suspended]);
+
   return (
-    <div className="grid min-w-0 gap-4">
-      <header className="grid min-w-0 overflow-hidden rounded-card bg-primary text-primary-foreground @min-[34rem]/journey-invite:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="grid min-w-0 content-center justify-items-start gap-3 p-inset">
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            <Check aria-hidden="true" className="size-4 shrink-0" />
-            Journey saved
-          </p>
-          <div className="grid min-w-0 gap-1">
-            <h1
-              ref={heading}
-              tabIndex={-1}
-              className="wrap-anywhere text-4xl font-semibold"
-            >
-              Invite people
-            </h1>
-            <p
-              className={cn("wrap-anywhere text-lg", suspended && "invisible")}
-            >
-              {journey.title}
-            </p>
-          </div>
-        </div>
-        <div className="relative hidden min-h-44 @min-[34rem]/journey-invite:block">
-          <img
-            src={ferry}
-            alt=""
-            width={1040}
-            height={1300}
-            className="absolute inset-0 size-full object-cover object-[50%_57%]"
-          />
-        </div>
-      </header>
+    <>
+      <Alert variant="success" className="flex min-w-0 items-center gap-2">
+        <Check aria-hidden="true" className="size-4 shrink-0" />
+        <AlertTitle>Journey saved</AlertTitle>
+      </Alert>
       <div className="grid min-w-0">
         <div
+          ref={composer}
           className={cn(
             "col-start-1 row-start-1 min-w-0",
             suspended && "invisible",
           )}
           inert={suspended}
+          onFocusCapture={(event) => {
+            if (event.target instanceof HTMLElement)
+              previousFocus.current = event.target;
+          }}
+          onBlurCapture={({ relatedTarget }) => {
+            if (
+              relatedTarget instanceof Node &&
+              !composer.current?.contains(relatedTarget) &&
+              !notice.current?.contains(relatedTarget)
+            ) {
+              previousFocus.current = null;
+            }
+          }}
         >
           <InviteComposer
             journeyId={journey.id}
@@ -160,11 +165,16 @@ function JourneyInvitations({
           />
         </div>
         {suspended && (
-          <div className="col-start-1 row-start-1 self-start">
+          <section
+            ref={notice}
+            tabIndex={-1}
+            aria-label="Journey access"
+            className="journey-flow-access-notice col-start-1 row-start-1 self-start"
+          >
             {accessNotice}
-          </div>
+          </section>
         )}
       </div>
-    </div>
+    </>
   );
 }

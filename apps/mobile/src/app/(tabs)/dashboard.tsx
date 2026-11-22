@@ -92,6 +92,7 @@ function CreateJourneyLink({ intent }: { intent?: OnboardingIntent }) {
           ? { pathname: "/journeys/new", params: { intent } }
           : "/journeys/new"
       }
+      withAnchor
       asChild
     >
       <Action
@@ -203,6 +204,7 @@ function JourneyRow({ journey }: { journey: DashboardJourney }) {
           pathname: "/journeys/[journeyId]",
           params: { journeyId: journey.id },
         }}
+        withAnchor
         asChild
       >
         <Action label={journey.title} accessibilityRole="link" />

@@ -50,6 +50,7 @@ import {
   Panel,
   StatusNotice,
 } from "../fold/primitives";
+import { JourneyFlowHeading, journeyFlowStyles } from "./flow";
 import { focusInvalidSchedule, ScheduleField } from "./picker";
 import { JourneyRetry, JourneyScreen, journeyStyles } from "./states";
 
@@ -90,15 +91,10 @@ export function CreateJourney({
     },
   });
   return (
-    <JourneyScreen scrollRef={scroll}>
-      <AppText
-        text="Create journey"
-        variant="title"
-        accessibilityRole="header"
-      />
-      <AppText
-        text="Give your journey a name and choose when it starts."
-        subdued
+    <JourneyScreen density="compact" scrollRef={scroll}>
+      <JourneyFlowHeading
+        title="Create journey"
+        description="Give your journey a name and choose when it starts."
       />
       {pending.isError ? (
         <JourneyRetry
@@ -146,7 +142,11 @@ function JourneyForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [choices, setChoices] = useState<OffsetChoices>({});
   const [feedback, setFeedback] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<{
+    invitePeople: boolean;
+    retry: boolean;
+  } | null>(null);
+  const saving = savingAction !== null;
   const [addingEnd, setAddingEnd] = useState(false);
   const submitting = useRef(false);
   const mounted = useRef(false);
@@ -303,7 +303,7 @@ function JourneyForm({
 
     Keyboard.dismiss();
     submitting.current = true;
-    setSaving(true);
+    setSavingAction({ invitePeople, retry: attempt !== null });
     setFeedback("");
     setErrors({});
     const visible = () => mounted.current && !scope.signal.aborted;
@@ -379,7 +379,7 @@ function JourneyForm({
       }
     } finally {
       submitting.current = false;
-      if (visible()) setSaving(false);
+      if (visible()) setSavingAction(null);
     }
   }
 
@@ -406,8 +406,14 @@ function JourneyForm({
     }
     setAddingEnd(!hasEnd);
   }
+  const retry = savingAction?.retry ?? attempt !== null;
   const notice = saving
-    ? { text: "Saving…", tone: "info" as const }
+    ? {
+        text: savingAction.invitePeople
+          ? "Saving before invitations…"
+          : "Saving journey…",
+        tone: "info" as const,
+      }
     : confirmed
       ? { text: "Journey saved.", tone: "success" as const }
       : feedback
@@ -420,19 +426,28 @@ function JourneyForm({
           : null;
   return (
     <View style={styles.editor}>
+      <View style={journeyFlowStyles.section}>
+        <AppText
+          text="Journey details"
+          variant="section"
+          accessibilityRole="header"
+        />
+        <Field
+          label="Title"
+          ref={editRef("title")}
+          error={errors.title}
+          value={draft.title}
+          onChangeText={(value) => update("title", value)}
+          placeholder="e.g. A weekend in Coorg"
+          maxLength={120}
+          editable={!locked}
+          returnKeyType="next"
+          onSubmitEditing={() => editRefs.current.startDate?.focus()}
+        />
+      </View>
       <Panel>
-        <View style={styles.editor}>
-          <Field
-            label="Title"
-            ref={editRef("title")}
-            error={errors.title}
-            value={draft.title}
-            onChangeText={(value) => update("title", value)}
-            placeholder="e.g. A weekend in Coorg"
-            maxLength={120}
-            editable={!locked}
-          />
-          <View style={styles.scheduleHeading}>
+        <View style={styles.scheduleFields}>
+          <View style={journeyFlowStyles.heading}>
             <AppText
               text="Schedule"
               variant="section"
@@ -442,7 +457,7 @@ function JourneyForm({
               text={
                 intent
                   ? journeyIntentCopy[intent].guidance
-                  : "Enter the dates and times in the journey’s local time."
+                  : "Use the journey’s local time."
               }
               variant="caption"
               subdued
@@ -457,6 +472,8 @@ function JourneyForm({
                   <View style={styles.optionalAction}>
                     <Action
                       label={hasEnd ? "Remove end date" : "Add end date"}
+                      variant="text"
+                      size="compact"
                       accessibilityState={{ expanded: hasEnd }}
                       disabled={locked}
                       onPress={toggleEnd}
@@ -535,7 +552,7 @@ function JourneyForm({
             );
           })}
           <Field
-            label="Timezone"
+            label="Time zone"
             ref={editRef("timeZone")}
             error={errors.timeZone}
             value={draft.timeZone}
@@ -544,25 +561,35 @@ function JourneyForm({
             autoCapitalize="none"
             editable={!locked}
           />
-          {startPreview && (
-            <View style={styles.preview}>
-              <AppText text="Schedule preview" variant="caption" />
-              <AppText
-                text={`Start · ${startPreview}`}
-                variant="caption"
-                subdued
-              />
-              <AppText
-                text={`End · ${endPreview ?? (hasEnd ? "Not set" : "Open-ended")}`}
-                variant="caption"
-                subdued
-              />
-            </View>
-          )}
         </View>
       </Panel>
-      <StatusNotice notice={notice} />
-      <View style={styles.saveArea}>
+      <View style={styles.preview}>
+        <AppText
+          text="Journey preview"
+          variant="label"
+          accessibilityRole="header"
+        />
+        <AppText text={draft.title.trim() || "Untitled journey"} />
+        <AppText
+          text={`Start · ${startPreview ?? "Date and time needed"}`}
+          variant="caption"
+          subdued
+        />
+        <AppText
+          text={`End · ${endPreview ?? (hasEnd ? "Date and time needed" : "Open-ended")}`}
+          variant="caption"
+          subdued
+        />
+        {draft.timeZone.trim() && (
+          <AppText
+            text={`Time zone · ${draft.timeZone.trim()}`}
+            variant="caption"
+            subdued
+          />
+        )}
+      </View>
+      <View style={journeyFlowStyles.actions}>
+        <StatusNotice notice={notice} />
         {!confirmed && (
           <AppText
             text="Only you can see this journey when you save it."
@@ -570,40 +597,45 @@ function JourneyForm({
             subdued
           />
         )}
-        <View
-          style={[styles.saveActions, compactPickers && styles.saveActionsRow]}
-        >
+        <Action
+          label={
+            confirmed
+              ? confirmed.invitePeople
+                ? "Invite people"
+                : "Open journey"
+              : savingAction && !savingAction.invitePeople
+                ? "Saving…"
+                : retry
+                  ? "Retry save"
+                  : "Save journey"
+          }
+          variant="primary"
+          feedback={
+            savingAction && !savingAction.invitePeople
+              ? "pending"
+              : confirmed
+                ? "success"
+                : "idle"
+          }
+          disabled={saving}
+          onPress={() =>
+            confirmed ? openJourney(confirmed) : void submit(false)
+          }
+        />
+        {!confirmed && (
           <Action
             label={
-              confirmed
-                ? confirmed.invitePeople
-                  ? "Invite people"
-                  : "Open journey"
-                : saving
-                  ? "Saving…"
-                  : attempt
-                    ? "Retry save"
-                    : "Save journey"
-            }
-            variant="primary"
-            feedback={saving ? "pending" : confirmed ? "success" : "idle"}
-            disabled={saving}
-            onPress={() =>
-              confirmed ? openJourney(confirmed) : void submit(false)
-            }
-          />
-          {!confirmed && (
-            <Action
-              label={
-                attempt
+              savingAction?.invitePeople
+                ? "Saving before invitations…"
+                : retry
                   ? "Retry save & invite people"
                   : "Create & invite people"
-              }
-              disabled={saving}
-              onPress={() => void submit(true)}
-            />
-          )}
-        </View>
+            }
+            accessibilityState={{ busy: savingAction?.invitePeople }}
+            disabled={saving}
+            onPress={() => void submit(true)}
+          />
+        )}
       </View>
     </View>
   );
@@ -621,25 +653,14 @@ function previewMinute(date: string, time: string) {
   return `${shown.date} · ${shown.time}`;
 }
 
-const styles = StyleSheet.create(
-  ({ semantic: { color, border, radius, space } }) => ({
-    editor: { gap: space.step16 },
-    scheduleHeading: {
-      borderTopColor: color.boundary,
-      borderTopWidth: border.control,
-      paddingTop: space.step16,
-      gap: space.step4,
-    },
-    scheduleFields: { gap: space.step12 },
-    optionalAction: { alignItems: "flex-start" },
-    saveArea: { gap: space.step12 },
-    saveActions: { gap: space.step8 },
-    saveActionsRow: { flexDirection: "row", flexWrap: "wrap" },
-    preview: {
-      borderRadius: radius.control,
-      backgroundColor: color.actionWash,
-      padding: space.step12,
-      gap: space.step4,
-    },
-  }),
-);
+const styles = StyleSheet.create(({ semantic: { color, radius, space } }) => ({
+  editor: { gap: space.step16 },
+  scheduleFields: { gap: space.step12 },
+  optionalAction: { alignItems: "flex-start" },
+  preview: {
+    borderRadius: radius.card,
+    backgroundColor: color.actionWash,
+    padding: space.step12,
+    gap: space.step4,
+  },
+}));

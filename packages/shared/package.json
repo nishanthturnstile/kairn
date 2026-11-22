@@ -27,6 +27,13 @@
       "development": "./src/journey-intent-copy.ts",
       "import": "./dist/journey-intent-copy.js"
     },
+    "./journey-invitations": {
+      "types": "./src/journey-invitations.ts",
+      "react-native": "./src/journey-invitations.ts",
+      "browser": "./src/journey-invitations.ts",
+      "development": "./src/journey-invitations.ts",
+      "import": "./dist/journey-invitations.js"
+    },
     "./journey-time": {
       "types": "./src/journey-time.ts",
       "react-native": "./src/journey-time.ts",

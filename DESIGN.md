@@ -97,6 +97,12 @@ Use the shared [authentication shell](apps/web/src/components/auth/layout.tsx) a
 
 Keep top-level destinations in a labelled bottom bar below 48rem. Use the leading rail from 48rem, with the expanded sidebar as the default at 80rem. The header shows location and opens the signed-in profile menu with Account, the current Appearance and Sign out. Open the shared appearance choices on demand and restore focus to the profile when they close. Dashboard uses one illustrated first action for an empty account, then real schedule and history when journeys exist. Use aligned schedule groups and explicit start and end labels in Journeys. [Workspace layout](apps/web/src/components/workspace-layout.tsx) · [Journeys timeline](docs/plans/private-journey-creation-and-history.md#journeys-timeline-redesign)
 
+### Web creation and invitations
+
+Use the [journey form layout](apps/web/src/components/journeys/flow.tsx) for creation and the invitation handoff. Keep editing and search on the main surface and put the live preview or recipients alongside it when space allows. Stack them at narrow widths and keep the form’s save actions close to its fields. Confirm a saved journey before offering the invitation controls. Keep pending and retry messages near their actions. [Journey creation](docs/plans/private-journey-creation-and-history.md#create-journey-redesign) · [Invitations](docs/plans/journey-invitations-and-membership.md)
+
+On [Journey details](apps/web/src/components/journeys/detail.tsx), lead with the journey title and its privacy and schedule state. Use a schedule panel for distinct local date and time values and their time zone. Put People beside the schedule where space allows and below it on phones. Show the viewer’s role and keep the People action in that panel. Use a generic heading and access status while checking private data.
+
 ## Review a change
 
 1. Edit the primitive, then exercise it on a real caller and on `/design-system`. Preserve refs, form attributes, keyboard behavior, and Base UI `render` composition.
@@ -135,6 +141,10 @@ Use the shared semantic palette, spacing and radii from the [token sources](pack
 Keep shared native primitives in [components/fold](apps/mobile/src/components/fold/) and sample state in [components/design-system](apps/mobile/src/components/design-system/). Web follows the same boundary with [owned UI](apps/web/src/components/ui/) and the [catalog](apps/web/src/components/design-system/).
 
 Use 16-unit screen insets and 12-unit gaps for a dense list or component catalog. Keep labels 4 units from their fields. Standard cards have 12-unit insets and compact cards have 8. Leave 24 units around separate tasks. A settings row displays the current value at the trailing edge and moves it below the label at enlarged text. Keep the whole row tappable. [Screen layout](apps/mobile/src/components/fold/screen.tsx) · [Settings rows, choices and sheets](apps/mobile/src/components/fold/controls.tsx)
+
+Keep native journey creation in one scroll with separate details and schedule sections, a compact live summary and full-width save actions. Confirm the saved journey before opening the recipient finder. Keep search and email shortcuts together and stack their controls at larger text sizes. Put queued and failed delivery states beside the recipients and keep the exit beside the send action. [Native creation](apps/mobile/src/components/journeys/create.tsx) · [Native invitations](apps/mobile/src/components/journeys/invite-composer.tsx)
+
+On native Journey details, put the title and status above the cards. Use a vertical schedule with separate local dates and times. Keep People below it with the viewer’s assigned role and a full-width roster action. Use the generic Journey heading until access is confirmed, and keep Back to Journeys reachable in each state. [Native details](apps/mobile/src/components/journeys/detail.tsx)
 
 Use the shared password field for an in-field visibility toggle, and the shared avatar and badge for profile, member and invitation rows. Put the full name beside decorative initials so the name can scale independently. Derive keyboard focus from the semantic focus colour for the active appearance. [Password field](apps/mobile/src/components/fold/password-field.tsx) · [Avatars and badges](apps/mobile/src/components/fold/identity.tsx)
 

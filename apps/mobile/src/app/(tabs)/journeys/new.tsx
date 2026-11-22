@@ -6,7 +6,7 @@ export default function CreateJourneyRoute() {
   const { intent } = useLocalSearchParams();
   const choice = intent === "plan" || intent === "record" ? intent : undefined;
   return (
-    <JourneyGate title="Create journey">
+    <JourneyGate title="Create journey" destination="/journeys/new">
       {(scope) => (
         <CreateJourney key={scope.accountId} scope={scope} intent={choice} />
       )}

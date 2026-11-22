@@ -16,8 +16,10 @@ test.skip(
 );
 
 async function headers(context: BrowserContext) {
+  const networks = { chromium: 133, firefox: 134, webkit: 135 };
+  const browser = test.info().project.use.browserName ?? "chromium";
   await context.setExtraHTTPHeaders({
-    "X-Forwarded-For": `198.51.133.${++client}`,
+    "X-Forwarded-For": `198.51.${networks[browser]}.${++client}`,
   });
 }
 
@@ -139,8 +141,14 @@ test("invites four people by member search or email, resumes verification and re
     await expect(
       page.getByText(/Only people who enable invitation search in Account/),
     ).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "No matches." }),
+    ).toHaveText("No matches. You can invite them by email.");
     await Promise.all([optIn(existing), optIn(existingByEmail)]);
     await search(page, name);
+    await expect(
+      page.getByRole("status").filter({ hasText: "1 match found." }),
+    ).toHaveText("1 match found.");
     await page.getByRole("button", { name: `Add ${name}` }).click();
     await search(page, second.email.toUpperCase());
     await page.getByRole("button", { name: `Add Anu ${unique}` }).click();

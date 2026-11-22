@@ -1,0 +1,34 @@
+.journey-flow-grid {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.journey-flow-actions {
+  grid-column: 1 / -1;
+}
+
+.journey-flow-access-notice {
+  position: sticky;
+  inset-block-start: 0.5rem;
+}
+
+@media (min-height: 28rem) {
+  .journey-flow-access-notice {
+    inset-block-start: calc(var(--workspace-header-height) + 0.5rem);
+  }
+}
+
+@container journey-flow (min-width: 52rem) {
+  .journey-flow-grid {
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .journey-flow-preview {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}

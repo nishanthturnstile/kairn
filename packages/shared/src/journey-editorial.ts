@@ -1,5 +1,6 @@
 import {
   type EditorialCapability,
+  type PrivateJourney,
   updateEditorialCapability,
 } from "@kairn/contracts/journeys";
 import { z } from "zod";
@@ -8,6 +9,16 @@ export const editorialRoles = {
   coauthor: { label: "Coauthor", permission: "edit the shared draft" },
   publisher: { label: "Publisher", permission: "approve publication" },
 } satisfies Record<EditorialCapability, { label: string; permission: string }>;
+
+export function journeyRoleLabel(
+  capabilities: readonly PrivateJourney["capabilities"][number][],
+) {
+  if (capabilities.includes("administrator")) return "Organiser";
+  const editorial = (["coauthor", "publisher"] as const)
+    .filter((capability) => capabilities.includes(capability))
+    .map((capability) => editorialRoles[capability].label);
+  return editorial.join(" · ") || "Participant";
+}
 
 export function editorialActionLabel(
   capability: EditorialCapability,

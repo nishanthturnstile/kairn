@@ -287,12 +287,18 @@ function People({
   );
   const request = useRef<AbortController>(null);
   const focusReturn = useRef<HTMLElement>(null);
-  const heading = useRef<HTMLDivElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const presented = useRef(false);
   const inviteButton = useRef<HTMLButtonElement>(null);
   const journeyId = journey.id;
   const invitationKey = journeyInvitationsKey(scope, journeyId);
   const admin = journey.capabilities.includes("administrator");
   const canInvite = admin && journey.state !== "archived";
+  useEffect(() => {
+    if (suspended || presented.current || !heading.current) return;
+    presented.current = true;
+    if (document.activeElement === document.body) heading.current.focus();
+  }, [suspended]);
   useEffect(() => () => request.current?.abort(), []);
 
   const members = useInfiniteQuery({
@@ -550,13 +556,16 @@ function People({
           </ButtonLink>
         )}
       </div>
-      <header
-        ref={heading}
-        tabIndex={-1}
-        className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-card bg-muted p-inset"
-      >
-        <div className="min-w-0 max-w-full wrap-anywhere">
-          <PageHeading title="People" description={journey.title} />
+      <header className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-card bg-muted p-inset">
+        <div className="grid min-w-0 max-w-full gap-2 wrap-anywhere">
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            className="text-4xl font-semibold outline-none"
+          >
+            People
+          </h1>
+          <p className="max-w-prose text-muted-foreground">{journey.title}</p>
         </div>
         {canInvite && !composing && (
           <Button

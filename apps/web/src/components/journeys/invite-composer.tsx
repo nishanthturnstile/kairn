@@ -4,9 +4,17 @@ import {
   journeyInvitationBatchResult,
   journeyInviteeMatches,
 } from "@kairn/contracts/journeys";
+import { invitationBatchNotice } from "@kairn/shared/journey-invitations";
 import { cn } from "cn";
-import { Mail, Search, Send, UserRoundPlus, UsersRound, X } from "lucide-react";
-import { type SubmitEvent, useEffect, useId, useRef, useState } from "react";
+import { Mail, Search, UserRoundPlus, X } from "lucide-react";
+import {
+  type SubmitEvent,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useMediaQuery } from "../../hooks/use-media-query";
 import { JourneyRequestError, journeyResult } from "../../lib/journey-api";
 import type { AccountScope } from "../../lib/session";
@@ -14,7 +22,6 @@ import { useSessionAccess } from "../../lib/session-access";
 import { ProfileAvatar } from "../profile-avatar";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "../ui/empty";
 import { Field, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import {
@@ -79,7 +86,9 @@ export function InviteComposer({
   const [uncertain, setUncertain] = useState(false);
   const [inputError, setInputError] = useState("");
   const [sendError, setSendError] = useState("");
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState<ReturnType<
+    typeof invitationBatchNotice
+  > | null>(null);
   const request = useRef<AbortController>(null);
   const pending = useRef<{ key: string; drafts: Draft[] }>(null);
   const sendingLock = useRef(false);
@@ -90,9 +99,13 @@ export function InviteComposer({
   const { refresh } = useSessionAccess();
 
   useEffect(() => {
-    if (open) input.current?.focus();
+    if (open && !afterCreation) input.current?.focus();
+  }, [open, afterCreation]);
+
+  useLayoutEffect(() => {
+    if (!open || suspended) setSearching(false);
     return () => request.current?.abort();
-  }, [open]);
+  }, [open, suspended]);
 
   function change(next: string) {
     request.current?.abort();
@@ -151,6 +164,7 @@ export function InviteComposer({
       const validated = invitationEmail.safeParse(query.toLowerCase());
       if (!validated.success) {
         setInputError("Enter a valid email address.");
+        input.current?.focus();
         return;
       }
       add({ email: validated.data }, validated.data);
@@ -158,11 +172,13 @@ export function InviteComposer({
     }
     if (query.length < 3) {
       setInputError("Enter at least 3 characters or an exact email address.");
+      input.current?.focus();
       return;
     }
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
+    setMatches(undefined);
     setSearching(true);
     setInputError("");
     try {
@@ -229,6 +245,8 @@ export function InviteComposer({
       const { items } = journeyInvitationBatchResult.parse(
         journeyResult(response, scope, refresh),
       );
+      if (items.length !== batch.drafts.length)
+        throw new Error("Incomplete invitation result.");
       const results = new Map(
         batch.drafts.map((draft, index) => [draft.id, items[index].status]),
       );
@@ -239,9 +257,7 @@ export function InviteComposer({
             : draft,
         ),
       );
-      setSummary(
-        `${items.filter((item) => item.status === "queued").length} invitations queued.`,
-      );
+      setSummary(invitationBatchNotice(items));
       pending.current = null;
       setUncertain(false);
       onUncertain?.(false);
@@ -282,7 +298,7 @@ export function InviteComposer({
     if (!uncertain) {
       change("");
       setDrafts([]);
-      setSummary("");
+      setSummary(null);
       setSendError("");
       setMode("search");
     }
@@ -291,6 +307,8 @@ export function InviteComposer({
 
   if (!open) return null;
   const frozen = sending || uncertain;
+  const ambiguous = matches?.some((match) => match.ambiguous);
+  const found = matches?.length ?? 0;
   const finder = (
     <div
       className={
@@ -302,18 +320,20 @@ export function InviteComposer({
       <fieldset
         className={
           afterCreation
-            ? "flex flex-wrap gap-1 rounded-control bg-muted p-1"
+            ? "grid min-w-0 gap-1 rounded-control border border-border bg-muted p-1 @min-[19rem]/recipient-finder:grid-cols-2"
             : "flex flex-wrap gap-2"
         }
       >
         <legend className="sr-only">Invitation method</legend>
         <Button
           variant={
-            mode === "search" ? "default" : afterCreation ? "ghost" : "outline"
+            afterCreation ? "ghost" : mode === "search" ? "default" : "outline"
           }
           aria-pressed={mode === "search"}
           className={
-            afterCreation ? "min-w-0 flex-1 transition-none" : "transition-none"
+            afterCreation
+              ? "min-h-touch min-w-0 transition-none aria-pressed:border-input aria-pressed:bg-card"
+              : "transition-none"
           }
           disabled={frozen}
           onClick={() => selectMode("search")}
@@ -323,11 +343,13 @@ export function InviteComposer({
         </Button>
         <Button
           variant={
-            mode === "email" ? "default" : afterCreation ? "ghost" : "outline"
+            afterCreation ? "ghost" : mode === "email" ? "default" : "outline"
           }
           aria-pressed={mode === "email"}
           className={
-            afterCreation ? "min-w-0 flex-1 transition-none" : "transition-none"
+            afterCreation
+              ? "min-h-touch min-w-0 transition-none aria-pressed:border-input aria-pressed:bg-card"
+              : "transition-none"
           }
           disabled={frozen}
           onClick={() => selectMode("email")}
@@ -354,12 +376,21 @@ export function InviteComposer({
                 aria-invalid={Boolean(inputError)}
                 aria-describedby={inputError ? `${field}-error` : undefined}
                 disabled={frozen}
+                placeholder={
+                  afterCreation
+                    ? mode === "search"
+                      ? "e.g. Mira Rao"
+                      : "e.g. mira@example.com"
+                    : undefined
+                }
                 onChange={(event) => change(event.currentTarget.value)}
               />
               <Button
                 type="submit"
                 variant="outline"
+                className={afterCreation ? "min-h-touch" : undefined}
                 disabled={frozen || searching}
+                focusableWhenDisabled={searching}
               >
                 {mode === "search" ? (
                   <Search aria-hidden="true" data-icon="inline-start" />
@@ -385,6 +416,16 @@ export function InviteComposer({
           </Field>
         </FieldGroup>
       </form>
+      <p role="status" className="sr-only">
+        {matches &&
+          (found
+            ? `${found} ${found === 1 ? "match" : "matches"} found.${
+                ambiguous
+                  ? " Search with the person’s exact email to distinguish people with the same name."
+                  : ""
+              }`
+            : "No matches. You can invite them by email.")}
+      </p>
       {matches &&
         (matches.length ? (
           <ul
@@ -396,12 +437,14 @@ export function InviteComposer({
                 key={match.selection}
                 className="flex flex-wrap items-center justify-between gap-2 py-2"
               >
-                <span className="min-w-0 font-semibold wrap-anywhere">
+                <span className="flex min-w-0 items-center gap-2 font-semibold wrap-anywhere">
+                  {afterCreation && <ProfileAvatar name={match.displayName} />}
                   {match.displayName}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
+                  className={afterCreation ? "min-h-touch" : undefined}
                   aria-label={`Add ${match.displayName}`}
                   disabled={frozen || match.ambiguous}
                   onClick={() =>
@@ -415,7 +458,7 @@ export function InviteComposer({
           </ul>
         ) : afterCreation ? (
           <div className="grid justify-items-start gap-2 rounded-control border border-dashed border-border p-3">
-            <div role="status" className="grid gap-1">
+            <div className="grid gap-1">
               <p className="font-semibold">No matches</p>
               <p className="text-sm text-muted-foreground">
                 Only people who enable invitation search in Account appear here.
@@ -424,7 +467,7 @@ export function InviteComposer({
             <Button
               variant="link"
               size="sm"
-              className="-ms-3 text-start"
+              className="-ms-3 min-h-touch text-start"
               disabled={frozen}
               onClick={() => selectMode("email")}
             >
@@ -432,13 +475,13 @@ export function InviteComposer({
             </Button>
           </div>
         ) : (
-          <p role="status" className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             No matches. Only people who enable invitation search in Account
             appear here. You can invite them by email.
           </p>
         ))}
-      {matches?.some((match) => match.ambiguous) && (
-        <p role="status" className="text-sm text-muted-foreground">
+      {ambiguous && (
+        <p className="text-sm text-muted-foreground">
           Several people have the same name. Search with the person’s exact
           email.
         </p>
@@ -494,7 +537,9 @@ export function InviteComposer({
                 type="button"
                 size="icon-sm"
                 variant="ghost"
-                className={afterCreation ? "ms-auto" : undefined}
+                className={
+                  afterCreation ? "ms-auto min-h-touch min-w-touch" : undefined
+                }
                 aria-label={`Remove ${label} from draft`}
                 disabled={frozen}
                 onClick={(event) => removeDraft(id, event.currentTarget)}
@@ -508,11 +553,19 @@ export function InviteComposer({
     ) : null;
   const feedback = (
     <>
-      {summary && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {summary}
-        </p>
-      )}
+      <p
+        role="status"
+        className={cn(
+          "text-sm",
+          !summary
+            ? "sr-only"
+            : summary.tone === "error"
+              ? "text-destructive"
+              : "text-muted-foreground",
+        )}
+      >
+        {summary?.text}
+      </p>
       {sendError && (
         <Alert variant="destructive">
           <AlertDescription>{sendError}</AlertDescription>
@@ -520,18 +573,36 @@ export function InviteComposer({
       )}
     </>
   );
+  const finished =
+    afterCreation &&
+    hasSuccess &&
+    unsent.length === 0 &&
+    !uncertain &&
+    !sending;
   const sendAction = (
     <Button
+      size={afterCreation ? "lg" : "default"}
       feedback={sending ? "pending" : "idle"}
-      disabled={sending || (!uncertain && unsent.length === 0)}
-      onClick={() => void send()}
+      disabled={!finished && (sending || (!uncertain && unsent.length === 0))}
+      focusableWhenDisabled={sending}
+      onClick={finished ? dismiss : () => void send()}
     >
-      {afterCreation && <Send aria-hidden="true" />}
-      {sending ? "Sending…" : uncertain ? "Retry batch" : "Send invitations"}
+      {finished
+        ? "Done"
+        : sending
+          ? "Sending…"
+          : uncertain
+            ? "Retry batch"
+            : "Send invitations"}
     </Button>
   );
   const dismissAction = (
-    <Button variant="outline" disabled={sending} onClick={dismiss}>
+    <Button
+      variant="outline"
+      size={afterCreation ? "lg" : "default"}
+      disabled={sending}
+      onClick={dismiss}
+    >
       {afterCreation && uncertain
         ? "Open journey"
         : hasSuccess
@@ -544,25 +615,25 @@ export function InviteComposer({
 
   if (afterCreation)
     return (
-      <fieldset
-        disabled={suspended}
-        className="min-w-0 overflow-hidden rounded-card control-border bg-card"
-      >
+      <fieldset disabled={suspended} className="min-w-0">
         <legend className="sr-only">Journey invitations</legend>
-        <div className="grid min-w-0 gap-4 p-inset @min-[43rem]/journey-invite:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="journey-flow-grid">
           <section
             aria-label="Add recipients"
-            className="grid min-w-0 content-start gap-4"
+            className="@container/recipient-finder grid min-w-0 content-start gap-4 rounded-card control-border bg-card p-3 sm:p-5"
           >
-            <h2 className="text-xl font-semibold">Add recipients</h2>
+            <h2 className="text-xl font-bold">Add recipients</h2>
             {finder}
           </section>
           <section
             aria-label="Recipient list"
-            className="grid min-w-0 content-start gap-3 rounded-control bg-muted p-4"
+            className="grid min-w-0 content-start gap-3 rounded-card control-border bg-accent p-3 sm:p-5"
           >
+            <p className="wrap-anywhere border-b border-border pb-3 text-lg font-bold">
+              {title}
+            </p>
             <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-              <h2 className="text-xl font-semibold">Recipients</h2>
+              <h2 className="text-lg font-semibold">Recipients</h2>
               <span
                 role="status"
                 className="rounded-full bg-card px-2 text-sm tabular-nums text-foreground"
@@ -574,26 +645,19 @@ export function InviteComposer({
               </span>
             </div>
             {recipientList ?? (
-              <Empty className="border-0 px-2 py-4">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <UsersRound aria-hidden="true" />
-                  </EmptyMedia>
-                  <EmptyTitle>No recipients yet</EmptyTitle>
-                </EmptyHeader>
-              </Empty>
+              <p className="text-sm text-muted-foreground">No recipients yet</p>
             )}
             <p className="border-t border-border pt-3 text-sm text-muted-foreground">
               People can view the journey and its schedule after joining as
               Participants.
             </p>
           </section>
-        </div>
-        <div className="grid gap-3 border-t border-border px-inset py-3">
-          {feedback}
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {dismissAction}
-            {sendAction}
+          <div className="journey-flow-actions grid gap-3 border-t border-border pt-4">
+            {feedback}
+            <div className="grid items-center justify-end gap-2 @min-[29rem]/journey-flow:flex @min-[29rem]/journey-flow:flex-wrap @max-[29rem]/journey-flow:justify-normal">
+              {!finished && dismissAction}
+              {sendAction}
+            </div>
           </div>
         </div>
       </fieldset>

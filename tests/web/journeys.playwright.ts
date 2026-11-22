@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { privateJourney } from "../../packages/contracts/src/journeys";
 import { wcagAATags } from "./accessibility";
 import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
@@ -128,10 +129,14 @@ test("creates and reopens one journey after the committed reply is lost", async 
   ).toBeFocused();
   await fillJourney(page, "Coorg trip", "2027-11-06", "08:00");
   await page.getByRole("button", { name: "Choose start date" }).press("Enter");
-  await page
-    .getByRole("dialog", { name: "Start date", exact: true })
+  const datePicker = page.getByRole("dialog", {
+    name: "Start date",
+    exact: true,
+  });
+  await datePicker
     .getByRole("button", { name: /Sunday, 7 November 2027/ })
     .click();
+  await expect(datePicker).toBeHidden();
   await page.getByRole("button", { name: "Choose start time" }).press("Enter");
   await expect(
     page
@@ -226,7 +231,10 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await expect(page.getByText("Couldn’t load this journey")).toBeVisible();
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("heading", { name: "Coorg trip" })).toBeVisible();
-  await expect(page.getByText("7 Nov 2027 · 9:00 am")).toBeVisible();
+  const schedule = page.getByRole("region", { name: "Schedule" });
+  await expect(schedule.locator("time").first()).toHaveText(
+    "7 Nov 2027 9:00 am",
+  );
   await expect(page.getByText("End date unknown")).toBeVisible();
   await page.goBack();
   const journey = page.getByRole("link", { name: /Coorg trip/ });
@@ -407,6 +415,144 @@ test("refreshes the journey timeline after a brief tab switch and recovers a fai
   await expect(
     page.getByRole("button", { name: "Sign in", exact: true }),
   ).toBeVisible();
+});
+
+test("reflows journey details and protects private information during access checks", async ({
+  page,
+}) => {
+  test.setTimeout(65_000);
+  const email = await verifiedEmail(page);
+  await page.goto(`${site}/account`);
+  await signIn(page, email);
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  const title = `Coorg weekend ${"ridge".repeat(15)}`;
+  const created = await page.request.post(`${site}/api/v1/journeys`, {
+    headers: { Origin: site, "Idempotency-Key": randomUUID() },
+    data: {
+      title,
+      timeZone: "Asia/Kolkata",
+      intendedStart: "2030-02-16T08:00",
+      intendedEnd: "2030-02-18T16:30",
+    },
+  });
+  expect(created.status()).toBe(201);
+  const { id } = await created.json();
+  const detailUrl = `${site}/journeys/${id}`;
+  const detailApi = `${site}/api/v1/journeys/${id}`;
+  const record = privateJourney.parse(
+    await (await page.request.get(detailApi)).json(),
+  );
+  await page.goto(detailUrl);
+  const heading = page.getByRole("heading", { name: title, exact: true });
+  const schedule = page.getByRole("region", { name: "Schedule" });
+  const people = page.getByRole("region", { name: "People" });
+  const start = schedule.getByText("Intended start");
+  const end = schedule.getByText("Intended end");
+  await expect(heading).toBeVisible();
+  await expect(schedule.getByText("16 Feb 2030")).toBeVisible();
+  await expect(schedule.getByText("8:00 am")).toBeVisible();
+  await expect(schedule.getByText("Asia/Kolkata")).toBeVisible();
+  await expect(people.getByText("Organiser")).toBeVisible();
+
+  for (const width of [1440, 900, 390]) {
+    await page.setViewportSize({ width, height: 850 });
+    const [scheduleBox, peopleBox, startBox, endBox] = await Promise.all([
+      schedule.boundingBox(),
+      people.boundingBox(),
+      start.boundingBox(),
+      end.boundingBox(),
+    ]);
+    if (!scheduleBox || !peopleBox || !startBox || !endBox)
+      throw new Error("Missing journey detail layout");
+    if (width === 1440)
+      expect(peopleBox.x).toBeGreaterThan(scheduleBox.x + scheduleBox.width);
+    else
+      expect(peopleBox.y).toBeGreaterThan(scheduleBox.y + scheduleBox.height);
+    if (width === 390) expect(endBox.y).toBeGreaterThan(startBox.y);
+    else expect(endBox.x).toBeGreaterThan(startBox.x);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(width);
+  }
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  for (const appearance of ["Light", "Dark", "Outdoor"] as const) {
+    await chooseAppearance(page, appearance);
+    await expect(heading).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(320);
+    expect(
+      (await new AxeBuilder({ page }).withTags(wcagAATags).analyze())
+        .violations,
+    ).toEqual([]);
+  }
+  const viewPeople = people.getByRole("link", { name: "View people" });
+  await viewPeople.press("Enter");
+  await expect(page).toHaveURL(`${detailUrl}/people`);
+  await expect(
+    page.getByRole("heading", { name: "People", exact: true }),
+  ).toBeFocused();
+  await page.goBack();
+  await expect(heading).toBeVisible();
+
+  const checking = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  await page.route(
+    detailApi,
+    async (route) => {
+      checking.resolve();
+      await release.promise;
+      await route.fulfill({
+        json: {
+          ...record,
+          state: "archived",
+          schedule: null,
+          capabilities: ["coauthor", "publisher"],
+        },
+      });
+    },
+    { times: 1 },
+  );
+  await viewPeople.focus();
+  try {
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await checking.promise;
+    await expect(page.getByText("Checking journey access")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Journey", exact: true }),
+    ).toBeFocused();
+    await expect(heading).toHaveCount(0);
+    await expect(people).toHaveCount(0);
+  } finally {
+    release.resolve();
+  }
+  await expect(heading).toBeVisible();
+  await expect(page.getByText("Archived", { exact: true })).toBeVisible();
+  await expect(schedule.getByText("Dates unavailable")).toBeVisible();
+  await expect(schedule.getByText("Time zone")).toHaveCount(0);
+  await expect(people.getByText("Coauthor · Publisher")).toBeVisible();
+  await expect(viewPeople).toBeFocused();
+
+  await page.route(
+    detailApi,
+    (route) => route.fulfill({ json: { ...record, capabilities: [] } }),
+    { times: 1 },
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(people.getByText("Participant", { exact: true })).toBeVisible();
+  await expect(viewPeople).toBeFocused();
+
+  await page.route(detailApi, (route) => route.fulfill({ status: 404 }), {
+    times: 1,
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByText("This journey is unavailable")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Journey", exact: true }),
+  ).toBeFocused();
+  await expect(viewPeople).toHaveCount(0);
 });
 
 test("groups the timeline and keeps section links usable on a phone", async ({
@@ -595,7 +741,10 @@ test("renders the form at 320px and keeps a pending save bound to the original a
     await expect(
       page.getByRole("heading", { name: "Private Coonoor" }),
     ).toBeVisible();
-    await expect(page.getByText("7 Nov 2027 · 1:30 am")).toBeVisible();
+    const schedule = page.getByRole("region", { name: "Schedule" });
+    await expect(schedule.locator("time").first()).toHaveText(
+      "7 Nov 2027 1:30 am",
+    );
     const width = await page.evaluate(async () => {
       document.documentElement.style.fontSize = "200%";
       await document.fonts.ready;

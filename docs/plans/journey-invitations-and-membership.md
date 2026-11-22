@@ -6,7 +6,7 @@
 
 Account onboarding ends after **Welcome** and **Get started**. It respects an incoming invitation or another explicit workspace destination. A regular sign-up lands on Dashboard with the selected first action.
 
-The Create journey form offers **Save journey** and **Create & invite people**. Both use the same private save operation and retry the same creation attempt if its response is lost. **Create & invite people** opens the invitation composer for the saved journey. The organiser can use **Find on Kairn**, **Invite by email**, or **Skip for now**. **Done** and **Skip for now** open the saved journey. The organiser can manage invitations in People.
+The Create journey form offers **Save journey** and **Create & invite people**. Both use the same private save operation and retry the same creation attempt if its response is lost. **Create & invite people** opens the invitation composer for the saved journey. The web page confirms that the journey was saved and keeps its title next to the recipient list. The organiser can use **Find on Kairn**, **Invite by email**, or **Skip for now**. The finder announces its result count and the list reports each recipient’s delivery state. **Done** and **Skip for now** open the saved journey. The organiser can manage invitations in People. [Web invitation page](../../apps/web/src/components/journeys/invite-composer.tsx)
 
 Existing app builds can complete required onboarding through the former companion setup API. It reports that the optional checkpoint is unavailable. The previous screen redirects into the workspace.
 
@@ -107,6 +107,8 @@ Chromium and WebKit passed seven onboarding and three People scenarios each. The
 ### 6.5 Native People, invitations and onboarding
 
 Journey detail opens a dedicated People screen with the member roster, participant and organiser roles, and administrator-only invitation controls. The full-screen composer supports both opted-in member search and direct email. Create journey opens the same composer after a successful save when the organiser chooses **Create & invite people**. Account offers invitation search consent.
+
+The post-creation handoff shows a saved confirmation, a two-choice finder and a recipient list with the journey title. Search announces the result count and offers email when no one matches. Each recipient shows their delivery state. **Done** opens the saved journey after the batch resolves, and **Skip for now** opens it directly. [Native composer](../../apps/mobile/src/components/journeys/invite-composer.tsx)
 
 The native entry handler removes the credential before routing. The continuation lives in device-only secure storage, separately from the typed return path. Opening another invitation prompts before replacing the current one. The verified review and acceptance receipt both check the active account. App-link association rollout still requires packaged device qualification. Email continues to open the browser flow on platforms without a verified association. [Native link parsing](../../apps/mobile/src/invitation-link.ts) · [Handoff tests](../../tests/native-invitation-handoff.test.ts)
 

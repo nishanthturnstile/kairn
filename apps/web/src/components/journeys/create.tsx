@@ -23,7 +23,6 @@ import {
   useRef,
   useState,
 } from "react";
-import ferry from "../../assets/onboarding-ferry.webp";
 import {
   historyKey,
   JourneyRequestError,
@@ -38,7 +37,6 @@ import {
 import { journeyIntentCopy } from "../../lib/journey-intent-copy";
 import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
-import { PageHeading } from "../page-heading";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Button, ButtonLink } from "../ui/button";
 import { Card, CardContent, CardHeader } from "../ui/card";
@@ -46,6 +44,7 @@ import { Field, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import { NativeSelect } from "../ui/native-select";
 import { ScheduleInput } from "../ui/schedule-input";
+import { JourneyFlow } from "./flow";
 import { JourneyLoading, JourneyRetry } from "./states";
 
 const zones = new Set(["UTC", ...(Intl.supportedValuesOf?.("timeZone") ?? [])]);
@@ -65,20 +64,21 @@ export function CreateJourneyPage(props: CreatePageProps) {
     queryFn: () => loadJourneyAttempt(props.accountId),
   });
   return (
-    <section className="@container/journey-create mx-auto grid max-w-5xl gap-4">
-      <ButtonLink
-        render={<Link to="/journeys" />}
-        variant="ghost"
-        size="sm"
-        className="justify-self-start"
-      >
-        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-        Back to Journeys
-      </ButtonLink>
-      <PageHeading
-        title="Create journey"
-        description="Give your journey a name and choose when it starts."
-      />
+    <JourneyFlow
+      title="Create journey"
+      description="Give your journey a name and set its local schedule."
+      back={
+        <ButtonLink
+          render={<Link to="/journeys" />}
+          variant="ghost"
+          size="sm"
+          className="min-h-touch justify-self-start px-0"
+        >
+          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+          Back to Journeys
+        </ButtonLink>
+      }
+    >
       {pending.isError ? (
         <JourneyRetry
           title="Couldn’t recover your saved attempt"
@@ -90,7 +90,7 @@ export function CreateJourneyPage(props: CreatePageProps) {
       ) : (
         <JourneyForm {...props} initialAttempt={pending.data} />
       )}
-    </section>
+    </JourneyFlow>
   );
 }
 
@@ -107,7 +107,14 @@ function JourneyForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [choices, setChoices] = useState<OffsetChoices>({});
   const [feedback, setFeedback] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<{
+    destination: "journey" | "invite";
+    retry: boolean;
+  } | null>(null);
+  const saving = savingAction !== null;
+  const retrying = savingAction?.retry ?? attempt !== null;
+  const savingJourney = savingAction?.destination === "journey";
+  const savingInvitation = savingAction?.destination === "invite";
   const [addingEnd, setAddingEnd] = useState(false);
   const submitting = useRef(false);
   const mounted = useRef(false);
@@ -198,7 +205,10 @@ function JourneyForm({
     }
 
     submitting.current = true;
-    setSaving(true);
+    setSavingAction({
+      destination: invitePeople ? "invite" : "journey",
+      retry: submitted !== null,
+    });
     setFeedback("");
     setErrors({});
     const visible = () => mounted.current && !scope.signal.aborted;
@@ -261,7 +271,7 @@ function JourneyForm({
       }
     } finally {
       submitting.current = false;
-      if (visible()) setSaving(false);
+      if (visible()) setSavingAction(null);
     }
   }
 
@@ -286,143 +296,159 @@ function JourneyForm({
   }
 
   return (
-    <div className="grid max-w-2xl items-start gap-4 @min-[52rem]/journey-create:max-w-none @min-[52rem]/journey-create:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-      <form
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className="@container/journey-form grid min-w-0 rounded-card control-border bg-card"
-      >
-        <FieldGroup className="gap-4 p-inset">
-          {feedback ? (
-            <Alert variant="destructive">
-              <AlertDescription>{feedback}</AlertDescription>
-            </Alert>
-          ) : (
-            attempt &&
-            !saving && (
-              <Alert role="status">
-                <AlertDescription>
-                  Retry your unfinished save using these details.
-                </AlertDescription>
-              </Alert>
-            )
-          )}
-          <JourneyInput
-            field="title"
-            label="Title"
-            placeholder="e.g. A weekend in Coorg"
-            value={draft.title}
-            error={errors.title}
-            onEdit={update}
-            maxLength={120}
-            disabled={locked}
-            required
-          />
-          <section aria-label="Schedule" className="grid gap-4 border-t pt-5">
-            <div className="grid gap-1">
-              <h2 className="text-xl font-semibold">Schedule</h2>
-              <p className="text-sm text-muted-foreground">
-                {intent
-                  ? journeyIntentCopy[intent].guidance
-                  : "Enter the dates and times in the journey’s local time."}
-              </p>
-            </div>
-            <ScheduleFields
-              part="start"
-              draft={draft}
-              errors={errors}
-              choices={choices.startOffset}
-              update={update}
-              disabled={locked}
-            />
-            {(!locked || hasEnd) && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="justify-self-start"
-                aria-expanded={hasEnd}
-                aria-controls="journey-end-fields"
-                disabled={locked}
-                onClick={toggleEnd}
-              >
-                {hasEnd ? (
-                  <X aria-hidden="true" data-icon="inline-start" />
-                ) : (
-                  <Plus aria-hidden="true" data-icon="inline-start" />
-                )}
-                {hasEnd ? "Remove end date" : "Add end date"}
-              </Button>
-            )}
-            <div id="journey-end-fields" hidden={!hasEnd}>
-              {hasEnd && (
-                <ScheduleFields
-                  part="end"
-                  draft={draft}
-                  errors={errors}
-                  choices={choices.endOffset}
-                  update={update}
-                  disabled={locked}
-                />
-              )}
-            </div>
+    <form
+      noValidate
+      onSubmit={(event) => void submit(event)}
+      className="journey-flow-grid"
+    >
+      <div className="@container/journey-form grid min-w-0 gap-4">
+        {attempt && !saving && !feedback && (
+          <Alert role="status">
+            <AlertDescription>
+              Retry your unfinished save using these details.
+            </AlertDescription>
+          </Alert>
+        )}
+        <section
+          aria-labelledby="journey-details-heading"
+          className="grid min-w-0 gap-3 rounded-card control-border bg-card p-3 sm:p-5"
+        >
+          <h2 id="journey-details-heading" className="text-xl font-bold">
+            Journey details
+          </h2>
+          <FieldGroup>
             <JourneyInput
-              field="timeZone"
-              label="Timezone"
-              value={draft.timeZone}
-              error={errors.timeZone}
+              field="title"
+              label="Title"
+              placeholder="e.g. A weekend in Coorg"
+              value={draft.title}
+              error={errors.title}
               onEdit={update}
-              list="journey-timezones"
-              autoComplete="off"
-              spellCheck={false}
+              maxLength={120}
               disabled={locked}
               required
             />
-            <datalist id="journey-timezones">
-              {[...zones].map((zone) => (
-                <option value={zone} key={zone} />
-              ))}
-            </datalist>
-          </section>
-        </FieldGroup>
-        {saving && <output className="sr-only">Saving…</output>}
-        <div className="grid items-center gap-3 rounded-b-card border-t bg-background p-inset">
-          <p
-            id="journey-visibility"
-            className="flex items-start gap-2 text-sm text-muted-foreground"
-          >
-            <LockKeyhole
-              aria-hidden="true"
-              className="mt-0.5 size-4 shrink-0"
-            />
-            <span>Only you can see this journey when you save it.</span>
-          </p>
-          <div className="flex flex-wrap gap-2">
+          </FieldGroup>
+        </section>
+        <section
+          aria-label="Schedule"
+          className="grid min-w-0 gap-4 rounded-card control-border bg-card p-3 sm:p-5"
+        >
+          <div className="grid gap-1">
+            <h2 className="text-xl font-bold">Schedule</h2>
+            <p className="text-sm text-muted-foreground">
+              {intent
+                ? journeyIntentCopy[intent].guidance
+                : "Enter the dates and times in the journey’s local time."}
+            </p>
+          </div>
+          <ScheduleFields
+            part="start"
+            draft={draft}
+            errors={errors}
+            choices={choices.startOffset}
+            update={update}
+            disabled={locked}
+          />
+          {(!locked || hasEnd) && (
             <Button
-              type="submit"
-              disabled={saving}
-              focusableWhenDisabled
-              feedback={saving ? "pending" : "idle"}
-              aria-describedby="journey-visibility"
-            >
-              {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
-            </Button>
-            <Button
-              type="submit"
-              value="invite"
+              type="button"
               variant="outline"
-              disabled={saving}
-              focusableWhenDisabled
+              size="sm"
+              className="min-h-touch justify-self-start"
+              aria-expanded={hasEnd}
+              aria-controls="journey-end-fields"
+              disabled={locked}
+              onClick={toggleEnd}
             >
-              {attempt
+              {hasEnd ? (
+                <X aria-hidden="true" data-icon="inline-start" />
+              ) : (
+                <Plus aria-hidden="true" data-icon="inline-start" />
+              )}
+              {hasEnd ? "Remove end date" : "Add end date"}
+            </Button>
+          )}
+          <div id="journey-end-fields" hidden={!hasEnd}>
+            {hasEnd && (
+              <ScheduleFields
+                part="end"
+                draft={draft}
+                errors={errors}
+                choices={choices.endOffset}
+                update={update}
+                disabled={locked}
+              />
+            )}
+          </div>
+          <JourneyInput
+            field="timeZone"
+            label="Timezone"
+            value={draft.timeZone}
+            error={errors.timeZone}
+            onEdit={update}
+            list="journey-timezones"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={locked}
+            required
+          />
+          <datalist id="journey-timezones">
+            {[...zones].map((zone) => (
+              <option value={zone} key={zone} />
+            ))}
+          </datalist>
+        </section>
+      </div>
+      <div className="grid min-w-0 gap-3 border-t border-border pt-4">
+        {feedback && (
+          <Alert variant="destructive">
+            <AlertDescription>{feedback}</AlertDescription>
+          </Alert>
+        )}
+        {saving && <output className="sr-only">Saving journey…</output>}
+        <p
+          id="journey-visibility"
+          className="flex items-start gap-2 text-sm text-muted-foreground"
+        >
+          <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>Only you can see this journey when you save it.</span>
+        </p>
+        <div className="grid gap-2 @min-[29rem]/journey-flow:flex @min-[29rem]/journey-flow:flex-wrap">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={saving}
+            focusableWhenDisabled
+            feedback={savingJourney ? "pending" : "idle"}
+            aria-describedby="journey-visibility"
+          >
+            {savingJourney
+              ? "Saving…"
+              : retrying
+                ? "Retry save"
+                : "Save journey"}
+          </Button>
+          <Button
+            type="submit"
+            value="invite"
+            variant="outline"
+            size="lg"
+            disabled={saving}
+            focusableWhenDisabled
+            feedback={savingInvitation ? "pending" : "idle"}
+            aria-describedby="journey-visibility"
+          >
+            {savingInvitation
+              ? "Saving before invitations…"
+              : retrying
                 ? "Retry save & invite people"
                 : "Create & invite people"}
-            </Button>
-          </div>
+          </Button>
         </div>
-      </form>
+      </div>
       <JourneyPreview draft={draft} hasEnd={hasEnd} />
-    </div>
+    </form>
   );
 }
 
@@ -436,43 +462,38 @@ function JourneyPreview({
   return (
     <aside
       aria-labelledby="journey-preview"
-      className="hidden min-w-0 @min-[52rem]/journey-create:block"
+      className="journey-flow-preview min-w-0"
     >
-      <Card className="gap-0 overflow-hidden py-0">
-        <img
-          src={ferry}
-          alt=""
-          loading="lazy"
-          width={1152}
-          height={864}
-          className="aspect-[2/1] w-full object-cover object-[50%_58%]"
-        />
-        <CardHeader className="gap-1 bg-muted pt-5 pb-3">
-          <h2 id="journey-preview" className="font-semibold">
+      <Card className="control-border bg-accent [--card-spacing:--spacing(4)]">
+        <CardHeader className="gap-2">
+          <h2
+            id="journey-preview"
+            className="font-semibold text-muted-foreground"
+          >
             Journey preview
           </h2>
-          <p className="text-xl font-semibold wrap-anywhere">
+          <p className="wrap-anywhere text-xl font-bold">
             {draft.title.trim() || "Untitled journey"}
           </p>
         </CardHeader>
-        <CardContent className="bg-muted pb-5">
-          <dl className="grid gap-2 border-t border-border/50 pt-3 text-sm">
-            <div>
-              <dt className="font-semibold">Start</dt>
-              <dd className="text-muted-foreground">
+        <CardContent>
+          <dl className="grid divide-y divide-border border-t border-border text-sm">
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-2.5">
+              <dt className="text-muted-foreground">Start</dt>
+              <dd className="font-semibold">
                 {previewMinute(draft.startDate, draft.startTime) ?? "Not set"}
               </dd>
             </div>
-            <div>
-              <dt className="font-semibold">End</dt>
-              <dd className="text-muted-foreground">
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 py-2.5">
+              <dt className="text-muted-foreground">End</dt>
+              <dd className="font-semibold">
                 {previewMinute(draft.endDate, draft.endTime) ??
                   (hasEnd ? "Not set" : "Open-ended")}
               </dd>
             </div>
-            <div>
-              <dt className="font-semibold">Timezone</dt>
-              <dd className="text-muted-foreground wrap-anywhere">
+            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 pt-2.5">
+              <dt className="text-muted-foreground">Timezone</dt>
+              <dd className="wrap-anywhere font-semibold">
                 {draft.timeZone.trim() || "Not set"}
               </dd>
             </div>
