@@ -12,7 +12,6 @@ import {
   CalendarDays,
   Compass,
   History,
-  Plus,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -23,9 +22,11 @@ import {
 import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
 import { JourneyMap } from "../illustrations/journey-map";
-import { PageHeading } from "../page-heading";
+import { Alert, AlertTitle } from "../ui/alert";
+import { Badge } from "../ui/badge";
 import { Button, ButtonLink } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
+import { Skeleton } from "../ui/skeleton";
 import { JourneyDate } from "./dates";
 import { JourneyLoading, JourneyRetry } from "./states";
 
@@ -79,19 +80,63 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
   });
   const loading = !history.isFetchedAfterMount || history.isPending;
   const timeline = !loading && !history.isError ? history.data : undefined;
+  const lastSectionHash = useRef("");
+  useEffect(() => {
+    if (!timeline) return;
+
+    let frame = 0;
+    function revealSection() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const hash = window.location.hash;
+        const heading = journeyTimelineSections.some(
+          (section) => hash === `#journeys-${section}`,
+        )
+          ? document.getElementById(hash.slice(1))
+          : null;
+        lastSectionHash.current = hash;
+        if (heading && heading !== document.activeElement) {
+          heading.focus({ preventScroll: true });
+          heading.scrollIntoView({ block: "start", behavior: "instant" });
+        }
+      });
+    }
+
+    if (lastSectionHash.current !== window.location.hash) revealSection();
+    window.addEventListener("hashchange", revealSection);
+    window.addEventListener("popstate", revealSection);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", revealSection);
+      window.removeEventListener("popstate", revealSection);
+    };
+  }, [timeline]);
+
   const empty =
     timeline &&
     journeyTimelineSections.every(
       (section) => !timeline.timeline[section].items.length,
     );
   return (
-    <section className="@container/journeys mx-auto grid max-w-5xl gap-section">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeading title="Journeys" />
-        {!loading && !empty && <CreateJourneyLink />}
-      </div>
+    <div className="@container/journeys grid gap-section">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="grid gap-1.5">
+          <h1 className="text-4xl font-bold tracking-tight @min-[48rem]/journeys:text-5xl">
+            Journeys
+          </h1>
+          <p className="text-muted-foreground">
+            Plan what’s next and revisit where you’ve been.
+          </p>
+        </div>
+        {!loading && !empty && (
+          <CreateJourneyLink className="w-full @min-[28rem]/journeys:w-auto" />
+        )}
+      </header>
       {loading ? (
-        <JourneyLoading label="Loading your journeys" />
+        <div className="grid gap-3">
+          <JourneyLoading label="Loading your journeys" />
+          <Skeleton aria-hidden="true" className="h-32 w-full" />
+        </div>
       ) : history.isError ? (
         <JourneyRetry
           title="Couldn’t load your journeys"
@@ -106,7 +151,7 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
           asOf={timeline.asOf}
         />
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -134,37 +179,62 @@ function HistorySections({
   );
   if (!present.length)
     return (
-      <Empty className="grid gap-0 overflow-hidden p-0 @min-[35rem]/journeys:grid-cols-[minmax(0,1fr)_44%]">
-        <div className="grid content-center gap-3 p-inset">
-          <EmptyHeader>
-            <EmptyTitle className="text-4xl">No journeys yet</EmptyTitle>
+      <Empty className="grid gap-0 overflow-hidden p-0 @min-[39rem]/journeys:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <div className="grid content-center justify-items-start gap-5 p-5 @min-[39rem]/journeys:p-8">
+          <EmptyHeader className="gap-2">
+            <EmptyTitle className="text-2xl font-bold text-pretty @min-[39rem]/journeys:text-3xl">
+              No journeys yet
+            </EmptyTitle>
             <EmptyDescription className="max-w-[40ch]">
               Plan somewhere you’re going or keep a private record of somewhere
               you’ve been.
             </EmptyDescription>
           </EmptyHeader>
-          <div className="justify-self-start">
-            <CreateJourneyLink />
-          </div>
+          <CreateJourneyLink />
         </div>
-        <JourneyMap />
+        <div className="hidden @min-[39rem]/journeys:grid">
+          <JourneyMap />
+        </div>
       </Empty>
     );
-  return present.map((section) => (
-    <HistorySection
-      key={section}
-      scope={scope}
-      section={section}
-      initial={timeline[section]}
-      asOf={asOf}
-    />
-  ));
+  return (
+    <div className="grid gap-3">
+      {present.length > 1 && (
+        <nav
+          aria-label="Journey sections"
+          className="flex flex-wrap gap-x-4 control-border-b pb-2"
+        >
+          {present.map((section) => (
+            <a
+              key={section}
+              href={`#journeys-${section}`}
+              className="inline-flex min-h-touch items-center rounded-control text-sm font-semibold text-muted-foreground underline decoration-border underline-offset-4 hover:text-primary hover:decoration-current"
+            >
+              {sections[section].title}
+            </a>
+          ))}
+        </nav>
+      )}
+      {present.map((section) => (
+        <HistorySection
+          key={section}
+          scope={scope}
+          section={section}
+          initial={timeline[section]}
+          asOf={asOf}
+        />
+      ))}
+    </div>
+  );
 }
 
-function CreateJourneyLink() {
+function CreateJourneyLink({ className }: { className?: string }) {
   return (
-    <ButtonLink render={<Link to="/journeys/new" />}>
-      <Plus aria-hidden="true" data-icon="inline-start" />
+    <ButtonLink
+      size="lg"
+      className={className}
+      render={<Link to="/journeys/new" />}
+    >
       Create journey
     </ButtonLink>
   );
@@ -182,11 +252,31 @@ function HistorySection({
   asOf: string;
 }) {
   const { refresh } = useSessionAccess();
-  const [page, setPage] = useState(initial);
+  const [page, setPage] = useState<
+    Page & { focusAfterLoad?: { journeyId?: string } }
+  >(initial);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const request = useRef<AbortController | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const moreButton = useRef<HTMLButtonElement>(null);
   useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => {
+    const pending = page.focusAfterLoad;
+    if (
+      !pending ||
+      (document.activeElement !== moreButton.current &&
+        document.activeElement !== document.body)
+    )
+      return;
+    const row = pending.journeyId
+      ? list.current?.querySelector<HTMLAnchorElement>(
+          `[data-timeline-journey="${CSS.escape(pending.journeyId)}"]`,
+        )
+      : null;
+    (row ?? heading.current)?.focus();
+  }, [page.focusAfterLoad]);
   const { title, icon: Icon, more } = sections[section];
   const active = section === "active";
 
@@ -212,17 +302,17 @@ function HistorySection({
         result.section !== section
       )
         throw new Error("Expected a continuation of this journey history.");
-      setPage((previous) => ({
-        items: [
-          ...new Map(
-            [...previous.items, ...result.page.items].map((item) => [
-              item.id,
-              item,
-            ]),
-          ).values(),
-        ],
+      const items = new Map(page.items.map((item) => [item.id, item]));
+      const firstAdded = result.page.items.find((item) => !items.has(item.id));
+      const moveFocus =
+        document.activeElement === moreButton.current &&
+        (firstAdded || !result.page.nextCursor);
+      for (const item of result.page.items) items.set(item.id, item);
+      setPage({
+        items: [...items.values()],
         nextCursor: result.page.nextCursor,
-      }));
+        focusAfterLoad: moveFocus ? { journeyId: firstAdded?.id } : undefined,
+      });
     } catch (error) {
       if (controller.signal.aborted || scope.signal.aborted) return;
       if (error instanceof JourneyRequestError && error.status === 400) {
@@ -242,15 +332,16 @@ function HistorySection({
   return (
     <section
       className={cn(
-        "grid min-w-0 gap-3",
-        active &&
-          "rounded-card control-border bg-accent px-inset pt-inset pb-2",
+        "grid min-w-0 items-start gap-x-5 gap-y-2 px-2 py-3 @min-[45rem]/journeys:grid-cols-[minmax(10rem,1fr)_minmax(0,3.2fr)] @min-[45rem]/journeys:px-4",
+        active ? "rounded-card control-border bg-accent" : "control-border-b",
       )}
       aria-labelledby={`journeys-${section}`}
     >
       <h2
+        ref={heading}
         id={`journeys-${section}`}
-        className="flex min-w-0 items-start gap-2 text-xl font-semibold"
+        tabIndex={-1}
+        className="flex min-w-0 items-start gap-2 rounded-control text-lg font-bold @min-[45rem]/journeys:px-2 @min-[45rem]/journeys:py-2"
       >
         <Icon
           aria-hidden="true"
@@ -258,78 +349,80 @@ function HistorySection({
         />
         <span className="min-w-0">{title}</span>
       </h2>
-      <ul
-        className={cn(
-          "divide-y divide-border",
-          active ? "divide-border/60" : "rounded-card control-border bg-card",
-        )}
-      >
-        {page.items.map((journey) => (
-          <li key={journey.id}>
-            <Link
-              to="/journeys/$journeyId"
-              params={{ journeyId: journey.id }}
-              onClick={() =>
-                scope.queryClient.setQueryData(scrollKey(scope), window.scrollY)
-              }
-              className={cn(
-                "group grid min-h-touch min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-control py-4 focus-visible:-outline-offset-2",
-                active ? "px-1 hover:bg-card/55" : "px-4 hover:bg-muted",
-              )}
-            >
-              <span className="grid min-w-0 gap-1">
-                <span
-                  className={cn(
-                    "font-semibold group-hover:underline",
-                    active && "text-xl",
-                  )}
-                >
-                  {journey.title}
-                </span>
-                <span className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+      <div className="grid min-w-0 gap-3 @min-[45rem]/journeys:border-s @min-[45rem]/journeys:border-border @min-[45rem]/journeys:ps-5">
+        <ul ref={list} className="divide-y divide-border">
+          {page.items.map((journey) => (
+            <li key={journey.id}>
+              <Link
+                to="/journeys/$journeyId"
+                params={{ journeyId: journey.id }}
+                data-timeline-journey={journey.id}
+                onClick={() =>
+                  scope.queryClient.setQueryData(
+                    scrollKey(scope),
+                    window.scrollY,
+                  )
+                }
+                className={cn(
+                  "group grid min-h-touch min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-control px-2 py-3 focus-visible:-outline-offset-2",
+                  active ? "hover:bg-card/55" : "hover:bg-muted",
+                )}
+              >
+                <span className="grid min-w-0 gap-1.5">
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+                    <span className="text-lg font-semibold underline-offset-4 group-hover:underline">
+                      {journey.title}
+                    </span>
+                    {journey.state === "archived" && <Badge>Archived</Badge>}
+                  </span>
                   {journey.schedule ? (
-                    <>
+                    <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">
+                      <span className="text-muted-foreground">Starts</span>
                       <JourneyDate minute={journey.schedule.intendedStart} />
                       {journey.schedule.intendedEnd ? (
-                        <span>
-                          to{" "}
+                        <>
+                          <span className="text-muted-foreground">Ends</span>
                           <JourneyDate minute={journey.schedule.intendedEnd} />
-                        </span>
+                        </>
                       ) : (
-                        <span>No end date</span>
+                        <span className="col-span-full text-muted-foreground">
+                          No end date
+                        </span>
                       )}
-                    </>
+                    </span>
                   ) : (
-                    "Dates unavailable"
+                    <span className="text-sm text-muted-foreground">
+                      Dates unavailable
+                    </span>
                   )}
-                  {journey.state === "archived" && <span>Archived</span>}
                 </span>
-              </span>
-              <ArrowRight
-                aria-hidden="true"
-                className="size-4 text-muted-foreground"
-              />
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {failed && (
-        <JourneyRetry
-          title="Couldn’t load more journeys"
-          retry={() => void loadMore()}
-        />
-      )}
-      {page.nextCursor && !failed && (
-        <Button
-          type="button"
-          variant="outline"
-          className="justify-self-start"
-          disabled={loading}
-          onClick={() => void loadMore()}
-        >
-          {loading ? "Loading…" : more}
-        </Button>
-      )}
+                <ArrowRight
+                  aria-hidden="true"
+                  className="size-4 text-muted-foreground"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {failed && (
+          <Alert variant="destructive">
+            <AlertTitle>Couldn’t load more journeys</AlertTitle>
+          </Alert>
+        )}
+        {page.nextCursor && (
+          <Button
+            ref={moreButton}
+            type="button"
+            variant="outline"
+            className="justify-self-start"
+            disabled={loading}
+            focusableWhenDisabled
+            onClick={() => void loadMore()}
+          >
+            {loading ? "Loading…" : failed ? "Try again" : more}
+          </Button>
+        )}
+      </div>
     </section>
   );
 }

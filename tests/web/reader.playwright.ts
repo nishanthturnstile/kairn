@@ -33,6 +33,15 @@ test("isolates reader HTML and hydrates the same chapters and controls", async (
     "href",
     "#chapter-return",
   );
+  const brand = page.getByRole("link", { name: "Kairn", exact: true });
+  await expect(brand).toHaveAttribute("href", "/dashboard");
+  await expect(brand.getByRole("img")).toHaveCSS(
+    "mask-image",
+    /brand\/horizontal\.svg/,
+  );
+  expect(await page.locator('link[rel="icon"]').getAttribute("href")).toBe(
+    "/brand/favicon.svg",
+  );
   const textSize = page.getByRole("button", { name: "Larger text" });
   await textSize.click();
   await expect(textSize).toHaveAttribute("aria-pressed", "true");

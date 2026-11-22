@@ -124,7 +124,7 @@ export function Expression() {
       <Heading text="Icons" />
       <View style={styles.inline}>
         <FoldGlyph color={color.ink} />
-        <AppText text="Fold mark" />
+        <AppText text="Shared Cairn" />
       </View>
       {[
         ["dashboard", "Dashboard"],

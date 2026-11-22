@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { CairnLogo, CairnMark } from "@/components/ui/cairn-logo";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
@@ -46,7 +47,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { FoldMark } from "@/components/ui/fold-mark";
 import { Input } from "@/components/ui/input";
 import { ContentLoading, LaunchFeedback } from "@/components/ui/loading";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -698,7 +698,7 @@ export function ExpressionSpecimen() {
     <Specimen
       id="expression"
       title="Icons, illustration & loading"
-      source="ui/fold-mark · ui/loading · illustrations/journey-map"
+      source="ui/cairn-logo · ui/loading · illustrations/journey-map"
     >
       <Field>
         <FieldLabel htmlFor="expression-example">Preview pattern</FieldLabel>
@@ -727,7 +727,7 @@ export function ExpressionSpecimen() {
       </div>
       <div className="flex flex-wrap items-center gap-3 border-t pt-2 text-sm">
         <span className="inline-flex items-center gap-1">
-          <FoldMark /> Fold mark
+          <CairnMark /> Shared Cairn
         </span>
         <span className="inline-flex items-center gap-1">
           <BookmarkIcon size={16} aria-hidden="true" /> Save
@@ -736,9 +736,10 @@ export function ExpressionSpecimen() {
           <CompassIcon size={16} aria-hidden="true" /> Discover
         </span>
       </div>
+      <CairnLogo />
       <p className="text-sm text-muted-foreground">
-        Lucide for controls. The original Fold mark identifies Kairn and shows
-        activity. The folded map marks an empty journey collection.
+        Lucide for controls. Shared Cairn identifies Kairn and shows activity.
+        The folded map marks an empty journey collection.
       </p>
     </Specimen>
   );

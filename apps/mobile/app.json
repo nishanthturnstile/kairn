@@ -11,10 +11,27 @@
     },
     "android": {
       "package": "dev.kairn.app",
-      "allowBackup": false
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/adaptive-icon.png",
+        "monochromeImage": "./assets/brand/adaptive-icon.png",
+        "backgroundColor": "#FBFAF6"
+      }
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/splash.png",
+          "backgroundColor": "#FBFAF6",
+          "imageWidth": 112,
+          "dark": {
+            "image": "./assets/brand/splash-dark.png",
+            "backgroundColor": "#1B1D1A"
+          }
+        }
+      ],
       [
         "@rnmapbox/maps",
         {
@@ -34,6 +51,7 @@
           ]
         }
       ]
-    ]
+    ],
+    "icon": "./assets/brand/app-icon.png"
   }
 }

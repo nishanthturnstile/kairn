@@ -39,6 +39,40 @@ export function AppearanceIcon({
   return <Icon className="size-5" aria-hidden="true" />;
 }
 
+export function AppearanceChoices({
+  appearance,
+  onChoose,
+}: {
+  appearance: (typeof appearanceOptions)[number];
+  onChoose: (option: (typeof appearanceOptions)[number]) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(6rem,100%),1fr))] gap-1.5 rounded-control bg-background p-1.5">
+      {appearanceOptions.map((option) => (
+        <Button
+          key={option}
+          type="button"
+          variant="ghost"
+          aria-pressed={option === appearance}
+          className="relative min-h-touch flex-col gap-1.5 px-2 py-3 aria-pressed:border-primary aria-pressed:bg-muted aria-pressed:text-primary"
+          onClick={() => onChoose(option)}
+        >
+          <AppearanceIcon mode={option} />
+          {option === appearance && (
+            <span
+              aria-hidden="true"
+              className="absolute end-2 top-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
+            >
+              <CheckIcon className="size-3" aria-hidden="true" />
+            </span>
+          )}
+          {appearanceLabels[option]}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 export function AppearanceSwitcher({
   showLabel = false,
   large = false,
@@ -89,32 +123,13 @@ export function AppearanceSwitcher({
             className="z-20 grid max-h-[var(--available-height)] w-[min(17rem,calc(100vw-24px))] gap-3 overflow-y-auto overscroll-contain rounded-card control-border bg-card p-3 text-foreground shadow-md"
           >
             <p className="px-1 font-semibold">Appearance</p>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(6rem,100%),1fr))] gap-1.5 rounded-control bg-background p-1.5">
-              {appearanceOptions.map((option) => (
-                <Button
-                  key={option}
-                  type="button"
-                  variant="ghost"
-                  aria-pressed={option === appearance}
-                  className="relative flex-col gap-1.5 px-2 py-3 aria-pressed:border-primary aria-pressed:bg-muted aria-pressed:text-primary"
-                  onClick={() => {
-                    setAppearance(option);
-                    setOpen(false);
-                  }}
-                >
-                  <AppearanceIcon mode={option} />
-                  {option === appearance && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute end-2 top-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                    >
-                      <CheckIcon className="size-3" aria-hidden="true" />
-                    </span>
-                  )}
-                  {appearanceLabels[option]}
-                </Button>
-              ))}
-            </div>
+            <AppearanceChoices
+              appearance={appearance}
+              onChoose={(option) => {
+                setAppearance(option);
+                setOpen(false);
+              }}
+            />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

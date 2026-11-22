@@ -25,7 +25,7 @@ function Journeys() {
     <JourneyGate title="Journeys">
       {departure && (
         <Alert
-          className="mx-auto mb-5 max-w-5xl"
+          className="mb-5"
           role="status"
           variant={departure === "pending" ? "warning" : "default"}
         >

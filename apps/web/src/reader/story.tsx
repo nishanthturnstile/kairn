@@ -3,6 +3,8 @@ import { useState } from "react";
 import { AppearanceSwitcher } from "../components/appearance-switcher";
 import { Button } from "../components/ui/button";
 
+import { CairnLogo } from "../components/ui/cairn-logo";
+
 export const unavailableTitle = "Story unavailable";
 export const unavailableSummary = "This story is currently unavailable.";
 
@@ -13,7 +15,7 @@ export function Story({ story }: { story: ReaderStory | null }) {
     <main className="story-reader">
       <div className="story-tools">
         <a className="story-wordmark" href="/dashboard">
-          Kairn
+          <CairnLogo />
         </a>
         <AppearanceSwitcher />
       </div>

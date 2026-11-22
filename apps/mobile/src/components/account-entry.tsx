@@ -14,9 +14,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
-import { publicEnvironment } from "../env";
-import { FoldGlyph } from "./fold/glyph";
+import { StyleSheet } from "react-native-unistyles";
+import { CairnLogo } from "./cairn-logo";
 import { AppText } from "./fold/primitives";
 
 export function AccountEntry({
@@ -28,11 +27,6 @@ export function AccountEntry({
   endAction?: ReactNode;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
-  const {
-    theme: {
-      semantic: { color },
-    },
-  } = useUnistyles();
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
@@ -44,16 +38,7 @@ export function AccountEntry({
       >
         <View style={styles.content}>
           <View style={styles.header}>
-            <View style={styles.brand}>
-              <View style={styles.mark}>
-                <FoldGlyph color={color.ink} />
-              </View>
-              <AppText
-                text={publicEnvironment.appName}
-                variant="section"
-                maxFontSizeMultiplier={1.35}
-              />
-            </View>
+            <CairnLogo />
             {endAction}
           </View>
           {children}
@@ -116,19 +101,6 @@ const styles = StyleSheet.create(({ semantic: { border, color, space } }) => ({
     columnGap: space.step8,
     borderBottomWidth: border.control,
     borderBottomColor: color.divider,
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.step8,
-    flexShrink: 1,
-  },
-  mark: {
-    width: 26,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    transform: [{ scale: 1.4 }],
   },
   intro: { gap: space.step4 },
 }));

@@ -12,7 +12,11 @@ const endpoint = "**/api/v1/journeys";
 const timelineEndpoint = `${endpoint}?view=timeline`;
 
 function identityHeaders() {
-  return { "X-Forwarded-For": `198.51.100.${(test.info().line % 253) + 1}` };
+  const { line, project } = test.info();
+  const network = { chromium: 100, webkit: 101, firefox: 102 };
+  return {
+    "X-Forwarded-For": `198.51.${network[project.use.browserName ?? "chromium"]}.${(line % 253) + 1}`,
+  };
 }
 
 test.skip(
@@ -102,8 +106,10 @@ test("creates and reopens one journey after the committed reply is lost", async 
 
   await page.getByRole("link", { name: "Create journey" }).click();
   await expect(
-    page.getByRole("link", { name: "Journeys", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
+    page
+      .getByRole("navigation", { name: "Main" })
+      .getByRole("link", { name: "Journeys", exact: true }),
+  ).toHaveAttribute("aria-current", "location");
   await page.getByRole("button", { name: "Save journey" }).click();
   await expect(page.getByLabel("Title", { exact: true })).toBeFocused();
   await expect(page.getByText("Enter a start date.")).toBeVisible();
@@ -253,12 +259,26 @@ test("creates and reopens one journey after the committed reply is lost", async 
   await page.getByRole("link", { name: "Back to Journeys" }).click();
   const upcoming = page.getByRole("region", { name: "Upcoming" });
   await expect(upcoming.getByRole("link")).toHaveCount(25);
-  await upcoming
-    .getByRole("button", { name: "Load more upcoming journeys" })
-    .click();
+  const more = upcoming.getByRole("button", {
+    name: "Load more upcoming journeys",
+  });
+  await page.route(
+    "**/api/v1/journeys?section=upcoming&cursor=*",
+    (route) => route.fulfill({ status: 503, json: { code: "unavailable" } }),
+    { times: 1 },
+  );
+  await more.focus();
+  await page.keyboard.press("Enter");
+  await expect(upcoming.getByRole("alert")).toContainText(
+    "Couldn’t load more journeys",
+  );
+  const retry = upcoming.getByRole("button", { name: "Try again" });
+  await expect(retry).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(upcoming.getByRole("link", { name: /Future trip/ })).toHaveCount(
     26,
   );
+  await expect(upcoming.getByRole("link").nth(25)).toBeFocused();
   const laterRow = upcoming.getByRole("link").nth(12);
   await laterRow.scrollIntoViewIfNeeded();
   const position = await page.evaluate(() => window.scrollY);
@@ -387,6 +407,89 @@ test("refreshes the journey timeline after a brief tab switch and recovers a fai
   await expect(
     page.getByRole("button", { name: "Sign in", exact: true }),
   ).toBeVisible();
+});
+
+test("groups the timeline and keeps section links usable on a phone", async ({
+  page,
+}) => {
+  const email = await verifiedEmail(page);
+  await page.goto(`${site}/journeys`);
+  await signIn(page, email);
+  const main = page.getByRole("main");
+  await expect(
+    main.getByRole("heading", { name: "No journeys yet" }),
+  ).toBeVisible();
+  await expect(main.getByRole("link", { name: "Create journey" })).toHaveCount(
+    1,
+  );
+
+  const day = (offset: number) =>
+    new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 16);
+  for (const [title, start, end] of [
+    ["Nilgiri railway weekend", -2, 2],
+    ["Hampi slow trip", 3, 6],
+    ["Coorg in the rains", -7, -5],
+    ["Along the Mandovi", -11, null],
+  ] as const) {
+    const response = await page.request.post(`${site}/api/v1/journeys`, {
+      headers: { Origin: site, "Idempotency-Key": randomUUID() },
+      data: {
+        title,
+        timeZone: "UTC",
+        intendedStart: day(start),
+        intendedEnd: end === null ? undefined : day(end),
+      },
+    });
+    expect(response.status()).toBe(201);
+  }
+  await page.reload();
+  const sections = main.getByRole("navigation", { name: "Journey sections" });
+  await expect(sections.getByRole("link")).toHaveText([
+    "Active now",
+    "Upcoming",
+    "Past journeys",
+    "Open-ended and undated",
+  ]);
+  const active = main.getByRole("region", { name: "Active now" });
+  const upcoming = main.getByRole("region", { name: "Upcoming" });
+  const past = main.getByRole("region", { name: "Past journeys" });
+  await expect(active.getByRole("link")).toHaveText(
+    /Nilgiri railway weekend.*Starts.*Ends/,
+  );
+  await expect(upcoming.getByRole("link")).toContainText("Hampi slow trip");
+  await expect(past.getByRole("link")).toContainText("Coorg in the rains");
+  await expect(
+    main
+      .getByRole("region", { name: "Open-ended and undated" })
+      .getByRole("link"),
+  ).toHaveText(/Along the Mandovi.*No end date/);
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await sections.getByRole("link", { name: "Past journeys" }).press("Enter");
+  await expect(page).toHaveURL(`${site}/journeys#journeys-past`);
+  await expect(past.getByRole("heading")).toBeFocused();
+  await expect(past.getByRole("heading")).toBeInViewport();
+  const bottomNav = page.getByRole("navigation", { name: "Main" });
+  await expect(bottomNav).toBeVisible();
+  await expect(
+    bottomNav.getByRole("link", { name: "Journeys" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBe(320);
+  expect(
+    (await new AxeBuilder({ page }).withTags(wcagAATags).analyze()).violations,
+  ).toEqual([]);
+
+  await sections.getByRole("link", { name: "Upcoming" }).press("Enter");
+  await expect(upcoming.getByRole("heading")).toBeFocused();
+  await page.goBack();
+  await expect(page).toHaveURL(`${site}/journeys#journeys-past`);
+  await expect(past.getByRole("heading")).toBeFocused();
+  await page.reload();
+  await expect(past.getByRole("heading")).toBeFocused();
+  await expect(past.getByRole("heading")).toBeInViewport();
 });
 
 test("renders the form at 320px and keeps a pending save bound to the original account", async ({

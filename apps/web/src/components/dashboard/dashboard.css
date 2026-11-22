@@ -1,0 +1,14 @@
+.dashboard-notebook {
+  display: none;
+}
+
+@container dashboard (min-width: 42rem) {
+  .dashboard-notebook {
+    display: block;
+    aspect-ratio: 3 / 2;
+    min-height: 18rem;
+    background:
+      var(--color-accent) url("../../assets/dashboard-travel-notebook.webp")
+      center / cover no-repeat;
+  }
+}

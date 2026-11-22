@@ -401,6 +401,7 @@ function JourneyForm({
             <Button
               type="submit"
               disabled={saving}
+              focusableWhenDisabled
               feedback={saving ? "pending" : "idle"}
               aria-describedby="journey-visibility"
             >
@@ -411,6 +412,7 @@ function JourneyForm({
               value="invite"
               variant="outline"
               disabled={saving}
+              focusableWhenDisabled
             >
               {attempt
                 ? "Retry save & invite people"

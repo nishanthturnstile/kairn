@@ -1,0 +1,61 @@
+html:has([data-workspace-header]) {
+  --workspace-header-height: 4rem;
+}
+
+.workspace-bottom-links {
+  padding-block-end: max(0.25rem, env(safe-area-inset-bottom));
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
+[data-workspace-bottom-nav] [aria-current] {
+  font-weight: 700;
+}
+
+[data-workspace-bottom-nav] [aria-current] .workspace-bottom-icon {
+  color: var(--fold-citron-ink);
+  background-color: var(--fold-citron);
+}
+
+@media (width < 48rem) and (min-height: 25rem) {
+  html:has([data-workspace-bottom-nav]) {
+    scroll-padding-block-end: calc(
+      var(--workspace-bottom-nav-size, 0px) +
+      0.5rem
+    );
+  }
+
+  @container workspace-nav (min-width: 18rem) {
+    [data-workspace-bottom-nav] {
+      position: sticky;
+      inset-block-end: 0;
+      z-index: 10;
+    }
+  }
+
+  html:has([data-workspace-bottom-nav]) .fold-toast-viewport {
+    bottom: max(
+      calc(var(--workspace-bottom-nav-size, 0px) + 0.75rem),
+      env(safe-area-inset-bottom)
+    );
+  }
+}
+
+@media (forced-colors: active) {
+  [data-workspace-bottom-nav] [aria-current] .workspace-bottom-icon {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+@media (min-height: 28rem) {
+  html:has([data-workspace-header]) {
+    scroll-padding-block-start: calc(var(--workspace-header-height) + 0.5rem);
+  }
+
+  [data-workspace-header] {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 10;
+  }
+}

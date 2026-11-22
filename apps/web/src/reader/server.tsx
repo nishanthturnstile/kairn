@@ -28,6 +28,8 @@ export function renderReader(input: ReaderStory | null, assets: ReaderAssets) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex" />
         <meta name="referrer" content="no-referrer" />
+        <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+        <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
         <title>{title}</title>
         <meta name="description" content={summary} />
         <meta property="og:title" content={title} />

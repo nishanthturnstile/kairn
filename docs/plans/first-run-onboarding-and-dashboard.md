@@ -17,7 +17,7 @@ Use the existing journey form for both planning and recording. Put the private v
 
 ### Illustration provenance
 
-The fictional [ferry crossing](../../apps/web/src/assets/onboarding-ferry.webp) appears on the welcome screen. The empty web Dashboard uses the shared [JourneyMap](../../apps/web/src/components/illustrations/journey-map.tsx).
+The fictional [ferry crossing](../../apps/web/src/assets/onboarding-ferry.webp) appears on the welcome screen. The empty web Dashboard uses an illustrated [travel notebook and folded map](../../apps/web/src/assets/dashboard-travel-notebook.webp), generated as artwork and compressed to WebP for the client. The shared [JourneyMap](../../apps/web/src/components/illustrations/journey-map.tsx) continues to illustrate empty journey history.
 
 <details>
 <summary>Generation prompts</summary>
@@ -48,9 +48,9 @@ The [web account access milestone](web-account-access.md) defines the signed-out
 
 ## Dashboard and navigation
 
-The web workspace uses the shadcn Base UI sidebar with **Dashboard**, **Journeys**, **Discover** and **Saved**. The active destination has a stronger label and a visible outline, including inside journey routes. The sidebar starts expanded at 80rem and uses an icon rail with tooltips between 48rem and 80rem. Both desktop widths remember the user’s choice independently. Below 48rem, users open a drawer with a keyboard-accessible close button. The footer menu shows the signed-in profile with an option to open **Account**, select one of four appearances in a compact grid, or **Sign out**. On native add **Dashboard** as the first labelled destination beside Journeys, Discover and Saved. Keep the existing Account control. Make Dashboard the authenticated home on all supported clients by the end of the milestone. Keep **Journeys** as the full history and creation destination.
+The web workspace exposes **Dashboard**, **Journeys**, **Discover** and **Saved** in a sidebar from 48rem and in a bottom bar below 48rem. The active destination has a stronger label and a selection marker, including inside journey routes. The sidebar starts expanded at 80rem and uses an icon rail with tooltips between 48rem and 80rem. Both desktop widths remember the user’s choice independently. The header identifies the current location and keeps the signed-in profile menu available across widths. The menu offers **Account**, **Appearance** with the current mode, and **Sign out**. On native **Dashboard** is the first labelled destination beside Journeys, Discover and Saved. **Journeys** provides full history and creation on all platforms.
 
-The Dashboard offers the existing journey creation route through one primary action. The illustrated empty state uses the first-journey choice when saved and displays the journey totals. Give the next journey the largest region, then show a compact overview and up to three recent rows. On narrow screens, use the same reading order in one column. Link rows to the canonical journey and **All journeys** to history.
+The web Dashboard offers the existing journey creation route through one primary action. The illustrated empty state uses the first-journey choice when saved. After a journey is added, give the next journey the largest region, then show a compact overview and up to three recent rows. On narrow screens, use the same reading order in one column. Link rows to the canonical journey and **All journeys** to history.
 
 The web shell passes routed content through the layout as a stable React child. Sidebar state lives in the shadcn provider, and the child routes keep their own queries and form state across width changes. [Workspace layout](../../apps/web/src/components/workspace-layout.tsx) · [Sidebar regression](../../tests/web/workspace-sidebar.playwright.ts)
 
@@ -62,6 +62,14 @@ The web shell passes routed content through the layout as a stable React child. 
 | **Travel companions** | Add after invitations define who can see each journey’s roster. Rank by the count of distinct journeys where both memberships are current and the viewer can see that companion’s membership. Use permitted display names only, deduplicate by account and omit an empty section. Recheck visibility and remove or rerank entries after revocation. |
 
 For a new account, show the create action and a short explanation of what will appear after creating a journey. For populated accounts, use real totals, a stable loading layout, a retry state for unavailable data, and access-safe refresh on foreground/reentry and after creation. A past end date is a schedule fact. The first release reports journeys and upcoming trips. Completion, highlights, saved research totals and activity feeds can be designed when their underlying states are available.
+
+### Web workspace redesign
+
+The previous header contained the navigation toggle and left the current location to the page body. On a narrow screen the account menu required opening the navigation drawer first. The empty Dashboard gave two zero totals a full card beside the first task. The current summary supplies the nearest future journey, two authoritative totals and up to three recent journeys, which is enough for a compact overview.
+
+1. **Workspace shell.** Group the desktop sidebar toggle and current location in the sticky header, with a Journeys breadcrumb on child routes. Put the profile at the trailing edge across desktop and phone widths. Show the name and email inside its menu. Use a single Appearance row that opens the shared chooser. Preserve the two collapse preferences and use the four labelled destination links in the phone-width bottom bar. Account and sign-out keep their existing routes and session behavior. [Carbon profile menus](https://www.carbondesignsystem.com/building-blocks/core/patterns/disclosures) · [WAI menu button behavior](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/)
+2. **Dashboard.** Show one first task and the private default for an empty account. The open travel notebook and contour map illustrate starting a record. Place the artwork alongside the copy on wide layouts and leave narrow layouts to the task. Once journeys exist, show the next scheduled journey and actual totals first. Put recent journeys below in a date-led list with archived and undated states. Loading has a stable layout and errors offer retry. [Carbon first-use empty states](https://www.carbondesignsystem.com/building-blocks/core/patterns/empty-states)
+3. **Validation.** Walk through first sign-in, all three setup choices, a populated summary, no upcoming journey, and summary retry. Check the menu through pointer and keyboard, sign-out and retry, navigation focus, preserved form drafts, appearance changes, and reflow at 320 CSS px and 200% text. Compare both Dashboard states in the running app and review the implementation independently before closing the milestone.
 
 ## Implementation sequence
 

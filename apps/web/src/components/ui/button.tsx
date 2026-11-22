@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "cn";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import type { ComponentProps } from "react";
-import { FoldMark } from "./fold-mark";
+import { CairnMark } from "./cairn-logo";
 
 const buttonVariants = cva(
   "fold-button group/button inline-flex min-w-0 max-w-full items-center justify-center gap-2 rounded-control control-border border-transparent text-center font-semibold leading-tight select-none transition-colors motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-55 aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -81,7 +81,7 @@ function ButtonKey({
       className="grid size-6 shrink-0 place-items-center rounded-[3px] bg-key text-key-foreground motion-safe:transition-transform motion-safe:duration-150 "
     >
       {feedback === "pending" ? (
-        <FoldMark moving />
+        <CairnMark moving />
       ) : feedback === "success" ? (
         <CheckIcon />
       ) : (

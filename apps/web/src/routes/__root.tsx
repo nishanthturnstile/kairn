@@ -86,6 +86,7 @@ function AppShell() {
         scope={scope}
         accountId={scope.accountId}
         pathname={pathname}
+        pageTitle={pageTitle}
       >
         <WorkspaceEntry scope={scope} pathname={pathname} />
       </WorkspaceLayout>

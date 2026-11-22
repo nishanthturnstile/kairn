@@ -6,7 +6,7 @@
 | Date | 17 November 2026 |
 | Status | Product strategy and complete R1 scope, aligned with requirements 2.6 and architecture 1.9. |
 | Product owner | Founder. |
-| Brand | Not selected. The product description is not a confirmed brand. |
+| Brand | Kairn, with the Shared Cairn logo across web and mobile. |
 | Initial audience | People taking self-organised multi-day trips with friends. |
 | Initial market | Reachable Indian outdoor and travel communities. |
 | First-year priority | Useful community adoption, followed by revenue experiments. |

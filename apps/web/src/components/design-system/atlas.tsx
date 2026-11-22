@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import foldArt from "@/assets/fold.webp";
 import { AppearanceSwitcher } from "@/components/appearance-switcher";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { CairnMark } from "@/components/ui/cairn-logo";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FoldMark } from "@/components/ui/fold-mark";
 import { Input } from "@/components/ui/input";
 import { SheetClose } from "@/components/ui/sheet";
 import {
@@ -167,7 +167,7 @@ function CatalogIndex({ current }: { current: string }) {
           onClick={() => selectSection("overview")}
         >
           <span className="grid size-8 shrink-0 place-items-center rounded-control bg-citron text-citron-foreground">
-            <FoldMark />
+            <CairnMark />
           </span>
           <span className="group-data-[collapsible=icon]/sidebar:sr-only">
             Kairn studio

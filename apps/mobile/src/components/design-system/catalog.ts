@@ -43,7 +43,7 @@ export const sections = [
     terms:
       "spinner splash launch animation empty folded map lucide bookmark compass",
     name: "Icons, illustration & loading",
-    detail: "Fold mark, journey map and skeletons",
+    detail: "Shared Cairn, journey map and skeletons",
   },
   {
     id: "surfaces",

@@ -388,7 +388,7 @@ test("loading and empty patterns preserve readable feedback with reduced motion"
     .filter({ hasText: "Loading your journeys" });
   await expect(loading).toBeVisible();
   await expect(loading.locator('[data-slot="skeleton"]')).toHaveCount(2);
-  await expect(loading.locator("i").first()).toHaveCSS(
+  await expect(loading.locator('[data-slot="cairn-mark"]')).toHaveCSS(
     "animation-name",
     "none",
   );
@@ -442,6 +442,15 @@ test("selected navigation keeps its identity through hover, press and keyboard f
   await expect(journeys).toBeVisible();
   const inactive = page.getByRole("tab", { name: "Saved" });
   const index = page.getByRole("navigation", { name: "Catalog sections" });
+  const [selectedIcon, inactiveIcon] = await Promise.all(
+    ["Navigation", "Overview"].map((label) =>
+      index
+        .getByRole("link", { name: label, exact: true })
+        .locator("svg")
+        .boundingBox(),
+    ),
+  );
+  expect(selectedIcon?.x).toBe(inactiveIcon?.x);
   for (const theme of ["Light", "Dark", "Outdoor"]) {
     await chooseAppearance(page, theme);
     for (const selected of [

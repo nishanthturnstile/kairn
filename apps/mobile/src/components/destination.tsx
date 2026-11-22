@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
-import { publicEnvironment } from "../env";
+import { CairnLogo } from "./cairn-logo";
 import { Action, AppText, Panel } from "./fold/primitives";
 
 export function Destination({
@@ -45,11 +45,7 @@ export function Destination({
 export function DestinationTopBar() {
   return (
     <View style={styles.topBar}>
-      <AppText
-        text={publicEnvironment.appName}
-        variant="label"
-        style={styles.brand}
-      />
+      <CairnLogo />
       <Link href="/account" asChild>
         <Action accessibilityRole="link" label="Account" />
       </Link>
@@ -67,6 +63,5 @@ const styles = StyleSheet.create(({ semantic: { color, space } }) => ({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  brand: { color: color.action, flexShrink: 1 },
   heading: { gap: space.step8 },
 }));

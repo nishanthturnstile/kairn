@@ -4,11 +4,11 @@ import { Animated, View } from "react-native";
 import { useReduceMotionPreference } from "./motion";
 
 export function FoldGlyph({
-  kind = "pleats",
+  kind = "cairn",
   color,
   moving = false,
 }: {
-  kind?: "pleats" | "arrow" | "check";
+  kind?: "cairn" | "arrow" | "check";
   color: string;
   moving?: boolean;
 }) {
@@ -49,21 +49,12 @@ export function FoldGlyph({
         justifyContent: "center",
       }}
     >
-      {kind === "pleats" ? (
-        <Animated.View style={{ opacity: pulse, flexDirection: "row", gap: 1 }}>
-          {[-18, 18, -18].map((angle, i) => (
-            <View
-              key={i === 1 ? "middle" : i === 0 ? "first" : "last"}
-              style={{
-                width: 4,
-                height: 12,
-                backgroundColor: color,
-                opacity: i === 1 ? 0.65 : 1,
-                transform: [{ skewY: `${angle}deg` }],
-              }}
-            />
-          ))}
-        </Animated.View>
+      {kind === "cairn" ? (
+        <Animated.Image
+          source={require("../../../assets/brand/mark-small.png")}
+          resizeMode="contain"
+          style={{ width: 18, height: 16, tintColor: color, opacity: pulse }}
+        />
       ) : kind === "check" ? (
         <View
           style={{

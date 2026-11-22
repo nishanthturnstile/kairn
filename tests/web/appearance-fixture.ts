@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { openWorkspaceAccountMenu } from "./workspace-fixture";
 
 export async function chooseAppearance(page: Page, label: string) {
@@ -7,15 +7,11 @@ export async function chooseAppearance(page: Page, label: string) {
   });
   if (!(await standalone.isVisible())) {
     const menu = await openWorkspaceAccountMenu(page);
-    await menu.getByRole("menuitemradio", { name: label, exact: true }).click();
-    const drawer = page.getByRole("dialog", { name: "Workspace navigation" });
-    if (await drawer.isVisible())
-      await drawer.getByRole("button", { name: "Close", exact: true }).click();
-    return;
+    await menu.getByRole("menuitem", { name: /^Appearance / }).click();
+  } else {
+    await standalone.click();
   }
-  await standalone.click();
-  await page
-    .getByRole("dialog", { name: "Appearance" })
-    .getByRole("button", { name: label, exact: true })
-    .click();
+  const choices = page.getByRole("dialog", { name: "Appearance" });
+  await choices.getByRole("button", { name: label, exact: true }).click();
+  await expect(choices).toBeHidden();
 }

@@ -1,8 +1,6 @@
 import type { Page } from "@playwright/test";
 
 export async function openWorkspaceAccountMenu(page: Page) {
-  const openNavigation = page.getByRole("button", { name: "Open navigation" });
-  if (await openNavigation.isVisible()) await openNavigation.click();
   await page.getByRole("button", { name: /account menu$/i }).click();
   return page.getByRole("menu", { name: "Account menu" });
 }

@@ -1,54 +1,29 @@
 import { Link } from "@tanstack/react-router";
 import {
   Bookmark,
-  ChevronDown,
+  ChevronRight,
   Compass,
   LayoutDashboard,
-  LogOut,
   MapIcon,
-  UserRound,
-  XIcon,
 } from "lucide-react";
 import {
+  type ComponentProps,
+  type FocusEvent,
   type MouseEvent,
   type ReactNode,
   useEffect,
   useRef,
-  useSyncExternalStore,
 } from "react";
 import { publicEnvironment } from "../env";
-import {
-  appearanceOptions,
-  getAppearance,
-  getServerAppearance,
-  setAppearance,
-  subscribeToAppearance,
-} from "../lib/appearance";
-import { authClient } from "../lib/auth";
-import { useProfile } from "../lib/profile";
+import { useMediaQuery } from "../hooks/use-media-query";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
-import { AppearanceIcon, appearanceLabels } from "./appearance-switcher";
-import { ProfileAvatar } from "./profile-avatar";
 import { Alert, AlertAction, AlertDescription } from "./ui/alert";
 import { Button, ButtonLink } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { FoldMark } from "./ui/fold-mark";
-import { SheetClose } from "./ui/sheet";
+import { CairnLogo, CairnMark } from "./ui/cairn-logo";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -58,6 +33,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "./ui/sidebar";
+import { WorkspaceAccountMenu } from "./workspace/account-menu";
+import "./workspace/workspace.css";
 
 const destinations = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -66,45 +43,187 @@ const destinations = [
   { to: "/saved", label: "Saved", icon: Bookmark },
 ] as const;
 
+type Navigate = (event: MouseEvent<HTMLAnchorElement>, to: string) => void;
+type NavigationFocus = Pick<ComponentProps<"nav">, "onFocus" | "onBlur">;
+
+function destinationCurrent(pathname: string, to: string) {
+  if (pathname === to) return "page";
+  if (pathname.startsWith(`${to}/`)) return "location";
+}
+
 export function WorkspaceLayout({
   children,
   scope,
   accountId,
   pathname,
+  pageTitle,
 }: {
   children: ReactNode;
   scope: AccountScope;
   accountId: string;
   pathname: string;
+  pageTitle: string;
 }) {
   const { signOut, signOutError } = useSessionAccess();
+  const header = useRef<HTMLElement>(null);
+  const bottomNav = useRef<HTMLElement>(null);
+  const main = useRef<HTMLElement>(null);
+  const navigationFrom = useRef<string | null>(null);
+  const focusedDestination = useRef<HTMLAnchorElement>(null);
+  const isMobile = useMediaQuery("(width < 48rem)");
+
+  const navigationFocus: NavigationFocus = {
+    onFocus(event) {
+      if (event.target instanceof HTMLAnchorElement)
+        focusedDestination.current = event.target;
+    },
+    onBlur(event) {
+      if (
+        event.relatedTarget ||
+        event.currentTarget.hasAttribute("data-workspace-bottom-nav") ===
+          window.matchMedia("(width < 48rem)").matches
+      ) {
+        focusedDestination.current = null;
+      }
+    },
+  };
+
+  function prepareNavigation(event: MouseEvent<HTMLAnchorElement>, to: string) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
+    if (to !== pathname) navigationFrom.current = pathname;
+  }
+
+  function revealFocusedContent(event: FocusEvent<HTMLElement>) {
+    const { currentTarget, target } = event;
+    const workspaceHeader = header.current;
+    if (target === currentTarget || !currentTarget.contains(target)) return;
+
+    // Measure after the browser finishes its own focus scrolling.
+    requestAnimationFrame(() => {
+      if (target !== document.activeElement) return;
+      const { top, bottom } = target.getBoundingClientRect();
+      const navigation = bottomNav.current;
+      const headerEdge =
+        workspaceHeader &&
+        getComputedStyle(workspaceHeader).position === "sticky"
+          ? workspaceHeader.getBoundingClientRect().bottom
+          : 0;
+      const navEdge =
+        navigation && getComputedStyle(navigation).position === "sticky"
+          ? navigation.getBoundingClientRect().top
+          : window.innerHeight;
+      if (top < headerEdge && headerEdge > 0) {
+        window.scrollBy({ top: top - headerEdge - 4, behavior: "instant" });
+      } else if (bottom > navEdge && navEdge < window.innerHeight) {
+        window.scrollBy({
+          top: Math.min(bottom - navEdge + 4, top - headerEdge - 4),
+          behavior: "instant",
+        });
+      }
+    });
+  }
+
+  useEffect(() => {
+    const navigation = bottomNav.current;
+    if (!navigation) return;
+    const root = document.documentElement;
+    const measure = () => {
+      root.style.setProperty(
+        "--workspace-bottom-nav-size",
+        getComputedStyle(navigation).position === "sticky"
+          ? `${navigation.offsetHeight}px`
+          : "0px",
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(navigation);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      root.style.removeProperty("--workspace-bottom-nav-size");
+    };
+  }, []);
+
+  useEffect(() => {
+    const previous = focusedDestination.current;
+    if (
+      !previous ||
+      previous.getClientRects().length ||
+      (document.activeElement !== document.body &&
+        document.activeElement !== previous)
+    )
+      return;
+    const navigation = isMobile
+      ? bottomNav.current
+      : document.querySelector("[data-workspace-sidebar-nav]");
+    const matchingLink = Array.from(
+      navigation?.querySelectorAll("a") ?? [],
+    ).find((link) => link.pathname === previous.pathname);
+    matchingLink?.focus();
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (navigationFrom.current === null || navigationFrom.current === pathname)
+      return;
+    navigationFrom.current = null;
+    if (!main.current?.contains(document.activeElement))
+      main.current?.focus({ preventScroll: true });
+  }, [pathname]);
 
   return (
     <SidebarProvider>
       <ButtonLink
         render={<a href="#main" />}
         variant="outline"
-        className="sr-only focus:not-sr-only focus:absolute focus:inset-s-4 focus:top-4 focus:z-20"
+        className="sr-only focus:not-sr-only focus:fixed focus:inset-s-4 focus:top-4 focus:z-20"
       >
         Skip to content
       </ButtonLink>
       <WorkspaceSidebar
-        scope={scope}
-        accountId={accountId}
         pathname={pathname}
+        onNavigate={prepareNavigation}
+        navigationFocus={navigationFocus}
       />
-      <SidebarInset>
-        <header className="flex min-h-12 flex-wrap items-center control-border-b bg-card px-2 sm:px-5">
-          <SidebarTrigger />
-          <WorkspaceBrand className="md:hidden" />
+      <SidebarInset className="@container/workspace-nav flex flex-col max-md:min-h-dvh">
+        <header
+          ref={header}
+          data-workspace-header=""
+          className="control-border-b bg-card"
+        >
+          <div className="mx-auto flex min-h-(--workspace-header-height) w-full max-w-[82rem] items-center justify-between gap-2 px-4 sm:px-6 xl:px-10">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <span className="md:hidden">
+                <CairnMark />
+              </span>
+              <SidebarTrigger
+                size="icon-lg"
+                className="hidden md:inline-flex"
+              />
+              <WorkspaceLocation
+                pathname={pathname}
+                pageTitle={pageTitle}
+                onNavigate={(event) => prepareNavigation(event, "/journeys")}
+              />
+            </div>
+            <WorkspaceAccountMenu
+              key={accountId}
+              scope={scope}
+              accountId={accountId}
+              onNavigate={(event) => prepareNavigation(event, "/account")}
+            />
+          </div>
         </header>
         <main
+          ref={main}
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full min-w-0 max-w-[82rem] wrap-anywhere px-4 py-4 sm:px-6 lg:py-section"
+          onFocus={revealFocusedContent}
+          className="mx-auto w-full min-w-0 max-w-[82rem] flex-1 wrap-anywhere px-4 py-6 outline-none sm:px-6 xl:px-10 xl:py-9"
         >
           {signOutError && pathname !== "/account" && (
-            <Alert variant="destructive" role="alert" className="mb-4">
+            <Alert variant="destructive" role="alert" className="mb-section">
               <AlertDescription>{signOutError}</AlertDescription>
               <AlertAction>
                 <Button
@@ -119,231 +238,136 @@ export function WorkspaceLayout({
           )}
           {children}
         </main>
+        <nav
+          ref={bottomNav}
+          data-workspace-bottom-nav=""
+          aria-label="Main"
+          {...navigationFocus}
+          className="shrink-0 border-t border-border bg-sidebar text-sidebar-foreground md:hidden"
+        >
+          <ul className="workspace-bottom-links grid grid-cols-2 gap-1 px-2 pt-1 @min-[18rem]/workspace-nav:grid-cols-4">
+            {destinations.map(({ to, label, icon: Icon }) => (
+              <li key={to} className="min-w-0">
+                <Link
+                  to={to}
+                  activeOptions={{ exact: true, includeSearch: false }}
+                  aria-current={destinationCurrent(pathname, to)}
+                  onClick={(event) => prepareNavigation(event, to)}
+                  className="flex h-full min-h-[44px] items-center justify-center gap-1.5 rounded-control px-1 py-1 text-center text-xs wrap-anywhere focus-visible:-outline-offset-2 hover:bg-sidebar-accent @min-[18rem]/workspace-nav:flex-col @min-[18rem]/workspace-nav:gap-0.5"
+                >
+                  <span className="workspace-bottom-icon grid h-[28px] min-w-[36px] shrink-0 place-items-center rounded-full">
+                    <Icon aria-hidden="true" className="size-[20px]" />
+                  </span>
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </SidebarInset>
     </SidebarProvider>
   );
 }
 
-function WorkspaceBrand({
-  className,
-  onClick,
+function WorkspaceLocation({
+  pathname,
+  pageTitle,
+  onNavigate,
 }: {
-  className?: string;
-  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+  pathname: string;
+  pageTitle: string;
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
-  return (
-    <div className={className}>
+  return pathname.startsWith("/journeys/") ? (
+    <nav
+      aria-label="Breadcrumb"
+      className="flex min-w-0 items-center gap-1.5 text-sm sm:gap-2"
+    >
       <Link
-        to="/dashboard"
-        aria-label={publicEnvironment.appName}
-        onClick={onClick}
-        className="flex min-h-touch min-w-touch items-center gap-2 rounded-control font-bold text-xl text-primary hover:underline group-data-[collapsible=icon]/sidebar:justify-center group-data-[collapsible=icon]/sidebar:px-0"
+        to="/journeys"
+        activeOptions={{ exact: true }}
+        onClick={onNavigate}
+        className="hidden shrink-0 rounded-control text-muted-foreground hover:underline sm:inline"
       >
-        <span
-          aria-hidden="true"
-          className="grid size-8 shrink-0 place-items-center rounded-control bg-primary text-primary-foreground"
-        >
-          <FoldMark />
-        </span>
-        <span className="group-data-[collapsible=icon]/sidebar:sr-only">
-          {publicEnvironment.appName}
-        </span>
+        Journeys
       </Link>
-    </div>
+      <ChevronRight
+        aria-hidden="true"
+        className="hidden size-4 shrink-0 text-muted-foreground sm:block"
+      />
+      <span aria-current="page" className="truncate font-semibold">
+        {pageTitle}
+      </span>
+    </nav>
+  ) : (
+    <span className="truncate font-semibold">{pageTitle}</span>
   );
 }
 
 function WorkspaceSidebar({
-  scope,
-  accountId,
   pathname,
+  onNavigate,
+  navigationFocus,
 }: {
-  scope: AccountScope;
-  accountId: string;
   pathname: string;
+  onNavigate: Navigate;
+  navigationFocus: NavigationFocus;
 }) {
-  const { isMobile, setOpenMobile } = useSidebar();
-  const previousPath = useRef(pathname);
-  useEffect(() => {
-    if (previousPath.current === pathname) return;
-    previousPath.current = pathname;
-    setOpenMobile(false);
-  }, [pathname, setOpenMobile]);
-
-  function closeOnNavigation(event: MouseEvent<HTMLAnchorElement>) {
-    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey)
-      setOpenMobile(false);
-  }
+  const { isMobile } = useSidebar();
+  if (isMobile) return null;
 
   return (
     <Sidebar>
-      <SidebarHeader className="flex-wrap justify-between control-border-b">
-        <WorkspaceBrand onClick={closeOnNavigation} />
-        {isMobile && (
-          <SheetClose
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Close"
-              />
-            }
-          >
-            <XIcon aria-hidden="true" />
-          </SheetClose>
-        )}
+      <SidebarHeader className="min-h-16 justify-between gap-1 control-border-b px-3 group-data-[collapsible=icon]/sidebar:justify-center group-data-[collapsible=icon]/sidebar:px-1">
+        <Link
+          to="/dashboard"
+          aria-label={publicEnvironment.appName}
+          onClick={(event) => onNavigate(event, "/dashboard")}
+          className="flex min-h-touch min-w-0 items-center gap-2 rounded-control font-heading text-2xl font-bold tracking-tight hover:underline"
+        >
+          <span className="hidden size-8 shrink-0 place-items-center group-data-[collapsible=icon]/sidebar:grid">
+            <CairnMark large />
+          </span>
+          <span className="min-w-0 truncate group-data-[collapsible=icon]/sidebar:hidden">
+            <CairnLogo name={publicEnvironment.appName} />
+          </span>
+        </Link>
       </SidebarHeader>
-      <SidebarContent>
-        <nav aria-label="Main">
+      <SidebarContent className="px-3 py-5 group-data-[collapsible=icon]/sidebar:px-2">
+        <nav
+          aria-label="Main"
+          data-workspace-sidebar-nav=""
+          {...navigationFocus}
+        >
           <SidebarMenu>
-            {destinations.map(({ to, label, icon: Icon }) => (
-              <SidebarMenuItem key={to}>
-                <SidebarMenuButton
-                  render={
-                    <Link
-                      to={to}
-                      activeOptions={{
-                        exact: to !== "/journeys",
-                        includeSearch: false,
-                      }}
-                      onClick={closeOnNavigation}
-                    />
-                  }
-                  isActive={pathname === to || pathname.startsWith(`${to}/`)}
-                  tooltip={label}
-                >
-                  <Icon aria-hidden="true" />
-                  <span className="group-data-[collapsible=icon]/sidebar:sr-only">
-                    {label}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {destinations.map(({ to, label, icon: Icon }) => {
+              const current = destinationCurrent(pathname, to);
+              return (
+                <SidebarMenuItem key={to}>
+                  <SidebarMenuButton
+                    render={
+                      <Link
+                        to={to}
+                        aria-current={current}
+                        activeOptions={{ exact: true, includeSearch: false }}
+                        onClick={(event) => onNavigate(event, to)}
+                      />
+                    }
+                    isActive={Boolean(current)}
+                    tooltip={label}
+                    className="min-h-touch gap-3 text-base"
+                  >
+                    <Icon aria-hidden="true" />
+                    <span className="group-data-[collapsible=icon]/sidebar:sr-only">
+                      {label}
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </nav>
       </SidebarContent>
-      <SidebarFooter className="border-t">
-        <AccountMenu
-          scope={scope}
-          accountId={accountId}
-          active={pathname === "/account"}
-        />
-      </SidebarFooter>
     </Sidebar>
-  );
-}
-
-function AccountMenu({
-  scope,
-  accountId,
-  active,
-}: {
-  scope: AccountScope;
-  accountId: string;
-  active: boolean;
-}) {
-  const { data } = authClient.useSession();
-  const { signOut } = useSessionAccess();
-  const { isMobile, setOpenMobile } = useSidebar();
-  const { data: profile } = useProfile(scope, accountId);
-  const user = data?.user.id === accountId ? data.user : undefined;
-  const displayName = profile?.displayName || user?.name;
-  const name = displayName || "Account";
-  const appearance = useSyncExternalStore(
-    subscribeToAppearance,
-    getAppearance,
-    getServerAppearance,
-  );
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <SidebarMenuButton
-            type="button"
-            tooltip="Account menu"
-            isActive={active}
-            className="min-h-14 max-sm:gap-2 max-sm:px-2"
-          />
-        }
-      >
-        <ProfileAvatar name={displayName} />
-        <span className="grid min-w-0 flex-1 gap-0.5 leading-tight group-data-[collapsible=icon]/sidebar:sr-only">
-          <span className="wrap-anywhere">{name}</span>
-          {user?.email && (
-            <span className="truncate text-sm font-normal text-muted-foreground">
-              {user.email}
-            </span>
-          )}
-        </span>
-        <span className="sr-only"> account menu</span>
-        <ChevronDown
-          aria-hidden="true"
-          className="hidden min-[360px]:block group-data-[collapsible=icon]/sidebar:hidden"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        side={isMobile ? "top" : "right"}
-        align={isMobile ? "start" : "end"}
-        sideOffset={8}
-        collisionPadding={8}
-        aria-label="Account menu"
-        className="w-[17rem] min-w-0 max-w-[calc(100vw-1rem)]"
-      >
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="grid gap-0.5 wrap-anywhere">
-            <span className="text-base font-semibold text-foreground">
-              {name}
-            </span>
-            {user?.email && <span className="font-normal">{user.email}</span>}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            render={<Link to="/account" />}
-            onClick={() => setOpenMobile(false)}
-          >
-            <UserRound aria-hidden="true" />
-            Account
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuLabel id="workspace-appearance">
-            Appearance
-          </DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            aria-labelledby="workspace-appearance"
-            className="grid grid-cols-[repeat(auto-fit,minmax(min(7.5rem,100%),1fr))] gap-1 px-1 pb-1"
-            value={appearance}
-            onValueChange={(value) => {
-              const next = appearanceOptions.find((option) => option === value);
-              if (next) setAppearance(next);
-            }}
-          >
-            {appearanceOptions.map((option) => (
-              <DropdownMenuRadioItem
-                key={option}
-                value={option}
-                className="ps-2 pe-7 wrap-anywhere data-checked:bg-accent data-checked:text-accent-foreground"
-              >
-                <AppearanceIcon mode={option} />
-                {appearanceLabels[option]}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => void signOut()}
-          >
-            <LogOut aria-hidden="true" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

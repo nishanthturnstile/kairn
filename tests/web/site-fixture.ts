@@ -78,13 +78,15 @@ export async function serveFixture(
       });
     } else {
       const asset =
-        /^\/assets\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(js|css|woff2|webp)$/.exec(
+        /^\/(?:assets|brand)\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(js|css|woff2|webp|png|svg)$/.exec(
           pathname,
         );
       const mime: Record<string, string> = {
         js: "text/javascript",
         css: "text/css",
         woff2: "font/woff2",
+        svg: "image/svg+xml",
+        png: "image/png",
         webp: "image/webp",
       };
       await route.fulfill({

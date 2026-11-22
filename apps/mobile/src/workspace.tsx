@@ -18,8 +18,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { authOrigin } from "./auth";
 import { sessionStoragePrefix } from "./auth-origin";
+import { CairnLogo } from "./components/cairn-logo";
 import { ContentLoading } from "./components/fold/expression";
-import { Action, AppText, StatusNotice } from "./components/fold/primitives";
+import { Action, StatusNotice } from "./components/fold/primitives";
 import {
   clearInvitationHandoff,
   readInvitationHandoff,
@@ -298,7 +299,7 @@ export function WorkspaceWaiting() {
   }, []);
   return (
     <SafeAreaView style={styles.waiting}>
-      <AppText text="Kairn" variant="section" accessibilityRole="header" />
+      <CairnLogo heading />
       {failed ? (
         <StatusNotice
           notice={{

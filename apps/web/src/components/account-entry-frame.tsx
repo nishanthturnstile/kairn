@@ -4,7 +4,7 @@ import { publicEnvironment } from "../env";
 import { useSessionAccess } from "../lib/session-access";
 import { AppearanceSwitcher } from "./appearance-switcher";
 import { ButtonLink } from "./ui/button";
-import { FoldMark } from "./ui/fold-mark";
+import { CairnLogo } from "./ui/cairn-logo";
 
 const wordmark =
   "flex min-h-touch min-w-touch items-center gap-2 font-heading text-2xl font-bold tracking-tight";
@@ -29,8 +29,7 @@ export function AccountEntryFrame({
       <header className="flex flex-wrap items-center justify-between gap-2 control-border-b border-border py-3 sm:py-5 lg:py-6">
         {setup ? (
           <span className={wordmark}>
-            <FoldMark />
-            {publicEnvironment.appName}
+            <CairnLogo name={publicEnvironment.appName} />
           </span>
         ) : (
           <Link
@@ -38,8 +37,7 @@ export function AccountEntryFrame({
             search={{}}
             className={`${wordmark} hover:underline`}
           >
-            <FoldMark />
-            {publicEnvironment.appName}
+            <CairnLogo name={publicEnvironment.appName} />
           </Link>
         )}
         <div className="flex flex-wrap items-center gap-2">

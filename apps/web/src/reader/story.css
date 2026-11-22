@@ -30,6 +30,10 @@
   font-weight: var(--kairn-semantic-font-weight-label);
 }
 
+.story-wordmark {
+  color: var(--kairn-semantic-color-ink);
+}
+
 .story-link {
   text-decoration: underline;
   text-underline-offset: 0.18em;

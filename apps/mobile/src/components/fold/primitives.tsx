@@ -184,7 +184,7 @@ export function Action({
               <FoldGlyph
                 kind={
                   feedback === "pending"
-                    ? "pleats"
+                    ? "cairn"
                     : feedback === "success"
                       ? "check"
                       : "arrow"
