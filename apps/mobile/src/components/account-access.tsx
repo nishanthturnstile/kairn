@@ -1,20 +1,19 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { type ComponentRef, useCallback, useRef, useState } from "react";
 import {
-  AccessibilityInfo,
   BackHandler,
   Image,
   Keyboard,
-  ScrollView,
+  type ScrollView,
   type TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import type { mobileAuth } from "../auth";
-import { publicEnvironment } from "../env";
 import { useMobileSession } from "../mobile-session";
+import { AccountEntry, AccountEntryHeading } from "./account-entry";
+import { ContentLoading } from "./fold/expression";
 import { PasswordField } from "./fold/password-field";
 import {
   Action,
@@ -24,106 +23,128 @@ import {
   StatusNotice,
 } from "./fold/primitives";
 
-const artwork = require("../../assets/auth/ferry.jpg");
-
-type Client = NonNullable<typeof mobileAuth>;
-const copy = {
+const ferry = require("../../assets/auth/ferry.jpg");
+const screens = {
   signIn: {
     title: "Sign in",
-    description: "Open your Kairn workspace.",
+    detail: "Open your Kairn workspace.",
     action: "Sign in",
+    pending: "Signing in…",
   },
   signUp: {
     title: "Create account",
-    description: "A private place for the journeys you want to remember.",
+    detail: "A private place for the journeys you want to remember.",
     action: "Create account",
+    pending: "Creating account…",
   },
   recover: {
     title: "Reset password",
-    description: "Enter the email address for your Kairn account.",
+    detail: "Enter the email address for your Kairn account.",
     action: "Send reset link",
+    pending: "Sending link…",
   },
   verify: {
     title: "Check your email",
-    description: "Open the verification link before signing in.",
-    action: "Back to sign in",
+    detail:
+      "Open the verification link in your browser, then return here to sign in.",
   },
   resetSent: {
     title: "Check your email",
-    description:
-      "If an account matches, you’ll receive a reset link. Open it in your browser.",
-    action: "Back to sign in",
+    detail:
+      "If an account matches, we’ll email a link to set a new password in your browser.",
   },
 } as const;
-type Mode = keyof typeof copy;
+
+type Mode = keyof typeof screens;
+type FormField = "email" | "name" | "password";
+export type SignOutStatus = "pending" | "error" | "done";
 
 export function AccountAccess({
   client,
   onSignIn,
-  signOutUnconfirmed,
+  signOutStatus,
 }: {
-  client?: Client;
+  client?: NonNullable<typeof mobileAuth>;
   onSignIn?: (accountId: string) => void;
-  signOutUnconfirmed?: boolean;
+  signOutStatus?: SignOutStatus;
 }) {
   const router = useRouter();
   const { state, refresh } = useMobileSession();
-  const { fontScale, height, width } = useWindowDimensions();
+  const { fontScale, height } = useWindowDimensions();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  const emailField = useRef<ComponentRef<typeof TextInput>>(null);
-  const passwordField = useRef<ComponentRef<typeof TextInput>>(null);
+  const fields = {
+    name: useRef<ComponentRef<typeof TextInput>>(null),
+    email: useRef<ComponentRef<typeof TextInput>>(null),
+    password: useRef<ComponentRef<typeof TextInput>>(null),
+  };
   const requestInFlight = useRef(false);
   const [mode, setMode] = useState<Mode>("signIn");
+  const [verificationOrigin, setVerificationOrigin] = useState<
+    "signIn" | "signUp"
+  >("signIn");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [invalid, setInvalid] = useState<{ field: FormField; text: string }>();
   const [busy, setBusy] = useState(false);
-  const [hasShownForm, setHasShownForm] = useState(state === "signed-out");
-  if (!hasShownForm && state === "signed-out") setHasShownForm(true);
-
-  const onAuthForm = mode === "signIn" || mode === "signUp";
-  const confirmation = mode === "verify" || mode === "resetSent";
-  const editing = state === "signed-out" && !busy;
-  const ready = Boolean(
-    client &&
-      editing &&
-      email.trim() &&
-      (!onAuthForm || password) &&
-      (mode !== "signUp" || (name.trim() && password.length >= 12)),
-  );
-  const unavailable = state === "unavailable" || !client;
-  const showForm = !unavailable && (state === "signed-out" || hasShownForm);
 
   const changeMode = useCallback((next: Mode) => {
     Keyboard.dismiss();
     setMode(next);
     setNotice(null);
+    setInvalid(undefined);
     setPassword("");
     scroll.current?.scrollTo({ y: 0, animated: false });
-    AccessibilityInfo.announceForAccessibility(copy[next].title);
   }, []);
+  const correction = mode === "verify" ? verificationOrigin : "recover";
 
   useFocusEffect(
     useCallback(() => {
-      if (mode === "signIn") return;
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         () => {
-          if (!requestInFlight.current) changeMode("signIn");
+          if (requestInFlight.current) return true;
+          if (mode === "signIn") return false;
+          changeMode(
+            mode === "verify" || mode === "resetSent" ? correction : "signIn",
+          );
           return true;
         },
       );
       return () => subscription.remove();
-    }, [changeMode, mode]),
+    }, [changeMode, correction, mode]),
   );
 
+  const hasPassword = mode === "signIn" || mode === "signUp";
+  function clearInvalid(field: FormField) {
+    if (invalid?.field === field) setInvalid(undefined);
+  }
+
   async function submit() {
-    if (!ready || !client || requestInFlight.current) return;
+    if (!client || busy || requestInFlight.current || state !== "signed-out")
+      return;
     const address = email.trim();
+    const problem: { field: FormField; text: string } | undefined =
+      mode === "signUp" && !name.trim()
+        ? { field: "name", text: "Enter a display name." }
+        : !/^[^\s@]+@[^\s@]+$/.test(address)
+          ? { field: "email", text: "Enter your email address." }
+          : mode === "signUp" && password.length < 12
+            ? { field: "password", text: "Use at least 12 characters." }
+            : hasPassword && !password
+              ? { field: "password", text: "Enter your password." }
+              : undefined;
+    if (problem) {
+      setInvalid(problem);
+      fields[problem.field].current?.focus();
+      return;
+    }
+
     requestInFlight.current = true;
     setBusy(true);
     setNotice(null);
+    setInvalid(undefined);
     setEmail(address);
     try {
       if (mode === "signIn") {
@@ -134,8 +155,10 @@ export function AccountAccess({
         });
         if (!error && data?.user) {
           Keyboard.dismiss();
+          setPassword("");
           onSignIn?.(data.user.id);
         } else if (error?.code === "EMAIL_NOT_VERIFIED") {
+          setVerificationOrigin("signIn");
           changeMode("verify");
         } else {
           setNotice({
@@ -149,20 +172,25 @@ export function AccountAccess({
           name: name.trim(),
           password,
         });
-        if (error)
+        if (error) {
           setNotice({
             tone: "error",
             text: "Couldn’t register. Check your details and try again.",
           });
-        else changeMode("verify");
+        } else {
+          setVerificationOrigin("signUp");
+          changeMode("verify");
+        }
       } else if (mode === "recover") {
         const { error } = await client.requestPasswordReset({ email: address });
-        if (error)
+        if (error) {
           setNotice({
             tone: "error",
             text: "Couldn’t request a reset link. Try again.",
           });
-        else changeMode("resetSent");
+        } else {
+          changeMode("resetSent");
+        }
       }
     } catch {
       setNotice({
@@ -176,8 +204,7 @@ export function AccountAccess({
   }
 
   async function resend() {
-    if (!client || !editing || requestInFlight.current || mode !== "verify")
-      return;
+    if (!client || state !== "signed-out" || requestInFlight.current) return;
     requestInFlight.current = true;
     setBusy(true);
     setNotice(null);
@@ -205,239 +232,242 @@ export function AccountAccess({
     }
   }
 
-  const { title, description, action } = copy[mode];
-  const resetPassword = mode === "signIn" && (
-    <Action
-      label="Reset password"
-      variant="text"
-      disabled={!editing}
-      onPress={() => changeMode("recover")}
-    />
-  );
-  return (
-    <SafeAreaView style={styles.screen}>
-      <ScrollView
-        ref={scroll}
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scroll}
-      >
-        <View style={styles.content}>
-          <AppText
-            text={publicEnvironment.appName}
-            variant="section"
-            style={styles.brand}
+  if (state === "unavailable" || !client)
+    return (
+      <AccountEntry>
+        <AccountEntryHeading
+          title="Account access unavailable"
+          detail="Kairn couldn’t check your session."
+        />
+        {client && (
+          <Action
+            label="Try again"
+            variant="primary"
+            onPress={() => refresh()}
           />
-          {onAuthForm && fontScale < 1.5 && height >= 580 && (
-            <Image
-              source={artwork}
-              accessible={false}
-              style={styles.art(width)}
-              resizeMode="cover"
-            />
-          )}
-          <View style={styles.intro}>
-            <AppText
-              text={showForm ? title : "Sign in"}
-              variant="title"
-              accessibilityRole="header"
-            />
-            {showForm && <AppText text={description} subdued />}
-          </View>
-          {signOutUnconfirmed &&
-            mode === "signIn" &&
-            state === "signed-out" && (
-              <StatusNotice
-                notice={{
+        )}
+        <Action
+          label="Design system"
+          variant="text"
+          onPress={() => router.push("/design-system")}
+        />
+      </AccountEntry>
+    );
+
+  if (state !== "signed-out" || signOutStatus === "pending")
+    return (
+      <AccountEntry>
+        <ContentLoading
+          skeleton={false}
+          label={
+            signOutStatus === "pending"
+              ? "Signing out"
+              : busy
+                ? "Signing in"
+                : "Checking your session"
+          }
+        />
+      </AccountEntry>
+    );
+
+  const screen = screens[mode];
+  const confirmation = !("action" in screen);
+  const errorFor = (field: FormField) =>
+    invalid?.field === field ? invalid.text : undefined;
+  return (
+    <AccountEntry scrollRef={scroll}>
+      {mode === "signIn" && fontScale < 1.4 && height >= 650 && (
+        <Image
+          source={ferry}
+          accessible={false}
+          style={styles.art}
+          resizeMode="cover"
+        />
+      )}
+      <AccountEntryHeading title={screen.title} detail={screen.detail} />
+      {mode === "signIn" && signOutStatus && (
+        <StatusNotice
+          notice={
+            signOutStatus === "error"
+              ? {
                   tone: "warning",
                   text: "Signed out on this device. Kairn couldn’t confirm the sign-out on the server.",
-                }}
+                }
+              : { tone: "success", text: "You’re signed out." }
+          }
+        />
+      )}
+      {confirmation ? (
+        <>
+          <View style={styles.address}>
+            <AppText text="Email address" variant="caption" subdued />
+            <AppText text={email} variant="label" />
+            <View style={styles.start}>
+              <Action
+                label="Change email"
+                variant="text"
+                disabled={busy}
+                onPress={() => changeMode(correction)}
+              />
+            </View>
+          </View>
+          <StatusNotice notice={notice} />
+          <View style={styles.actions}>
+            <Action
+              label="Back to sign in"
+              variant="primary"
+              disabled={busy}
+              onPress={() => changeMode("signIn")}
+            />
+            {mode === "verify" && (
+              <Action
+                label={busy ? "Sending link…" : "Resend verification email"}
+                disabled={busy}
+                accessibilityState={{ busy }}
+                onPress={() => void resend()}
               />
             )}
-          {!showForm ? (
-            <>
-              <StatusNotice
-                notice={
-                  unavailable
-                    ? {
-                        tone: "error",
-                        text: "Account access is temporarily unavailable.",
-                      }
-                    : { tone: "info", text: "Checking your session." }
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.fields}>
+            {mode === "signUp" && (
+              <Field
+                label="Display name"
+                ref={fields.name}
+                value={name}
+                error={errorFor("name")}
+                onChangeText={(value) => {
+                  setName(value);
+                  clearInvalid("name");
+                }}
+                maxLength={120}
+                autoComplete="name"
+                autoCapitalize="words"
+                readOnly={busy}
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => fields.email.current?.focus()}
+              />
+            )}
+            <Field
+              label="Email"
+              ref={fields.email}
+              value={email}
+              error={errorFor("email")}
+              onChangeText={(value) => {
+                setEmail(value);
+                clearInvalid("email");
+              }}
+              autoComplete={mode === "signIn" ? "username" : "email"}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              readOnly={busy}
+              returnKeyType={hasPassword ? "next" : "go"}
+              submitBehavior={hasPassword ? "submit" : "blurAndSubmit"}
+              onSubmitEditing={() => {
+                if (hasPassword) fields.password.current?.focus();
+                else void submit();
+              }}
+            />
+            {hasPassword && (
+              <PasswordField
+                key={mode}
+                label="Password"
+                ref={fields.password}
+                returnKeyType="go"
+                value={password}
+                error={errorFor("password")}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  clearInvalid("password");
+                }}
+                readOnly={busy}
+                autoComplete={
+                  mode === "signUp" ? "new-password" : "current-password"
                 }
+                accessibilityHint={
+                  mode === "signUp" ? "Use at least 12 characters." : undefined
+                }
+                onSubmitEditing={() => void submit()}
               />
-              {unavailable && client && (
-                <Action
-                  label="Try again"
-                  onPress={() => refresh()}
-                  variant="primary"
-                />
-              )}
-            </>
-          ) : confirmation ? (
-            <View style={styles.form}>
-              {mode === "verify" && <AppText text={email} variant="label" />}
-              <StatusNotice notice={notice} />
+            )}
+            {mode === "signUp" && !errorFor("password") && (
+              <AppText
+                text="Use at least 12 characters."
+                variant="caption"
+                subdued
+              />
+            )}
+          </View>
+          <StatusNotice notice={notice} />
+          <View style={styles.actions}>
+            <Action
+              label={busy ? screen.pending : screen.action}
+              variant="primary"
+              disabled={busy}
+              accessibilityState={{ busy }}
+              onPress={() => void submit()}
+            />
+            {mode === "signIn" && (
               <Action
-                label={action}
-                variant="primary"
-                disabled={!editing}
-                onPress={() => changeMode("signIn")}
+                label="Forgot password?"
+                variant="text"
+                disabled={busy}
+                onPress={() => changeMode("recover")}
               />
-              {mode === "verify" && (
-                <Action
-                  label={busy ? "Sending…" : "Resend verification email"}
-                  variant="text"
-                  disabled={!editing}
-                  onPress={() => void resend()}
-                />
-              )}
-            </View>
-          ) : (
-            <>
-              <View style={styles.form}>
-                {mode === "signUp" && (
-                  <Field
-                    label="Display name"
-                    value={name}
-                    onChangeText={setName}
-                    maxLength={120}
-                    autoComplete="name"
-                    autoCapitalize="words"
-                    editable={editing}
-                    returnKeyType="next"
-                    onSubmitEditing={() => emailField.current?.focus()}
-                  />
-                )}
-                <Field
-                  label="Email"
-                  ref={emailField}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoComplete={onAuthForm ? "username" : "email"}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={editing}
-                  returnKeyType={onAuthForm ? "next" : "go"}
-                  onSubmitEditing={() => {
-                    if (onAuthForm) passwordField.current?.focus();
-                    else void submit();
-                  }}
-                />
-                {onAuthForm && (
-                  <>
-                    <PasswordField
-                      key={mode}
-                      label="Password"
-                      ref={passwordField}
-                      returnKeyType="go"
-                      labelAction={fontScale < 1.5 && resetPassword}
-                      value={password}
-                      onChangeText={setPassword}
-                      editable={editing}
-                      autoComplete={
-                        mode === "signUp" ? "new-password" : "current-password"
-                      }
-                      onSubmitEditing={() => void submit()}
-                    />
-                    {mode === "signUp" && (
-                      <AppText
-                        text="Use at least 12 characters."
-                        variant="caption"
-                        subdued
-                      />
-                    )}
-                  </>
-                )}
-                <StatusNotice notice={notice} />
-                <Action
-                  label={
-                    busy
-                      ? mode === "signIn"
-                        ? "Signing in…"
-                        : mode === "signUp"
-                          ? "Creating account…"
-                          : "Sending…"
-                      : action
-                  }
-                  variant="primary"
-                  accessibilityState={busy ? { busy: true } : undefined}
-                  disabled={!ready}
-                  onPress={() => void submit()}
-                />
-                {fontScale >= 1.5 && resetPassword}
-              </View>
-              <View style={styles.footer}>
-                {onAuthForm && (
-                  <AppText
-                    text={
-                      mode === "signIn"
-                        ? "New to Kairn?"
-                        : "Already have an account?"
-                    }
-                    subdued
-                  />
-                )}
-                <Action
-                  label={
-                    mode === "signIn"
-                      ? "Create account"
-                      : mode === "signUp"
-                        ? "Sign in"
-                        : "Back to sign in"
-                  }
-                  variant="text"
-                  disabled={!editing}
-                  onPress={() =>
-                    changeMode(mode === "signIn" ? "signUp" : "signIn")
-                  }
-                />
-              </View>
-            </>
-          )}
-          <Action
-            label="Design system"
-            variant="text"
-            onPress={() => router.push("/design-system")}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            )}
+          </View>
+          <View style={styles.footer}>
+            <Action
+              label={mode === "signIn" ? "Create account" : "Back to sign in"}
+              variant={mode === "signIn" ? "secondary" : "text"}
+              disabled={busy}
+              onPress={() =>
+                changeMode(mode === "signIn" ? "signUp" : "signIn")
+              }
+            />
+            {mode === "signIn" && (
+              <Action
+                label="Design system"
+                variant="text"
+                disabled={busy}
+                onPress={() => router.push("/design-system")}
+              />
+            )}
+          </View>
+        </>
+      )}
+    </AccountEntry>
   );
 }
 
 const styles = StyleSheet.create(
   ({ semantic: { border, color, radius, space } }) => ({
-    screen: { flex: 1, backgroundColor: color.canvas },
-    scroll: {
-      alignItems: "center",
-      paddingHorizontal: space.step24,
-      paddingTop: space.step16,
-      paddingBottom: space.step32,
+    art: {
+      width: "100%",
+      height: 112,
+      borderRadius: radius.card,
+      backgroundColor: color.actionWash,
     },
-    content: { width: "100%", maxWidth: 460, gap: space.step24 },
-    brand: { color: color.action },
-    art: (windowWidth: number) => {
-      const width = Math.min(windowWidth - 2 * space.step24, 460);
-      return {
-        width,
-        height: Math.round(width / 2.34),
-        borderRadius: radius.card,
-        backgroundColor: color.actionWash,
-      };
+    fields: { gap: space.step12 },
+    actions: { gap: space.step4 },
+    start: { alignItems: "flex-start" },
+    address: {
+      gap: space.step4,
+      padding: space.step12,
+      borderRadius: radius.card,
+      borderWidth: border.control,
+      borderColor: color.boundary,
+      backgroundColor: color.surface,
     },
-    intro: { gap: space.step4 },
-    form: { gap: space.step12 },
     footer: {
       borderTopWidth: border.control,
-      borderTopColor: color.boundary,
-      flexDirection: "row",
-      flexWrap: "wrap",
-      alignItems: "center",
-      columnGap: space.step12,
-      paddingTop: space.step4,
+      borderTopColor: color.divider,
+      paddingTop: space.step12,
+      gap: space.step4,
     },
   }),
 );

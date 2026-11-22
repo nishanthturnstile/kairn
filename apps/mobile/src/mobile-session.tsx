@@ -82,7 +82,7 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let previous = AppState.currentState;
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active" && previous !== "active") {
+      if (state === "active" && previous !== "active" && !signingOut.current) {
         const active = store.getSnapshot();
         if (isVerifiedMobileScope(active)) {
           const finish = store.beginForegroundCheck();
@@ -124,7 +124,9 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
         return;
       setChecking(true);
       store.setVerifiedAccount(null);
-      void recheck().finally(() => setChecking(false));
+      void recheck().finally(() => {
+        if (!signingOut.current) setChecking(false);
+      });
     },
     [recheck],
   );
@@ -135,9 +137,9 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
     setChecking(true);
     store.setVerifiedAccount(null);
     try {
-      const { error } = await client.signOut();
+      const { data, error } = await client.signOut();
       await refetch();
-      return !error;
+      return !error && data?.success === true;
     } catch {
       await refetch();
       return false;

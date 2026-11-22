@@ -1,8 +1,15 @@
-import { type ComponentRef, useRef, useState } from "react";
+import {
+  type ComponentRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   AccessibilityInfo,
   Keyboard,
   type Pressable,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -29,20 +36,33 @@ export function ProfileName({
 }) {
   const { refresh, canSubmit, isRevalidating } = useMobileSession();
   const profile = useNativeProfile(scope);
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = account?.stacked ?? (width < 365 || fontScale > 1.4);
   const saving = useRef(false);
+  const restoreFocus = useRef(false);
   const [draft, setDraft] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const showReceipt = useReceipt();
   const editButton = useRef<ComponentRef<typeof Pressable>>(null);
+  const focusEditButton = useCallback(() => {
+    if (editButton.current)
+      AccessibilityInfo.sendAccessibilityEvent(editButton.current, "focus");
+  }, []);
+  useEffect(() => {
+    if (draft !== undefined || !restoreFocus.current) return;
+    const frame = requestAnimationFrame(() => {
+      restoreFocus.current = false;
+      focusEditButton();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draft, focusEditButton]);
+
   function confirmSave() {
     endEdit();
     showReceipt({
       message: "Display name saved.",
-      returnFocus: () => {
-        if (editButton.current)
-          AccessibilityInfo.sendAccessibilityEvent(editButton.current, "focus");
-      },
+      returnFocus: focusEditButton,
     });
   }
   const editable = !busy && !disabled && !isRevalidating;
@@ -56,6 +76,7 @@ export function ProfileName({
 
   function endEdit() {
     Keyboard.dismiss();
+    restoreFocus.current = true;
     setDraft(undefined);
     onEditingChange?.(false);
   }
@@ -116,7 +137,9 @@ export function ProfileName({
             autoFocus
             value={draft}
             maxLength={120}
-            editable={editable}
+            readOnly={!editable}
+            returnKeyType="done"
+            onSubmitEditing={() => void save()}
             onChangeText={(text) => {
               setDraft(text);
               setError(undefined);
@@ -134,16 +157,9 @@ export function ProfileName({
             <Action label="Cancel" disabled={!editable} onPress={endEdit} />
           </View>
         </>
-      ) : account && name !== undefined ? (
-        <View
-          style={[
-            styles.accountName,
-            !account.stacked && styles.accountNameRow,
-          ]}
-        >
-          <View
-            style={[styles.identity, !account.stacked && styles.identityInline]}
-          >
+      ) : name !== undefined ? (
+        <View style={[styles.accountName, !stacked && styles.accountNameRow]}>
+          <View style={[styles.identity, !stacked && styles.identityInline]}>
             {!!name?.trim() && <Avatar name={name} large />}
             <View style={styles.nameCopy}>
               <AppText text="Display name" variant="caption" subdued />
@@ -160,36 +176,19 @@ export function ProfileName({
       ) : (
         <>
           <AppText text="Display name" variant="caption" subdued />
-          {profile.data ? (
-            <>
-              <AppText
-                text={profile.data.displayName || "Enter a display name"}
-                variant="label"
-              />
-              <Action
-                ref={editButton}
-                label="Edit name"
-                disabled={!editable}
-                onPress={edit}
-              />
-            </>
-          ) : (
-            <>
-              <StatusNotice
-                notice={
-                  profile.isError
-                    ? { text: "Couldn’t load your name.", tone: "error" }
-                    : { text: "Loading your name", tone: "info" }
-                }
-              />
-              {profile.isError && (
-                <Action
-                  label="Try again"
-                  disabled={profile.isFetching}
-                  onPress={() => void profile.refetch()}
-                />
-              )}
-            </>
+          <StatusNotice
+            notice={
+              profile.isError
+                ? { text: "Couldn’t load your name.", tone: "error" }
+                : { text: "Loading your name", tone: "info" }
+            }
+          />
+          {profile.isError && (
+            <Action
+              label="Try again"
+              disabled={profile.isFetching}
+              onPress={() => void profile.refetch()}
+            />
           )}
         </>
       )}

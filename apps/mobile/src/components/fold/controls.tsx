@@ -1,6 +1,8 @@
 import { type ComponentRef, type ReactNode, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  Image,
+  type ImageSourcePropType,
   Keyboard,
   Modal,
   Platform,
@@ -75,6 +77,7 @@ export function Disclosure({
 }
 export function Choice({
   label,
+  detail,
   kind = "radio",
   checked,
   busy,
@@ -82,6 +85,7 @@ export function Choice({
   onChange,
 }: {
   label: string;
+  detail?: { text: string; icon?: ImageSourcePropType };
   kind?: "radio" | "checkbox" | "switch";
   checked: boolean;
   busy?: boolean;
@@ -95,6 +99,7 @@ export function Choice({
   } = useUnistyles();
   const [focused, setFocused] = useState(false);
   const reduced = useReduceMotionPreference();
+  const { fontScale, width } = useWindowDimensions();
   if (kind === "switch")
     return (
       <View style={[styles.choice, focused && styles.focused]}>
@@ -133,6 +138,7 @@ export function Choice({
     <Pressable
       accessibilityRole={kind}
       accessibilityLabel={label}
+      accessibilityHint={detail?.text}
       accessibilityState={{ checked, disabled, busy }}
       disabled={disabled}
       onPress={onChange}
@@ -140,6 +146,8 @@ export function Choice({
       onBlur={() => setFocused(false)}
       style={({ pressed }) => [
         styles.choice,
+        detail && styles.detailChoice,
+        detail && checked && styles.selectedCard,
         pressed && styles.pressed,
         focused && styles.focused,
       ]}
@@ -161,7 +169,23 @@ export function Choice({
                 <FoldGlyph kind="check" color={color.onAction} />
               ))}
           </View>
-          <AppText style={styles.copy} text={label} subdued={disabled} />
+          {detail ? (
+            <View style={styles.detailCopy}>
+              <AppText text={label} variant="label" subdued={disabled} />
+              <AppText text={detail.text} variant="caption" subdued />
+            </View>
+          ) : (
+            <AppText style={styles.copy} text={label} subdued={disabled} />
+          )}
+          {detail?.icon && fontScale < 1.5 && width >= 350 && (
+            <View style={styles.detailIconTile}>
+              <Image
+                source={detail.icon}
+                accessible={false}
+                style={styles.detailIcon}
+              />
+            </View>
+          )}
         </>
       )}
     </Pressable>
@@ -345,6 +369,29 @@ export const styles = StyleSheet.create(
       gap: space.step12,
       paddingVertical: space.step4,
     },
+    detailChoice: {
+      flexDirection: "row-reverse",
+      alignItems: "flex-start",
+      padding: space.step12,
+      borderWidth: border.control,
+      borderColor: color.boundary,
+      borderRadius: radius.card,
+      backgroundColor: color.surface,
+    },
+    selectedCard: {
+      borderColor: color.action,
+      backgroundColor: color.actionWash,
+    },
+    detailCopy: { flex: 1, minWidth: 0, gap: space.step4 },
+    detailIconTile: {
+      width: space.step32,
+      height: space.step32,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: radius.control,
+      backgroundColor: color.actionWash,
+    },
+    detailIcon: { width: 18, height: 18, tintColor: color.action },
     indicator: {
       width: 22,
       height: 22,

@@ -9,7 +9,10 @@ import { ScrollView, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { mobileAuth } from "../auth";
-import { AccountAccess } from "../components/account-access";
+import {
+  AccountAccess,
+  type SignOutStatus,
+} from "../components/account-access";
 import { AppearancePicker } from "../components/fold/appearance";
 import {
   Action,
@@ -47,7 +50,7 @@ function Account({ client }: { client: Client }) {
   const { width, fontScale } = useWindowDimensions();
   const [signOutAttempt, setSignOutAttempt] = useState<{
     accountId: string;
-    status: "pending" | "error";
+    status: SignOutStatus;
   }>();
   const wide = width >= 800 && fontScale <= 1.3;
   const stacked = width < 365 || fontScale > 1.4;
@@ -58,7 +61,7 @@ function Account({ client }: { client: Client }) {
     return (
       <AccountAccess
         client={client}
-        signOutUnconfirmed={signOutAttempt?.status === "error"}
+        signOutStatus={signOutAttempt?.status}
         onSignIn={(accountId) => {
           setSignOutAttempt(undefined);
           signedIn({ accountId });
@@ -71,7 +74,7 @@ function Account({ client }: { client: Client }) {
     clearInvitationHandoff();
     setSignOutAttempt({ accountId, status: "pending" });
     const success = await signOut().catch(() => false);
-    setSignOutAttempt(success ? undefined : { accountId, status: "error" });
+    setSignOutAttempt({ accountId, status: success ? "done" : "error" });
   }
 
   return (
@@ -166,7 +169,7 @@ function Devices({
   accountId: string;
   stacked: boolean;
   signOut: () => void;
-  signOutStatus?: "pending" | "error";
+  signOutStatus?: SignOutStatus;
 }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -188,6 +191,15 @@ function Devices({
       (a, b) =>
         Number(b.id === currentDeviceId) - Number(a.id === currentDeviceId),
     );
+  const signOutAction = (
+    <Action
+      label={signingOut ? "Signing out…" : "Sign out"}
+      variant="danger"
+      disabled={busy || signingOut}
+      accessibilityState={{ busy: signingOut }}
+      onPress={signOut}
+    />
+  );
 
   async function revoke(deviceId: string) {
     setBusy(true);
@@ -241,6 +253,19 @@ function Devices({
           </View>
         </View>
       )}
+      <StatusNotice
+        notice={
+          signOutStatus === "error"
+            ? {
+                text: "Couldn’t sign out on the server. Try again.",
+                tone: "error",
+              }
+            : null
+        }
+      />
+      {!sessions?.some((device) => device.id === currentDeviceId) && (
+        <View style={styles.signOut}>{signOutAction}</View>
+      )}
       {!!sessions?.length && (
         <View style={styles.deviceList}>
           {sessions.map((device) => {
@@ -268,7 +293,9 @@ function Devices({
                     subdued
                   />
                 </View>
-                {!current && (
+                {current ? (
+                  signOutAction
+                ) : (
                   <Action
                     label="Revoke device"
                     accessibilityLabel={`Revoke device, signed in ${started}`}
@@ -295,25 +322,6 @@ function Devices({
             : null)
         }
       />
-      <StatusNotice
-        notice={
-          signOutStatus === "error"
-            ? {
-                text: "Couldn’t sign out on the server. Try again.",
-                tone: "error",
-              }
-            : null
-        }
-      />
-      <View style={styles.signOut}>
-        <Action
-          label={signingOut ? "Signing out…" : "Sign out"}
-          variant="danger"
-          disabled={busy || signingOut}
-          accessibilityState={{ busy: signingOut }}
-          onPress={signOut}
-        />
-      </View>
     </Panel>
   );
 }

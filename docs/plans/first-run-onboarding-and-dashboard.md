@@ -98,6 +98,8 @@ Database checks cover verified profile access, concurrent completion and older c
 
 **Scope.** Bring the two-step setup and the real Dashboard to iPhone and Android with the existing Expo Router stack, mobile account screen, four appearances, and shared design tokens. Reuse the coastal illustrations and journey wording from web. Keep Dashboard, Journeys, Discover and Saved in the native tab bar, with Account outside it. A compact tab layout must keep all four labels usable at large text sizes.
 
+The Fold redesign shares the account entry frame with authentication. The welcome places the privacy explanation and inline profile editor first. An edit stays open if another session advances setup, and its confirmation clears when the choice screen opens. The next screen uses detailed radio rows with **Look around** selected. The final action names Dashboard or the original destination. The original destination stays available through a failed save. A confirmed Dashboard exit discards a retained invitation even when it is recovered after relaunch. Android Back revisits the welcome from the choice screen. [Native setup](../../apps/mobile/src/app/onboarding.tsx) · [Saved destination checks](../../tests/mobile-workspace.test.ts)
+
 | Area | Existing authority | Native work |
 | --- | --- | --- |
 | Enrollment and checkpoint | The existing email sign-in transaction checks the capability header and cutoff. GET and POST `/api/v1/onboarding` own eligibility, the pending step, and completion with optional intent. | Add the capability header to native email sign-in only. Read and confirm using the verified scope and generated contracts. Reconcile a conflict or lost reply from the server. Keep local Back and choice state separate from the durable checkpoint. |

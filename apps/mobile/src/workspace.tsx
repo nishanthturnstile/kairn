@@ -35,6 +35,7 @@ import {
   type ReturnHandoff,
   readReturnHandoff,
   returnLifetime,
+  setupExit,
   workspaceHref,
   workspaceTarget,
 } from "./workspace-return";
@@ -55,7 +56,7 @@ const WorkspaceContext = createContext<{
   entry?: SignInEntry;
   signedIn: (entry: SignInEntry) => void;
   retainInvitationForSignIn: () => void;
-  finishOnDashboard: (accountId: string) => void;
+  rememberSetupExit: (accountId: string, dashboard: boolean) => void;
 } | null>(null);
 
 export function useWorkspace() {
@@ -118,15 +119,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       // The current app session can still use its in-memory return.
     }
   }, []);
-  const finishOnDashboard = useCallback(
-    (accountId: string) => {
-      saveReturn({
-        accountId,
-        target: "/dashboard",
-        expiresAt: Date.now() + returnLifetime,
-      });
+  const rememberSetupExit = useCallback(
+    (accountId: string, dashboard: boolean) => {
+      if (handoff?.accountId === accountId)
+        saveReturn({ ...handoff, finishAtDashboard: dashboard || undefined });
     },
-    [saveReturn],
+    [handoff, saveReturn],
   );
   const checkpoint = progress.data;
   const failed = progress.isError;
@@ -145,7 +143,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       invitationRoutes.includes(lastPath) &&
       !invitationRoutes.includes(pathname) &&
       pathname !== "/" &&
-      hasInvitation
+      hasInvitation &&
+      !(
+        pathname === "/dashboard" &&
+        checkpoint?.state === "pending" &&
+        handoff?.target === invitationPath
+      )
     )
       clearInvitationHandoff();
     // A screen already entered with access is not a new return after revocation.
@@ -218,13 +221,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         retained = { accountId, ...freshReturn };
         saveReturn(retained);
       }
-      replace(pending ? "/onboarding" : workspaceHref(retained?.target));
+      replace(
+        pending ? "/onboarding" : workspaceHref(setupExit(retained).target),
+      );
     } else if (pathname === "/account") {
       return;
     } else if (pending && pathname !== "/onboarding") {
       const target =
         pathname === "/" && hasInvitation ? invitationPath : incoming;
-      if (target && admittedPath.current !== pathname) {
+      if (
+        target &&
+        (target !== "/dashboard" || !retained) &&
+        admittedPath.current !== pathname
+      ) {
         saveReturn({
           accountId,
           target,
@@ -234,12 +243,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       replace("/onboarding");
     } else if (!pending && (pathname === "/" || pathname === "/onboarding")) {
       const target =
-        retained?.target ??
+        setupExit(retained).target ??
         (pathname === "/" && hasInvitation ? invitationPath : undefined);
       replace(workspaceHref(target));
     } else if (!pending) {
       admittedPath.current = pathname;
-      if (incoming && retained?.target === incoming) saveReturn();
+      const exit = setupExit(retained);
+      if (incoming && exit.target === incoming) {
+        if (exit.dismissInvitation) clearInvitationHandoff();
+        saveReturn();
+      }
     }
   }, [
     checkpoint,
@@ -263,7 +276,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         handoff,
         entry,
         signedIn,
-        finishOnDashboard,
+        rememberSetupExit,
         retainInvitationForSignIn,
       }}
     >

@@ -16,6 +16,7 @@ import { observeOnboarding } from "../apps/mobile/src/workspace-observer";
 import {
   readReturnHandoff,
   returnLifetime,
+  setupExit,
   workspaceHref,
   workspaceTarget,
 } from "../apps/mobile/src/workspace-return";
@@ -74,6 +75,46 @@ describe("native workspace return", () => {
     ])
       expect(readReturnHandoff(JSON.stringify(invalid), now)).toBeUndefined();
     expect(readReturnHandoff("not JSON", now)).toBeUndefined();
+  });
+
+  it("retains the original destination when Dashboard is the chosen setup exit", () => {
+    const now = Date.parse("2026-11-20T10:00:00Z");
+    const stored = { target: "/journeys/new", accountId, expiresAt: now + 500 };
+    const handoff = readReturnHandoff(
+      JSON.stringify({ ...stored, finishAtDashboard: true }),
+      now,
+    );
+    expect(handoff).toEqual({ ...stored, finishAtDashboard: true });
+    expect(setupExit(handoff)).toEqual({
+      target: "/dashboard",
+      dismissInvitation: false,
+    });
+    expect(
+      setupExit(readReturnHandoff(JSON.stringify(stored), now)).target,
+    ).toBe("/journeys/new");
+  });
+
+  it("discards a retained invitation when setup recovers a Dashboard exit", () => {
+    const now = Date.parse("2026-11-20T10:00:00Z");
+    const invitation = {
+      target: "/journey-invitations",
+      accountId,
+      expiresAt: now + 500,
+    };
+    const handoff = readReturnHandoff(
+      JSON.stringify({ ...invitation, finishAtDashboard: true }),
+      now,
+    );
+    expect(setupExit(handoff)).toEqual({
+      target: "/dashboard",
+      dismissInvitation: true,
+    });
+    expect(
+      setupExit(readReturnHandoff(JSON.stringify(invitation), now)),
+    ).toEqual({
+      target: "/journey-invitations",
+      dismissInvitation: false,
+    });
   });
 });
 

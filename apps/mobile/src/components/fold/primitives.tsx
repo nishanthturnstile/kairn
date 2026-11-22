@@ -216,6 +216,7 @@ export function Field({
   const [focused, setFocused] = useState(false);
   const { theme, rt } = useUnistyles();
   const { color } = theme.semantic;
+  useAccessibilityAnnouncement(error);
 
   const inputSurface = [
     styles.inputSurface,
@@ -270,7 +271,13 @@ export function Field({
       ) : (
         input
       )}
-      {error && <AppText text={error} style={styles.error} />}
+      {error && (
+        <AppText
+          text={error}
+          accessibilityLiveRegion="polite"
+          style={styles.error}
+        />
+      )}
     </View>
   );
 }
@@ -280,8 +287,7 @@ export type Notice = {
   tone: "info" | "error" | "success" | "warning";
 };
 
-export function StatusNotice({ notice }: { notice: Notice | null }) {
-  const message = notice?.text;
+function useAccessibilityAnnouncement(message?: string) {
   useEffect(() => {
     if (Platform.OS === "ios" && message) {
       AccessibilityInfo.announceForAccessibilityWithOptions(message, {
@@ -289,7 +295,10 @@ export function StatusNotice({ notice }: { notice: Notice | null }) {
       });
     }
   }, [message]);
+}
 
+export function StatusNotice({ notice }: { notice: Notice | null }) {
+  useAccessibilityAnnouncement(notice?.text);
   return (
     <View accessibilityLiveRegion="polite" style={!notice && styles.hidden}>
       {notice && (

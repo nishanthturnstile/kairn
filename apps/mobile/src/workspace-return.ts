@@ -73,7 +73,19 @@ export type ReturnHandoff = {
   target: WorkspaceTarget;
   accountId: string;
   expiresAt: number;
+  finishAtDashboard?: true;
 };
+
+export function setupExit(handoff?: ReturnHandoff): {
+  target?: WorkspaceTarget;
+  dismissInvitation: boolean;
+} {
+  return {
+    target: handoff?.finishAtDashboard ? "/dashboard" : handoff?.target,
+    dismissInvitation:
+      handoff?.finishAtDashboard === true && handoff.target === invitationPath,
+  };
+}
 
 export function liveExpiry(value: unknown, now: number): value is number {
   return (
@@ -98,7 +110,12 @@ export function readReturnHandoff(
       journeyPath.safeParse({ journeyId: value.accountId }).success &&
       liveExpiry(value.expiresAt, now)
     ) {
-      return { target, accountId: value.accountId, expiresAt: value.expiresAt };
+      return {
+        target,
+        accountId: value.accountId,
+        expiresAt: value.expiresAt,
+        ...(value.finishAtDashboard === true && { finishAtDashboard: true }),
+      };
     }
   } catch {
     // Invalid stored values cannot supply a destination.

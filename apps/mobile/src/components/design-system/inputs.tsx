@@ -288,6 +288,12 @@ export function Selection() {
           <Choice
             key={v}
             label={v}
+            detail={{
+              text:
+                v === "Only me"
+                  ? "Keep this source private."
+                  : "Let invited members review this source.",
+            }}
             checked={access === v}
             onChange={() => setAccess(v)}
           />
