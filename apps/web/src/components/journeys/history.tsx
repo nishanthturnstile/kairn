@@ -60,6 +60,10 @@ const scrollKey = (scope: AccountScope) => [
 
 export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
   const { refresh } = useSessionAccess();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!window.location.hash) heading.current?.focus({ preventScroll: true });
+  }, []);
   const history = useQuery({
     queryKey: historyKey(scope),
     refetchOnMount: "always",
@@ -121,7 +125,11 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
     <div className="@container/journeys grid gap-section">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="grid gap-1.5">
-          <h1 className="text-4xl font-bold tracking-tight @min-[48rem]/journeys:text-5xl">
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            className="text-4xl font-bold tracking-tight @min-[48rem]/journeys:text-5xl"
+          >
             Journeys
           </h1>
           <p className="text-muted-foreground">

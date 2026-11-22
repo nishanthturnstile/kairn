@@ -16,7 +16,7 @@ export const journeyStyles = StyleSheet.create(
     screen: { flex: 1, backgroundColor: color.canvas },
     hidden: { display: "none" },
     content: { gap: space.step16, padding: space.step24 },
-    contentHeader: { gap: space.step16, marginBottom: space.step16 },
+    contentHeader: { gap: space.step16 },
     group: { gap: space.step8 },
   }),
 );

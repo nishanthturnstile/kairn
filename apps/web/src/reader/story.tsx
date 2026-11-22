@@ -63,8 +63,8 @@ export function Story({ story }: { story: ReaderStory | null }) {
           </article>
         </>
       ) : (
-        <a className="story-link" href="/discover">
-          Browse journeys
+        <a className="story-link" href="/journeys">
+          Go to Journeys
         </a>
       )}
     </main>

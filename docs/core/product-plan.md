@@ -326,7 +326,7 @@ No price, revenue forecast, or market-size claim is approved. Monetisation must 
 
 | Decision | Current position |
 |---|---|
-| Brand and distribution identity | The title describes the product. A name, app identity, domain, and applicable rights checks remain open. |
+| Brand and distribution identity | Kairn is the product name and Shared Cairn is its mark. Confirm the production domain and applicable rights before public release. |
 | Reachable audience and recruitment | No fixed launch-user target or capacity promise. Community outreach and example journeys remain launch work; server sizing is not a product-validation gate. |
 | Founder and operating capacity | Initial server testing baseline: approximately 4 vCPU and 8 GB RAM; upgrade as needed. Hosting-budget and user-count modelling are deferred. Keep support, configurable resource controls and recovery readiness in implementation. |
 | Free community offer | Use clear limits and hosting terms. Exact allowances depend on measured operating costs. |

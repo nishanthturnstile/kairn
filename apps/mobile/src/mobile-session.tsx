@@ -19,7 +19,12 @@ import {
   type VerifiedMobileScope,
 } from "./session";
 
-import { dashboardKey, onboardingKey, profileKey } from "./workspace-keys";
+import {
+  dashboardKey,
+  devicesKey,
+  onboardingKey,
+  profileKey,
+} from "./workspace-keys";
 
 const client = mobileAuth;
 const store = createMobileSession(
@@ -102,6 +107,9 @@ export function MobileSessionProvider({ children }: { children: ReactNode }) {
                   }),
                   active.queryClient.invalidateQueries({
                     queryKey: profileKey,
+                  }),
+                  active.queryClient.invalidateQueries({
+                    queryKey: devicesKey,
                   }),
                 ]);
             })

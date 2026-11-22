@@ -34,9 +34,11 @@ export function ProfileName({
   const saving = useRef(false);
   const [draft, setDraft] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const editing = draft !== undefined;
+  const needsRetry = !profile.data && (profile.isError || retrying);
 
   useEffect(() => {
     if (editing) input.current?.focus();
@@ -50,6 +52,15 @@ export function ProfileName({
     restoreFocus.current = true;
     setDraft(undefined);
     onEditingChange?.(false);
+  }
+
+  async function retry() {
+    setRetrying(true);
+    try {
+      await profile.refetch();
+    } finally {
+      if (!scope.signal.aborted) setRetrying(false);
+    }
   }
 
   async function save(event: SubmitEvent<HTMLFormElement>) {
@@ -79,7 +90,13 @@ export function ProfileName({
       );
       await scope.queryClient.cancelQueries({ queryKey });
       scope.signal.throwIfAborted();
-      scope.queryClient.setQueryData(queryKey, savedProfile);
+      scope.queryClient.setQueryData<typeof savedProfile>(
+        queryKey,
+        (previous) =>
+          previous
+            ? { ...previous, displayName: savedProfile.displayName }
+            : savedProfile,
+      );
       closeEditor();
       setSaved(true);
     } catch {
@@ -177,32 +194,32 @@ export function ProfileName({
               )}
             </div>
           </div>
-          {profile.data ? (
+          {(profile.data || needsRetry) && (
             <Button
               ref={editButton}
               type="button"
               variant="outline"
-              disabled={disabled}
+              disabled={
+                disabled || retrying || (needsRetry && profile.isFetching)
+              }
+              focusableWhenDisabled
               onClick={() => {
+                if (!profile.data) {
+                  void retry();
+                  return;
+                }
                 setSaved(false);
                 setError("");
                 setDraft(profile.data.displayName);
                 onEditingChange?.(true);
               }}
             >
-              Edit name
+              {needsRetry
+                ? retrying || profile.isFetching
+                  ? "Retrying…"
+                  : "Retry"
+                : "Edit name"}
             </Button>
-          ) : (
-            profile.isError && (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={profile.isFetching || disabled}
-                onClick={() => void profile.refetch()}
-              >
-                Retry
-              </Button>
-            )
           )}
         </div>
       )}

@@ -103,6 +103,8 @@ Use the [journey form layout](apps/web/src/components/journeys/flow.tsx) for cre
 
 On [Journey details](apps/web/src/components/journeys/detail.tsx), lead with the journey title and its privacy and schedule state. Use a schedule panel for distinct local date and time values and their time zone. Put People beside the schedule where space allows and below it on phones. Show the viewer’s role and keep the People action in that panel. Use a generic heading and access status while checking private data.
 
+On [Account](apps/web/src/components/account/settings.tsx), group the editable name and verified email in Profile. Put invitation search and Appearance in Preferences. In Signed-in devices, pair Sign out with the current session and confirm revocation of other sessions using their sign-in time.
+
 ## Review a change
 
 1. Edit the primitive, then exercise it on a real caller and on `/design-system`. Preserve refs, form attributes, keyboard behavior, and Base UI `render` composition.
@@ -145,6 +147,8 @@ Use 16-unit screen insets and 12-unit gaps for a dense list or component catalog
 Keep native journey creation in one scroll with separate details and schedule sections, a compact live summary and full-width save actions. Confirm the saved journey before opening the recipient finder. Keep search and email shortcuts together and stack their controls at larger text sizes. Put queued and failed delivery states beside the recipients and keep the exit beside the send action. [Native creation](apps/mobile/src/components/journeys/create.tsx) · [Native invitations](apps/mobile/src/components/journeys/invite-composer.tsx)
 
 On native Journey details, put the title and status above the cards. Use a vertical schedule with separate local dates and times. Keep People below it with the viewer’s assigned role and a full-width roster action. Use the generic Journey heading until access is confirmed, and keep Back to Journeys reachable in each state. [Native details](apps/mobile/src/components/journeys/detail.tsx)
+
+On [native Account](apps/mobile/src/components/account/settings.tsx), keep the platform navigation header and stack Profile, Preferences and Signed-in devices on phones. Use the native invitation switch and the Fold appearance picker. Open a Fold confirmation sheet to revoke another session.
 
 Use the shared password field for an in-field visibility toggle, and the shared avatar and badge for profile, member and invitation rows. Put the full name beside decorative initials so the name can scale independently. Derive keyboard focus from the semantic focus colour for the active appearance. [Password field](apps/mobile/src/components/fold/password-field.tsx) · [Avatars and badges](apps/mobile/src/components/fold/identity.tsx)
 

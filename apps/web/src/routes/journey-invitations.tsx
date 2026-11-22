@@ -10,6 +10,7 @@ import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button, ButtonLink } from "../components/ui/button";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
 import {
   captureInvitationFragment,
   clearInvitationHandoff,
@@ -42,7 +43,11 @@ function InvitationReviewRoute() {
   const [handoff, setHandoff] = useState(readInvitationHandoff);
   const [replacement, setReplacement] = useState(false);
   const [problem, setProblem] = useState<"exchange" | "review" | "accept">();
-  const [review, setReview] = useState<Review>();
+  const [resolved, setResolved] = useState<{
+    scope: typeof scope;
+    setupCheckedAt: number;
+    review: Review;
+  }>();
   const [attempt, setAttempt] = useState(0);
   const [joining, setJoining] = useState(false);
   const [offline, setOffline] = useState(() => !navigator.onLine);
@@ -50,19 +55,32 @@ function InvitationReviewRoute() {
   const accepting = useRef<AbortController>(null);
   const accountId = scope.accountId;
   const setupPending = progress.data?.state === "pending";
+  const setupCheckedAt = progress.dataUpdatedAt;
+  const canReview =
+    !offline &&
+    !token &&
+    access.state === "verified" &&
+    progress.isSuccess &&
+    !setupPending;
+  const review =
+    canReview &&
+    resolved?.scope === scope &&
+    resolved.setupCheckedAt === setupCheckedAt
+      ? resolved.review
+      : undefined;
   useEffect(() => () => accepting.current?.abort(), []);
 
   useEffect(() => {
     function verifyAgain() {
       if (document.visibilityState !== "visible") return;
       accepting.current?.abort();
-      setReview(undefined);
+      setResolved(undefined);
       setAttempt((value) => value + 1);
     }
     function disconnected() {
       accepting.current?.abort();
       setOffline(true);
-      setReview(undefined);
+      setResolved(undefined);
     }
     function connected() {
       setOffline(false);
@@ -138,7 +156,7 @@ function InvitationReviewRoute() {
         setHandoff(next);
         setToken(undefined);
         setReplacement(false);
-        setReview(undefined);
+        setResolved(undefined);
       })
       .catch(() => {
         if (!request.signal.aborted && !scope.signal.aborted)
@@ -162,19 +180,12 @@ function InvitationReviewRoute() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Retry restarts verification.
   useEffect(() => {
-    if (
-      offline ||
-      token ||
-      !handoff ||
-      access.state !== "verified" ||
-      !accountId ||
-      !progress.data ||
-      setupPending
-    )
-      return;
+    if (!canReview || !handoff || !accountId) return;
     const request = new AbortController();
-    setReview(undefined);
+    setResolved(undefined);
     setProblem(undefined);
+    const resolveReview = (review: Review) =>
+      setResolved({ scope, setupCheckedAt, review });
     void (async () => {
       const current = readInvitationHandoff();
       if (!current || (current.accountId && current.accountId !== accountId)) {
@@ -193,12 +204,12 @@ function InvitationReviewRoute() {
         request.signal.throwIfAborted();
         if (status.response.status !== 404) {
           const result = journeyResult(status, scope, access.refresh);
-          setReview({ state: "joined", journeyId: result.id });
+          resolveReview({ state: "joined", journeyId: result.id });
           return;
         }
       }
       if (!current.continuation) {
-        setReview({ state: "unavailable" });
+        resolveReview({ state: "unavailable" });
         return;
       }
       const result = await scope.api.POST(
@@ -219,23 +230,20 @@ function InvitationReviewRoute() {
           continuation: data.continuation,
         });
       }
-      setReview(data);
+      resolveReview(data);
     })().catch(() => {
       if (!scope.signal.aborted && !request.signal.aborted)
         setProblem("review");
     });
     return () => request.abort();
   }, [
-    token,
+    canReview,
     handoff,
-    access.state,
     accountId,
-    progress.data,
-    setupPending,
+    setupCheckedAt,
     scope,
     attempt,
     access.refresh,
-    offline,
   ]);
 
   function abandon() {
@@ -393,33 +401,55 @@ function InvitationReviewRoute() {
   } else if (review?.state === "ready") {
     content = (
       <>
-        <p>{review.inviter} invited you to join as a Participant.</p>
-        <dl className="grid gap-3 rounded-card control-border bg-card p-4">
-          {review.schedule && (
-            <div>
-              <dt className="font-semibold">Intended start</dt>
-              <dd>
-                <JourneyDate minute={review.schedule.intendedStart} />
-              </dd>
-            </div>
-          )}
-          {review.schedule?.intendedEnd && (
-            <div>
-              <dt className="font-semibold">Intended end</dt>
-              <dd>
-                <JourneyDate minute={review.schedule.intendedEnd} />
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt className="font-semibold">Invitation expires</dt>
-            <dd>
-              <time dateTime={review.expiresAt}>
-                {expiryFormat.format(new Date(review.expiresAt))}
-              </time>
-            </dd>
-          </div>
-        </dl>
+        <p>
+          <strong className="font-semibold">{review.inviter}</strong> invited
+          you to join as a participant.
+        </p>
+        <Card className="@container/invitation control-border [--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(4)]">
+          <CardHeader>
+            <h2 className="text-lg font-bold sm:text-xl">Schedule</h2>
+          </CardHeader>
+          <CardContent>
+            {review.schedule ? (
+              <dl className="grid gap-3 @min-[24rem]/invitation:grid-cols-2">
+                <div className="grid gap-1">
+                  <dt className="text-sm font-semibold text-muted-foreground">
+                    Starts
+                  </dt>
+                  <dd>
+                    <JourneyDate minute={review.schedule.intendedStart} />
+                  </dd>
+                </div>
+                <div className="grid gap-1">
+                  <dt className="text-sm font-semibold text-muted-foreground">
+                    Ends
+                  </dt>
+                  <dd>
+                    {review.schedule.intendedEnd ? (
+                      <JourneyDate minute={review.schedule.intendedEnd} />
+                    ) : (
+                      "No end date"
+                    )}
+                  </dd>
+                </div>
+                <div className="col-span-full flex flex-wrap gap-x-3 gap-y-1 border-t pt-3">
+                  <dt className="font-semibold text-muted-foreground">
+                    Time zone
+                  </dt>
+                  <dd>{review.schedule.timeZone}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-muted-foreground">Dates unavailable</p>
+            )}
+          </CardContent>
+        </Card>
+        <p className="text-sm text-muted-foreground">
+          Invitation expires{" "}
+          <time dateTime={review.expiresAt}>
+            {expiryFormat.format(new Date(review.expiresAt))}
+          </time>
+        </p>
         {problem === "accept" && (
           <Alert variant="destructive" role="alert">
             <AlertDescription>
@@ -504,15 +534,7 @@ function InvitationReviewRoute() {
         <MailOpen aria-hidden="true" />
       </span>
       <PageHeading
-        title={
-          !offline &&
-          access.state === "verified" &&
-          !setupPending &&
-          !token &&
-          review?.state === "ready"
-            ? review.title
-            : "Journey invitation"
-        }
+        title={review?.state === "ready" ? review.title : "Journey invitation"}
       />
       {content}
     </section>

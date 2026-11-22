@@ -198,6 +198,35 @@ test("invites four people by member search or email, resumes verification and re
     );
     await existing.goto(links[0]);
     await expect(existing.getByRole("heading", { name: title })).toBeVisible();
+    await expect(
+      existing.getByRole("heading", { name: "Schedule" }),
+    ).toBeVisible();
+    await expect(
+      existing.getByText("No end date", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      existing.getByText("Asia/Kolkata", { exact: true }),
+    ).toBeVisible();
+    await expect(existing.getByText(/Invitation expires/)).toBeVisible();
+    await existing.setViewportSize({ width: 320, height: 900 });
+    await existing.addStyleTag({ content: "html { font-size: 200%; }" });
+    expect(
+      await existing.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const scheduleLines = await existing
+      .getByRole("heading", { name: "Schedule" })
+      .evaluate(async (heading) => {
+        await document.fonts.ready;
+        const text = document.createRange();
+        text.selectNodeContents(heading);
+        return text.getClientRects().length;
+      });
+    expect(scheduleLines).toBe(1);
+    expect(
+      (await new AxeBuilder({ page: existing }).analyze()).violations,
+    ).toEqual([]);
     await expect(existing).toHaveURL(`${site}/journey-invitations`);
     expect(
       (
@@ -556,8 +585,20 @@ test("withholds an open invitation while rechecking and recognises cancellation"
       },
     );
     expect(issued.status()).toBe(200);
+    const reviewEndpoint = "**/api/v1/journey-invitations/review";
+    await recipient.route(reviewEndpoint, async (route) => {
+      const response = await route.fetch();
+      const review = await response.json();
+      if (review.state === "ready") {
+        await route.fulfill({ response, json: { ...review, schedule: null } });
+      } else {
+        await route.fulfill({ response });
+      }
+    });
     await recipient.goto(await invitationLink(member.email));
     await expect(recipient.getByRole("heading", { name: title })).toBeVisible();
+    await expect(recipient.getByText("Dates unavailable")).toBeVisible();
+    await recipient.unroute(reviewEndpoint);
     await page.goto(`${site}/journeys/${journeyId}/people`);
     await page
       .getByRole("button", { name: `Resend invitation to ${member.email}` })

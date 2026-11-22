@@ -8,7 +8,8 @@
     aspect-ratio: 3 / 2;
     min-height: 18rem;
     background:
-      var(--color-accent) url("../../assets/dashboard-travel-notebook.webp")
+      var(--color-accent)
+      url("../../../../../packages/design-tokens/assets/dashboard-travel-notebook.webp")
       center / cover no-repeat;
   }
 }

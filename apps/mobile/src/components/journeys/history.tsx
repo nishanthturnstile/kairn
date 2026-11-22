@@ -5,15 +5,21 @@ import {
 } from "@kairn/contracts/journeys";
 import { formatJourneyLocalMinute } from "@kairn/shared/journey-time";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
-  Pressable,
+  type ComponentRef,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  AccessibilityInfo,
   SectionList,
+  type Text,
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import {
   historyKey,
@@ -25,13 +31,9 @@ import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import { DestinationTopBar } from "../destination";
 import { ContentLoading, JourneyMap } from "../fold/expression";
-import {
-  Action,
-  AppText,
-  focusOutline,
-  StatusNotice,
-  touchTarget,
-} from "../fold/primitives";
+import { Action, AppText, StatusNotice } from "../fold/primitives";
+import { FoldSafeAreaView } from "../fold/screen";
+import { JourneyRow } from "./journey-row";
 import { JourneyRetry, journeyStyles, useJourneyReentry } from "./states";
 
 const sectionInfo = {
@@ -57,15 +59,21 @@ type Section = JourneyTimelineSection;
 type Page = { items: PrivateJourney[]; nextCursor: string | null };
 type Continuations = { asOf: string; pages: Partial<Record<Section, Page>> };
 
+type HistorySection = (typeof sectionInfo)[Section] & {
+  data: PrivateJourney[];
+  id: Section;
+  nextCursor: string | null;
+};
+
 function rowDates(journey: PrivateJourney) {
-  if (!journey.schedule) return "Dates unavailable";
-  const start = formatJourneyLocalMinute(journey.schedule.intendedStart.local);
-  const end = journey.schedule.intendedEnd
-    ? formatJourneyLocalMinute(journey.schedule.intendedEnd.local)
-    : null;
-  return end
-    ? `${start.date}, ${start.time} to ${end.date}, ${end.time}`
-    : `${start.date}, ${start.time} · No end date`;
+  if (!journey.schedule) return ["Dates unavailable"];
+  const { intendedStart, intendedEnd } = journey.schedule;
+  const start = formatJourneyLocalMinute(intendedStart.local);
+  const end = intendedEnd && formatJourneyLocalMinute(intendedEnd.local);
+  return [
+    `Starts ${start.date} · ${start.time}`,
+    end ? `Ends ${end.date} · ${end.time}` : "No end date",
+  ];
 }
 
 export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
@@ -77,6 +85,53 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
   const [failed, setFailed] = useState<Section>();
   const [loading, setLoading] = useState<Section>();
   const inFlight = useRef(false);
+  const list = useRef<SectionList<PrivateJourney, HistorySection>>(null);
+  const displayedSections = useRef<HistorySection[]>([]);
+  const headings = useRef<Partial<Record<Section, ComponentRef<typeof Text>>>>(
+    {},
+  );
+  const jump = useRef<{
+    id: Section;
+    attempts: number;
+  } | null>(null);
+  const jumpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const cancelJump = useCallback(() => {
+    clearTimeout(jumpTimer.current);
+    jump.current = null;
+  }, []);
+  useFocusEffect(useCallback(() => cancelJump, [cancelJump]));
+
+  function seekSection() {
+    const target = jump.current;
+    if (!target) return;
+    const sectionIndex = displayedSections.current.findIndex(
+      (section) => section.id === target.id,
+    );
+    // A refresh can reorder or remove groups between scroll attempts.
+    if (sectionIndex < 0) {
+      cancelJump();
+      return;
+    }
+    // Focus waits for the virtualized heading to mount at the scroll destination.
+    jumpTimer.current = setTimeout(() => {
+      const heading = headings.current[target.id];
+      if (heading) AccessibilityInfo.sendAccessibilityEvent(heading, "focus");
+      cancelJump();
+    }, 160);
+    list.current?.scrollToLocation({
+      sectionIndex,
+      itemIndex: 0,
+      animated: false,
+    });
+  }
+
+  function jumpToSection(id: Section) {
+    cancelJump();
+    jump.current = { id, attempts: 0 };
+    seekSection();
+  }
+
   const departure = useQuery({
     queryKey: departureKey,
     queryFn: () => null as "confirmed" | "pending" | null,
@@ -111,6 +166,7 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
         return [
           {
             id,
+            key: id,
             ...sectionInfo[id],
             data: page.items,
             nextCursor: page.nextCursor,
@@ -118,6 +174,12 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
         ];
       })
     : [];
+  useLayoutEffect(() => {
+    displayedSections.current = sections;
+    const target = jump.current;
+    if (target && !sections.some((section) => section.id === target.id))
+      cancelJump();
+  }, [cancelJump, sections]);
 
   async function loadMore(section: Section, cursor: string) {
     if (!current || inFlight.current || scope.signal.aborted) return;
@@ -174,9 +236,26 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
 
   const create = () => router.push("/journeys/new");
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={journeyStyles.screen}>
+    <FoldSafeAreaView
+      edges={["top", "left", "right"]}
+      style={journeyStyles.screen}
+    >
       <SectionList
+        ref={list}
         sections={sections}
+        onScrollBeginDrag={cancelJump}
+        onScrollToIndexFailed={({ averageItemLength, index }) => {
+          const target = jump.current;
+          if (!target) return;
+          cancelJump();
+          if (target.attempts >= 5) return;
+          jump.current = { ...target, attempts: target.attempts + 1 };
+          list.current?.getScrollResponder()?.scrollTo({
+            y: averageItemLength * index,
+            animated: false,
+          });
+          jumpTimer.current = setTimeout(seekSection, 100);
+        }}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[journeyStyles.content, styles.list]}
         stickySectionHeadersEnabled={false}
@@ -256,31 +335,62 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                 </View>
               )
             )}
+            {sections.length > 1 && (
+              <View style={journeyStyles.group}>
+                <AppText text="Jump to a section" variant="label" />
+                <View style={styles.shortcuts}>
+                  {sections.map((section) => (
+                    <Action
+                      key={section.id}
+                      label={section.title}
+                      size="compact"
+                      onPress={() => jumpToSection(section.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeading}>
             <AppText
+              ref={(heading) => {
+                if (heading) headings.current[section.id] = heading;
+                else delete headings.current[section.id];
+              }}
               text={section.title}
               variant="section"
               accessibilityRole="header"
             />
           </View>
         )}
-        renderItem={({ item, index, section }) => (
-          <JourneyRow
-            journey={item}
-            active={section.id === "active"}
-            first={index === 0}
-            last={index === section.data.length - 1}
-            open={() =>
-              router.push({
-                pathname: "/journeys/[journeyId]",
-                params: { journeyId: item.id },
-              })
-            }
-          />
-        )}
+        renderItem={({ item, index, section }) => {
+          const dates = rowDates(item);
+          const archived = item.state === "archived";
+          return (
+            <JourneyRow
+              title={item.title}
+              detail={[...dates, ...(archived ? ["Archived"] : [])].join(", ")}
+              featured={section.id === "active"}
+              first={index === 0}
+              last={index === section.data.length - 1}
+              onPress={() =>
+                router.push({
+                  pathname: "/journeys/[journeyId]",
+                  params: { journeyId: item.id },
+                })
+              }
+            >
+              {dates.map((date) => (
+                <AppText key={date} text={date} variant="caption" subdued />
+              ))}
+              {archived && (
+                <AppText text="Archived" variant="caption" subdued />
+              )}
+            </JourneyRow>
+          );
+        }}
         renderSectionFooter={({ section }) =>
           section.nextCursor ? (
             <View style={styles.footer}>
@@ -310,50 +420,7 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
           ) : null
         }
       />
-    </SafeAreaView>
-  );
-}
-
-function JourneyRow({
-  journey,
-  active,
-  first,
-  last,
-  open,
-}: {
-  journey: PrivateJourney;
-  active: boolean;
-  first: boolean;
-  last: boolean;
-  open: () => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  const dates = rowDates(journey);
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`${journey.title}, ${dates}${journey.state === "archived" ? ", Archived" : ""}`}
-      onPress={open}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={({ pressed }) => [
-        styles.row,
-        first && styles.first,
-        last && styles.last,
-        active && styles.active,
-        pressed && styles.pressed,
-        focused && styles.focused,
-      ]}
-    >
-      <View style={styles.rowCopy}>
-        <AppText text={journey.title} variant={active ? "section" : "label"} />
-        <AppText text={dates} variant="caption" subdued />
-        {journey.state === "archived" && (
-          <AppText text="Archived" variant="caption" subdued />
-        )}
-      </View>
-      <View style={styles.chevron} accessible={false} />
-    </Pressable>
+    </FoldSafeAreaView>
   );
 }
 
@@ -376,41 +443,8 @@ const styles = StyleSheet.create(
       backgroundColor: color.surface,
     },
     emptyCopy: { gap: space.step12, padding: space.step16 },
-    sectionHeading: { paddingBottom: space.step8 },
-    row: {
-      minHeight: touchTarget,
-      backgroundColor: color.surface,
-      borderColor: color.boundary,
-      borderTopWidth: border.control,
-      borderStartWidth: border.control,
-      borderEndWidth: border.control,
-      padding: space.step16,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: space.step12,
-    },
-    first: {
-      borderTopStartRadius: radius.card,
-      borderTopEndRadius: radius.card,
-    },
-    last: {
-      borderBottomStartRadius: radius.card,
-      borderBottomEndRadius: radius.card,
-      borderBottomWidth: border.control,
-      marginBottom: space.step12,
-    },
-    active: { backgroundColor: color.actionWash },
-    rowCopy: { flex: 1, minWidth: 0, gap: space.step4 },
-    chevron: {
-      width: space.step8,
-      height: space.step8,
-      borderTopWidth: 2,
-      borderRightWidth: 2,
-      borderColor: color.secondaryText,
-      transform: [{ rotate: "45deg" }],
-    },
-    pressed: { backgroundColor: color.actionWash },
-    focused: focusOutline(color.focus),
+    shortcuts: { flexDirection: "row", flexWrap: "wrap", gap: space.step8 },
+    sectionHeading: { paddingTop: space.step16, paddingBottom: space.step8 },
     footer: { gap: space.step8, marginTop: space.step8 },
   }),
 );

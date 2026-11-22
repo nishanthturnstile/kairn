@@ -129,6 +129,43 @@ const session = {
   accountId,
   sessionId: "dc48aaff-7946-4a46-9c97-4240f95622b1",
 };
+it("serves a private, readable unavailable story without a configured renderer", async () => {
+  const reader = createApp({
+    authHandler: async () => new Response(null, { status: 404 }),
+    checkReadiness: async () => {},
+    workspace: {
+      writeOrigins: [webOrigin],
+      verifySession: async (headers) =>
+        headers.get("Cookie") === "fixture-session=verified"
+          ? { status: 200, ...session }
+          : { status: 401 },
+      onboarding: async () => ({
+        status: 200,
+        progress: { state: "exempt" },
+      }),
+      companionSetup: async () => ({ status: 503 }),
+      profile: async () => ({ status: 503 }),
+      dashboard: async () => ({ status: 503 }),
+    },
+  });
+  const path = "/read/unavailable-private-story";
+  const guest = await reader.request(path);
+  expect(guest.status).toBe(303);
+  expect(guest.headers.get("Location")).toBe("/account");
+  const response = await reader.request(path, {
+    headers: { Cookie: "fixture-session=verified" },
+  });
+  expect(response.status).toBe(404);
+  expect(response.headers.get("Content-Type")).toContain("text/html");
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+  expect(response.headers.get("X-Robots-Tag")).toBe("noindex");
+  const html = await response.text();
+  expect(html).toContain("<h1>Story unavailable</h1>");
+  expect(html).toContain('href="/journeys"');
+  expect(html).not.toContain("unavailable-private-story");
+});
+
 const journeyId = "da716ed6-bf00-410f-a3c5-09a0058a9d80";
 const membershipGeneration = "cdd359dc-0a82-405d-b525-3a8163055f90";
 const asOf = "2026-06-01T00:00:00Z";

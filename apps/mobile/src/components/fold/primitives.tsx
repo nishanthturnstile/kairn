@@ -287,7 +287,7 @@ export type Notice = {
   tone: "info" | "error" | "success" | "warning";
 };
 
-function useAccessibilityAnnouncement(message?: string) {
+export function useAccessibilityAnnouncement(message?: string) {
   useEffect(() => {
     if (Platform.OS === "ios" && message) {
       AccessibilityInfo.announceForAccessibilityWithOptions(message, {

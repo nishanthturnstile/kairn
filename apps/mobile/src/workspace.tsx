@@ -14,13 +14,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { authOrigin } from "./auth";
 import { sessionStoragePrefix } from "./auth-origin";
 import { CairnLogo } from "./components/cairn-logo";
 import { ContentLoading } from "./components/fold/expression";
 import { Action, StatusNotice } from "./components/fold/primitives";
+import { FoldSafeAreaView } from "./components/fold/screen";
 import {
   clearInvitationHandoff,
   readInvitationHandoff,
@@ -298,7 +298,7 @@ export function WorkspaceWaiting() {
     return () => clearTimeout(timer);
   }, []);
   return (
-    <SafeAreaView style={styles.waiting}>
+    <FoldSafeAreaView style={styles.waiting}>
       <CairnLogo heading />
       {failed ? (
         <StatusNotice
@@ -328,7 +328,7 @@ export function WorkspaceWaiting() {
       {failed && (
         <Action label="Account" onPress={() => router.push("/account")} />
       )}
-    </SafeAreaView>
+    </FoldSafeAreaView>
   );
 }
 

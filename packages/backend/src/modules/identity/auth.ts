@@ -61,6 +61,18 @@ function errorResponse(status: number, code: string, message: string) {
   return Response.json({ code, message }, { status });
 }
 
+function requireExpectedDeviceAccount(
+  headers: Headers | undefined,
+  accountId: string,
+) {
+  const expected = headers?.get("x-expected-account");
+  if (expected != null && expected.toLowerCase() !== accountId.toLowerCase())
+    throw new APIError("CONFLICT", {
+      code: "account_changed",
+      message: "The verified account changed.",
+    });
+}
+
 class AuthResponse extends Error {
   constructor(readonly response: Response) {
     super("Authentication did not complete");
@@ -341,6 +353,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
               { method: "GET", use: [sensitiveSessionMiddleware] },
               async (ctx) => {
                 const current = ctx.context.session;
+                requireExpectedDeviceAccount(ctx.headers, current.user.id);
                 await requireCurrentSession(
                   tx,
                   current.user.id,
@@ -388,6 +401,7 @@ export function createAuth(db: Database, config: AuthConfiguration) {
               },
               async (ctx) => {
                 const current = ctx.context.session;
+                requireExpectedDeviceAccount(ctx.headers, current.user.id);
                 await requireCurrentSession(
                   tx,
                   current.user.id,

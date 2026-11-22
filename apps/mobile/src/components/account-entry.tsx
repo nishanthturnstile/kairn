@@ -13,10 +13,10 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { CairnLogo } from "./cairn-logo";
 import { AppText } from "./fold/primitives";
+import { FoldSafeAreaView } from "./fold/screen";
 
 export function AccountEntry({
   children,
@@ -28,7 +28,7 @@ export function AccountEntry({
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
   return (
-    <SafeAreaView style={styles.screen}>
+    <FoldSafeAreaView style={styles.screen}>
       <ScrollView
         ref={scrollRef}
         automaticallyAdjustKeyboardInsets
@@ -44,7 +44,7 @@ export function AccountEntry({
           {children}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </FoldSafeAreaView>
   );
 }
 

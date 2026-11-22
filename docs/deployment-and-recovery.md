@@ -4,6 +4,8 @@ Kairn uses one Linux VPS per environment or separate Compose projects on a revie
 
 ## CI and release artifacts
 
+Use the [branding release checklist](design-system/release-branding/README.md) to verify web icons, native launcher and launch-screen artwork, and the store listings.
+
 [Foundation CI](../.github/workflows/ci.yml) runs the pinned Node and pnpm toolchain, checks generated contracts, typechecks, tests, and builds the production bundles. Chromium checks the creator and reader with axe. The integration tests run against PostgreSQL with PostGIS and pgvector, SeaweedFS, and Mailpit. The release smoke runs the Docker images, migrates a disposable database, and drills recovery.
 
 On the VPS, record `uname -m`, OS, CPU, available RAM, Docker disk, region and existing workloads. Match `x86_64` to `amd64` and `aarch64` to `arm64`. Install Docker with Compose 2.30 or newer, Bash, curl and jq. Use the [official Docker installation instructions](https://docs.docker.com/engine/install/).

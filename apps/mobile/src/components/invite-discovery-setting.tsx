@@ -6,24 +6,24 @@ import type { VerifiedMobileScope } from "../session";
 import { profileKey } from "../workspace-keys";
 import { useNativeProfile } from "../workspace-queries";
 import { Choice } from "./fold/controls";
-import { AppText, Panel, StatusNotice } from "./fold/primitives";
+import { Action, AppText, StatusNotice } from "./fold/primitives";
 
 export function InviteDiscoverySetting({
   scope,
 }: {
   scope: VerifiedMobileScope;
 }) {
-  const { refresh, canSubmit } = useMobileSession();
+  const { refresh, canSubmit, isRevalidating } = useMobileSession();
   const profile = useNativeProfile(scope);
   const saving = useRef(false);
-  const [pendingValue, setPendingValue] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const current = profile.data?.inviteDiscoverable;
+  const current = profile.data?.inviteDiscoverable ?? false;
 
   async function toggle() {
-    if (current === undefined || saving.current || !canSubmit(scope)) return;
+    if (!profile.data || saving.current || !canSubmit(scope)) return;
     saving.current = true;
-    setPendingValue(!current);
+    setBusy(true);
     setFailed(false);
     try {
       const updated = journeyResult(
@@ -39,7 +39,11 @@ export function InviteDiscoverySetting({
         exact: true,
       });
       ensureActive(scope.signal);
-      scope.queryClient.setQueryData(profileKey, updated);
+      scope.queryClient.setQueryData<typeof updated>(profileKey, (previous) =>
+        previous
+          ? { ...previous, inviteDiscoverable: updated.inviteDiscoverable }
+          : updated,
+      );
     } catch {
       if (!scope.signal.aborted) {
         setFailed(true);
@@ -47,41 +51,55 @@ export function InviteDiscoverySetting({
       }
     } finally {
       saving.current = false;
-      setPendingValue(null);
+      if (!scope.signal.aborted) setBusy(false);
     }
   }
 
   return (
-    <Panel>
-      <AppText
-        text="Invitation search"
-        variant="section"
-        accessibilityRole="header"
-      />
-      <AppText
-        text="Let organisers find you by display name or exact email when they invite people to a journey."
-        subdued
-      />
-      <StatusNotice
-        notice={
-          failed
-            ? {
-                text: "Couldn’t save your preference. Try again.",
-                tone: "error",
-              }
-            : null
-        }
-      />
-      {current !== undefined && !profile.isError && (
+    <>
+      {profile.data ? (
         <Choice
           kind="switch"
-          label="Allow invitation search"
-          checked={pendingValue ?? current}
-          disabled={pendingValue !== null}
-          busy={pendingValue !== null}
+          label="Invitation search"
+          checked={current}
+          disabled={busy || isRevalidating}
+          busy={busy}
           onChange={() => void toggle()}
         />
+      ) : profile.isError ? (
+        <>
+          <StatusNotice
+            notice={{ text: "Couldn’t load this preference.", tone: "error" }}
+          />
+          <Action
+            label="Retry invitation search"
+            disabled={profile.isFetching}
+            onPress={() => void profile.refetch()}
+          />
+        </>
+      ) : (
+        <StatusNotice
+          notice={{ text: "Loading invitation search", tone: "info" }}
+        />
       )}
-    </Panel>
+      <AppText
+        text="Allow journey organisers to find you by display name or exact email. Search results show only your name."
+        variant="caption"
+        subdued
+      />
+      {busy && (
+        <StatusNotice
+          notice={{ text: "Saving invitation search", tone: "info" }}
+        />
+      )}
+      {failed && (
+        <StatusNotice
+          notice={{
+            text: "Couldn’t save this preference. Try again.",
+            tone: "error",
+          }}
+        />
+      )}
+    </>
   );
 }

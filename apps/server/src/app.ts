@@ -12,6 +12,7 @@ import type { JourneyOperations } from "./http/journeys.js";
 import { problem, type RequestEnvironment } from "./http/problem.js";
 import { createV1Api, getOpenApiDocument } from "./http/v1.js";
 import type { WorkspaceOperations } from "./http/workspace.js";
+import { readerFallback } from "./reader.js";
 
 interface AppDependencies {
   authHandler: (request: Request, requestId: string) => Promise<Response>;
@@ -81,12 +82,7 @@ export function createApp({
     if (progress.status === 401) return context.redirect("/account", 303);
     if (progress.status !== 200 || progress.progress.state === "pending")
       return context.redirect("/onboarding", 303);
-    if (!renderUnavailableReader) {
-      const response = problem(context, 404);
-      response.headers.set("Cache-Control", "private, no-store");
-      return response;
-    }
-    return context.html(renderUnavailableReader(), 404);
+    return context.html(renderUnavailableReader?.() ?? readerFallback, 404);
   });
   app.use("/api/auth/*", bodyLimit({ maxSize: 16_384 }));
   app.on(["GET", "POST"], "/api/auth/*", (context) =>

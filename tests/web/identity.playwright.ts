@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { wcagAATags } from "./accessibility";
+import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
 import { openAccount } from "./workspace-fixture";
 
@@ -74,12 +75,37 @@ test("browser account flows verify email, revoke another session, and reset the 
   const other = await browser.newContext({
     extraHTTPHeaders: { "X-Forwarded-For": `198.18.1.${client}` },
   });
+  const newer = await browser.newContext({
+    extraHTTPHeaders: { "X-Forwarded-For": `198.18.2.${client}` },
+  });
   try {
     const login = await other.request.post(`${site}/api/auth/sign-in/email`, {
       headers: { Origin: site },
       data: { email, password },
     });
     expect(login.status()).toBe(200);
+    const newerLogin = await newer.request.post(
+      `${site}/api/auth/sign-in/email`,
+      {
+        headers: { Origin: site },
+        data: { email, password },
+      },
+    );
+    expect(newerLogin.status()).toBe(200);
+    const [otherSession, newerSession] = await Promise.all(
+      [other, newer].map((context) =>
+        context.request
+          .get(`${site}/api/auth/get-session`)
+          .then((result) => result.json()),
+      ),
+    );
+    const profileEndpoint = `${site}/api/v1/profile`;
+    await page.route(profileEndpoint, (route) =>
+      route.fulfill({
+        status: 503,
+        json: { message: "Temporarily unavailable" },
+      }),
+    );
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -91,9 +117,33 @@ test("browser account flows verify email, revoke another session, and reset the 
     });
     expect(verifiedStory.status()).toBe(404);
     expect(await verifiedStory.text()).toContain("Story unavailable");
+    const deviceListEndpoint = `${site}/api/auth/devices`;
+    const { user } = await page.request
+      .get(`${site}/api/auth/get-session`)
+      .then((response) => response.json());
+    await page.route(deviceListEndpoint, (route) => {
+      expect(route.request().headers()["x-expected-account"]).toBe(user.id);
+      return route.fulfill({
+        status: 503,
+        json: { message: "Temporarily unavailable" },
+      });
+    });
     await openAccount(page);
     const profile = page.getByRole("region", { name: "Profile" });
     const devices = page.getByRole("region", { name: "Signed-in devices" });
+    const deviceHeading = devices.getByRole("heading", {
+      name: "Signed-in devices",
+    });
+    await expect(devices.getByRole("alert")).toContainText(
+      "Couldn’t load your devices.",
+    );
+    await expect(
+      devices.getByRole("button", { name: "Sign out" }),
+    ).toBeEnabled();
+    await page.unroute(deviceListEndpoint);
+    await devices.getByRole("button", { name: "Try again" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(deviceHeading).toBeFocused();
     await expect(profile.getByText(email, { exact: true })).toBeVisible();
     await expect(profile.getByText("Verified", { exact: true })).toBeVisible();
     const current = devices.getByRole("listitem").first();
@@ -101,6 +151,49 @@ test("browser account flows verify email, revoke another session, and reset the 
     await expect(
       current.getByRole("button", { name: "Revoke device" }),
     ).toHaveCount(0);
+    const otherSessions = devices
+      .getByRole("list", { name: "Other sessions" })
+      .getByRole("listitem");
+    await expect(otherSessions).toHaveCount(2);
+    await expect(otherSessions.first().locator("time")).toHaveAttribute(
+      "datetime",
+      newerSession.session.createdAt,
+    );
+    await expect(otherSessions.last().locator("time")).toHaveAttribute(
+      "datetime",
+      otherSession.session.createdAt,
+    );
+    const invitationSearch = page.getByRole("region", {
+      name: "Invitation search",
+    });
+    const retrySearch = invitationSearch.getByRole("button", {
+      name: "Retry invitation search",
+    });
+    const retryName = profile.getByRole("button", {
+      name: "Retry",
+      exact: true,
+    });
+    await expect(retryName).toBeVisible();
+    await page.unroute(profileEndpoint);
+    await retryName.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      profile.getByRole("button", { name: "Edit name" }),
+    ).toBeFocused();
+    await page.route(profileEndpoint, (route) =>
+      route.fulfill({
+        status: 503,
+        json: { message: "Temporarily unavailable" },
+      }),
+    );
+    await page.reload();
+    await expect(retrySearch).toBeVisible();
+    await page.unroute(profileEndpoint);
+    await retrySearch.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      invitationSearch.getByRole("button", { name: "Allow invitation search" }),
+    ).toBeFocused();
     await profile.getByRole("button", { name: "Edit name" }).click();
     const displayName = profile.getByRole("textbox", { name: "Display name" });
     await expect(displayName).toBeFocused();
@@ -109,6 +202,33 @@ test("browser account flows verify email, revoke another session, and reset the 
     await expect(
       profile.getByText("Rhea Mehta", { exact: true }),
     ).toBeVisible();
+    await expect(
+      profile.getByRole("button", { name: "Edit name" }),
+    ).toBeFocused();
+    await invitationSearch
+      .getByRole("button", { name: "Allow invitation search" })
+      .focus();
+    await page.keyboard.press("Enter");
+    await expect(invitationSearch.getByRole("status")).toHaveText(
+      "Invitation search is on.",
+    );
+    const searchControl = invitationSearch.getByRole("button", {
+      name: "Turn off invitation search",
+    });
+    await expect(searchControl).toBeFocused();
+    const appearance = page.getByRole("region", {
+      name: "Appearance",
+      exact: true,
+    });
+    await appearance.getByRole("button", { name: "Dark", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-appearance",
+      "dark",
+    );
+    await chooseAppearance(page, "Outdoor");
+    await expect(
+      appearance.getByRole("button", { name: "Outdoor", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
       await page.screenshot({
         path: testInfo.outputPath("account-desktop.png"),
@@ -117,6 +237,16 @@ test("browser account flows verify email, revoke another session, and reset the 
 
     const originalSize = page.viewportSize();
     if (!originalSize) throw new Error("The account test requires a viewport.");
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBe(900);
+    await expect(
+      profile.getByRole("button", { name: "Edit name" }),
+    ).toBeVisible();
+    await expect(
+      devices.getByRole("button", { name: "Sign out" }),
+    ).toBeVisible();
     await page.setViewportSize({ width: 320, height: 840 });
     const largeText = await page.addStyleTag({
       content: "html { font-size: 200% !important; }",
@@ -124,10 +254,31 @@ test("browser account flows verify email, revoke another session, and reset the 
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBe(320);
+    for (const label of ["Light", "Dark", "Outdoor"]) {
+      await appearance
+        .getByRole("button", { name: label, exact: true })
+        .click();
+      expect(
+        (await new AxeBuilder({ page }).withTags(wcagAATags).analyze())
+          .violations,
+      ).toEqual([]);
+    }
+    const revoke = otherSessions
+      .last()
+      .getByRole("button", { name: "Revoke device" });
+    await revoke.focus();
+    await page.keyboard.press("Enter");
+    const confirmation = page.getByRole("dialog", { name: "Revoke device?" });
+    await expect(
+      confirmation.getByRole("button", { name: "Cancel" }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(revoke).toBeFocused();
     expect(
-      (await new AxeBuilder({ page }).withTags(wcagAATags).analyze())
-        .violations,
-    ).toEqual([]);
+      await other.request
+        .get(`${site}/api/auth/get-session`)
+        .then((response) => response.json()),
+    ).not.toBeNull();
     if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
       await page.screenshot({
         path: testInfo.outputPath("account-mobile-large-text.png"),
@@ -139,17 +290,80 @@ test("browser account flows verify email, revoke another session, and reset the 
     await page.getByRole("link", { name: "Kairn", exact: true }).click();
     await expect(page).toHaveURL(`${site}/dashboard`);
     await openAccount(page);
-    await page.getByRole("button", { name: "Revoke device" }).click();
+    await expect(searchControl).toBeVisible();
     await expect(
-      page.getByText("Device signed out. Recovery confirmation is pending."),
+      appearance.getByRole("button", { name: "Outdoor", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    const revokeEndpoint = `${site}/api/auth/devices/revoke`;
+    await page.route(revokeEndpoint, (route) =>
+      route.fulfill({
+        status: 503,
+        json: { message: "Temporarily unavailable" },
+      }),
+    );
+    await revoke.click();
+    await confirmation.getByRole("button", { name: "Revoke device" }).click();
+    await expect(devices.getByRole("alert")).toContainText(
+      "Couldn’t revoke this device. Try again.",
+    );
+    await expect(revoke).toBeEnabled();
+    await page.unroute(revokeEndpoint);
+    await page.route(revokeEndpoint, (route) => {
+      expect(route.request().headers()["x-expected-account"]).toBe(user.id);
+      return route.fulfill({
+        status: 403,
+        json: { code: "SESSION_NOT_FRESH", message: "Session is not fresh" },
+      });
+    });
+    await revoke.click();
+    await confirmation.getByRole("button", { name: "Revoke device" }).click();
+    await expect(devices.getByRole("alert")).toContainText(
+      "Sign out and sign in again to revoke this device.",
+    );
+    await expect(revoke).toBeEnabled();
+    await page.unroute(revokeEndpoint);
+    await revoke.click();
+    await confirmation.getByRole("button", { name: "Revoke device" }).click();
+    await expect(deviceHeading).toBeFocused();
+    await expect(
+      devices.getByText("Device signed out.", { exact: true }),
     ).toBeVisible();
+    const pending = devices.getByText(
+      "Account changes await recovery confirmation.",
+    );
+    await expect(pending).toBeVisible();
+    const checkConfirmation = devices.getByRole("button", {
+      name: "Check confirmation",
+    });
+    await expect(checkConfirmation).toBeEnabled();
+    await page.route(deviceListEndpoint, async (route) => {
+      const response = await route.fetch();
+      const result = await response.json();
+      await route.fulfill({
+        response,
+        json: { ...result, pendingRestrictions: 0 },
+      });
+    });
+    await checkConfirmation.focus();
+    await page.keyboard.press("Enter");
+    await expect(pending).toBeHidden();
+    await expect(deviceHeading).toBeFocused();
+    await expect(
+      devices.getByText("Device signed out.", { exact: true }),
+    ).toBeVisible();
+    await page.unroute(deviceListEndpoint);
     expect(
       await other.request
         .get(`${site}/api/auth/get-session`)
         .then((response) => response.json()),
     ).toBeNull();
+    await expect(otherSessions).toHaveCount(1);
+    await expect(otherSessions.first().locator("time")).toHaveAttribute(
+      "datetime",
+      newerSession.session.createdAt,
+    );
   } finally {
-    await other.close();
+    await Promise.all([other.close(), newer.close()]);
   }
 
   const sameSession = await page.context().newPage();

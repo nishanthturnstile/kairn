@@ -1,7 +1,9 @@
 import type { ComponentRef, ReactNode, Ref } from "react";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native-unistyles";
+import { StyleSheet, withUnistyles } from "react-native-unistyles";
+
+export const FoldSafeAreaView = withUnistyles(SafeAreaView);
 
 export function FoldScreen({
   children,
@@ -17,7 +19,7 @@ export function FoldScreen({
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
 }) {
   return (
-    <SafeAreaView
+    <FoldSafeAreaView
       edges={[
         "left",
         "right",
@@ -40,7 +42,7 @@ export function FoldScreen({
       >
         {children}
       </ScrollView>
-    </SafeAreaView>
+    </FoldSafeAreaView>
   );
 }
 

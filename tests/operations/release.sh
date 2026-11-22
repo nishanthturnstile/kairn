@@ -111,6 +111,8 @@ compose run --rm --no-deps -T --entrypoint sh worker -e < "$root/tests/operation
 compose up -d --wait server worker edge
 edge=$(compose port edge 8080)
 curl -fsS --retry 5 --retry-connrefused "http://$edge/" | grep -q '<title>Kairn</title>'
+curl -fsS "http://$edge/favicon.ico" -o "$temp/favicon.ico"
+cmp "$root/apps/web/public/favicon.ico" "$temp/favicon.ico"
 curl -fsS "http://$edge/api/v1/ready" | jq -e '.status == "ready"'
 reader_status=$(curl -sS -D "$temp/reader.headers" -o /dev/null -w '%{http_code}' "http://$edge/read/drill")
 if [[ "$reader_status" != 303 ]] ||

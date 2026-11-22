@@ -63,6 +63,7 @@ function Navigation() {
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" options={{ headerShown: false }} />
           <Stack.Screen
             name="design-system"
             options={{ title: "Design system" }}

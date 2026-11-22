@@ -45,6 +45,7 @@ function call(
   path: string,
   body?: Record<string, unknown>,
   cookies?: string,
+  expectedAccount?: string,
 ) {
   const headers = new Headers({
     Origin: origin,
@@ -52,6 +53,7 @@ function call(
   });
   if (cookies) headers.set("Cookie", cookies);
   if (body) headers.set("Content-Type", "application/json");
+  if (expectedAccount) headers.set("X-Expected-Account", expectedAccount);
   return handler(
     new Request(`${origin}/api/auth${path}`, {
       method: body ? "POST" : "GET",
@@ -139,7 +141,9 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
     const database = openDatabase(runtime);
     const owner = openDatabase(migrator);
     const boss = openJobQueue(runtime);
-    const transport = openMailTransport("smtp://127.0.0.1:51025");
+    const transport = openMailTransport(
+      process.env.KAIRN_TEST_SMTP_URL ?? "smtp://127.0.0.1:51025",
+    );
     const handler = createAuth(database.db, { ...config, boss }).handler;
 
     it.runIf(process.env.KAIRN_AUTH_RECOVERY_TEST === "isolated")(
@@ -221,9 +225,13 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       const second = cookie(
         await call(handler, "/sign-in/email", { email, password }),
       );
-      const devices = await call(handler, "/devices", undefined, first).then(
-        (response) => response.json(),
-      );
+      const devices = await call(
+        handler,
+        "/devices",
+        undefined,
+        first,
+        id,
+      ).then((response) => response.json());
       expect(devices.devices).toHaveLength(2);
       expect(
         devices.devices.every((device: object) => !("token" in device)),
@@ -231,14 +239,48 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       const other = devices.devices.find(
         (device: { id: string }) => device.id !== devices.currentDeviceId,
       );
+      const previousAccount = randomUUID();
+      const mismatchedList = await call(
+        handler,
+        "/devices",
+        undefined,
+        first,
+        previousAccount,
+      );
+      expect(mismatchedList.status).toBe(409);
+      expect(await mismatchedList.json()).toEqual({
+        code: "account_changed",
+        message: "The verified account changed.",
+      });
+      const mismatchedRevoke = await call(
+        handler,
+        "/devices/revoke",
+        { id: other.id },
+        first,
+        previousAccount,
+      );
+      expect(mismatchedRevoke.status).toBe(409);
+      expect(await mismatchedRevoke.json()).toMatchObject({
+        code: "account_changed",
+      });
+      expect(
+        await call(handler, "/get-session", undefined, second).then(
+          (response) => response.json(),
+        ),
+      ).not.toBeNull();
       await database.pool.query(
         "UPDATE kairn_auth.session SET created_at = now() - interval '20 minutes' WHERE id = $1",
         [devices.currentDeviceId],
       );
-      expect(
-        (await call(handler, "/devices/revoke", { id: other.id }, first))
-          .status,
-      ).toBe(403);
+      const stale = await call(
+        handler,
+        "/devices/revoke",
+        { id: other.id },
+        first,
+        id,
+      );
+      expect(stale.status).toBe(403);
+      expect(await stale.json()).toMatchObject({ code: "SESSION_NOT_FRESH" });
       const fresh = cookie(
         await call(handler, "/sign-in/email", { email, password }),
       );
@@ -247,6 +289,7 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
         "/devices/revoke",
         { id: other.id },
         fresh,
+        id,
       );
       expect(revocation.status).toBe(202);
       const { eventId, confirmation } = await revocation.json();

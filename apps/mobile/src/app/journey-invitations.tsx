@@ -8,7 +8,8 @@ import { randomUUID } from "expo-crypto";
 import { useNetworkState } from "expo-network";
 import { useIsFocused, usePreventRemove, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, View } from "react-native";
+import { StyleSheet } from "react-native-unistyles";
 import { createInvitationExchangeClient, ensureActive } from "../api";
 import { authOrigin } from "../auth";
 import {
@@ -62,6 +63,7 @@ export default function InvitationReview() {
     operationId: string;
   }>();
   const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string>();
   const action = useRef<AbortController>(undefined);
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
@@ -306,21 +308,24 @@ export default function InvitationReview() {
   async function switchAccount() {
     if (switching || joining) return;
     retainInvitationForSignIn();
+    setSwitchError(undefined);
     setSwitching(true);
     const signedOut = await signOut();
     setSwitching(false);
     if (signedOut && focusedRef.current) router.push("/account");
-    else setProblem("Couldn’t sign out. Try again.");
+    else if (focusedRef.current) setSwitchError(source);
   }
 
   const unavailable =
     review && !["ready", "joined", "wrong_account"].includes(review.state);
   const alreadyJoined = review?.state === "joined";
+  const invitation =
+    !replacing && !problem && review?.state === "ready" ? review : undefined;
 
   return (
     <JourneyScreen top safeBottom>
       <AppText
-        text="Journey invitation"
+        text={invitation?.title ?? "Journey invitation"}
         variant="title"
         accessibilityRole="header"
       />
@@ -379,7 +384,12 @@ export default function InvitationReview() {
         </Panel>
       ) : review?.state === "wrong_account" ? (
         <Panel>
-          <AppText text="This invitation is for a different account." />
+          <AppText text="Sign in with the email address that received the invitation." />
+          {switchError && switchError === source && (
+            <StatusNotice
+              notice={{ text: "Couldn’t sign out. Try again.", tone: "error" }}
+            />
+          )}
           <Action
             label={switching ? "Signing out…" : "Switch account"}
             variant="primary"
@@ -388,24 +398,45 @@ export default function InvitationReview() {
             onPress={() => void switchAccount()}
           />
         </Panel>
-      ) : review?.state === "ready" ? (
-        <Panel>
+      ) : invitation ? (
+        <>
           <AppText
-            text={review.title}
-            variant="section"
-            accessibilityRole="header"
+            text={`${invitation.inviter} invited you to join as a participant.`}
           />
-          <AppText text={`Invited by ${review.inviter}`} />
-          {review.schedule && (
+          <Panel>
             <AppText
-              text={scheduleLabel(review.schedule.intendedStart.local)}
+              text="Schedule"
+              variant="section"
+              accessibilityRole="header"
             />
-          )}
+            {invitation.schedule ? (
+              <>
+                <ScheduleFact
+                  label="Starts"
+                  value={scheduleLabel(invitation.schedule.intendedStart.local)}
+                />
+                <ScheduleFact
+                  label="Ends"
+                  value={
+                    invitation.schedule.intendedEnd
+                      ? scheduleLabel(invitation.schedule.intendedEnd.local)
+                      : "No end date"
+                  }
+                />
+                <ScheduleFact
+                  label="Time zone"
+                  value={invitation.schedule.timeZone}
+                />
+              </>
+            ) : (
+              <AppText text="Dates unavailable" subdued />
+            )}
+          </Panel>
           <AppText
-            text={`Expires ${expiryDate.format(new Date(review.expiresAt))}`}
+            text={`Invitation expires ${expiryDate.format(new Date(invitation.expiresAt))}`}
+            variant="caption"
             subdued
           />
-          <AppText text="Participant · You can see the journey and its schedule after joining." />
           <Action
             label={joining ? "Joining…" : "Join journey"}
             variant="primary"
@@ -413,7 +444,7 @@ export default function InvitationReview() {
             disabled={joining}
             onPress={() => void join()}
           />
-        </Panel>
+        </>
       ) : alreadyJoined ? (
         <Panel>
           <AppText text="You’ve joined this journey." />
@@ -461,3 +492,20 @@ function scheduleLabel(local: string) {
   const { date, time } = formatJourneyLocalMinute(local);
   return `${date} · ${time}`;
 }
+
+function ScheduleFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}, ${value}`}
+      style={styles.fact}
+    >
+      <AppText text={label} variant="caption" subdued />
+      <AppText text={value} variant="label" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create(({ semantic: { space } }) => ({
+  fact: { gap: space.step4 },
+}));

@@ -77,22 +77,25 @@ export async function serveFixture(
         json: { status: status === 200 ? "ready" : "unavailable" },
       });
     } else {
-      const asset =
-        /^\/(?:assets|brand)\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(js|css|woff2|webp|png|svg)$/.exec(
-          pathname,
-        );
+      const assetType =
+        pathname === "/favicon.ico"
+          ? "ico"
+          : /^\/(?:assets|brand)\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(js|css|woff2|webp|png|svg)$/.exec(
+              pathname,
+            )?.[1];
       const mime: Record<string, string> = {
         js: "text/javascript",
         css: "text/css",
         woff2: "font/woff2",
         svg: "image/svg+xml",
+        ico: "image/vnd.microsoft.icon",
         png: "image/png",
         webp: "image/webp",
       };
       await route.fulfill({
-        contentType: asset ? mime[asset[1]] : "text/html",
+        contentType: assetType ? mime[assetType] : "text/html",
         body: await readFile(
-          resolve(buildDir, `client${asset ? pathname : "/index.html"}`),
+          resolve(buildDir, `client${assetType ? pathname : "/index.html"}`),
         ),
       });
     }

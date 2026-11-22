@@ -107,7 +107,9 @@ export function ProfileName({
       );
       await scope.queryClient.cancelQueries({ queryKey: profileKey });
       ensureActive(scope.signal);
-      scope.queryClient.setQueryData(profileKey, updated);
+      scope.queryClient.setQueryData<typeof updated>(profileKey, (previous) =>
+        previous ? { ...previous, displayName: updated.displayName } : updated,
+      );
       confirmSave();
     } catch {
       if (scope.signal.aborted) return;
@@ -194,9 +196,19 @@ export function ProfileName({
       )}
       {account && (
         <View style={styles.email}>
-          <AppText text="Email" variant="caption" subdued />
-          <AppText text={account.email} variant="label" />
-          <AppText text="Verified" variant="caption" style={styles.verified} />
+          <AppText text="Email address" variant="caption" subdued />
+          <View style={styles.emailDetails}>
+            <AppText
+              text={account.email}
+              variant="label"
+              style={styles.emailValue}
+            />
+            <AppText
+              text="Verified"
+              variant="caption"
+              style={styles.verified}
+            />
+          </View>
         </View>
       )}
     </Panel>
@@ -227,7 +239,15 @@ const styles = StyleSheet.create(({ semantic: { border, color, space } }) => ({
     paddingTop: space.step12,
     gap: space.step4,
     borderTopWidth: border.control,
-    borderTopColor: color.boundary,
+    borderTopColor: color.divider,
   },
+  emailDetails: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "baseline",
+    columnGap: space.step12,
+    rowGap: space.step4,
+  },
+  emailValue: { flexShrink: 1 },
   verified: { color: color.success },
 }));

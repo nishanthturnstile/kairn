@@ -30,6 +30,7 @@ import type { FileRoutesById } from "../routeTree.gen";
 // Generic task names keep private journey names out of tab titles and browser history.
 const pageTitles = {
   __root__: "Workspace",
+  "/$": "Page unavailable",
   "/": "Home",
   "/account": "Account",
   "/account_/reset": "Reset password",
@@ -63,9 +64,11 @@ function AppShell() {
     document.title = `${pageTitle} · ${publicEnvironment.appName}`;
   }, [pageTitle]);
   const pathname = useRouterState({
-    select: ({ matches, location }) =>
-      (matches.at(-1)?.pathname ?? location.pathname).replace(/\/+$/, "") ||
-      "/",
+    select: ({ matches, location }) => {
+      const match = matches.at(-1);
+      if (match?.routeId === "/$") return "/unavailable";
+      return (match?.pathname ?? location.pathname).replace(/\/+$/, "") || "/";
+    },
   });
   if (pathname === "/design-system") return <Outlet />;
   const onboarding = pathname === "/onboarding";

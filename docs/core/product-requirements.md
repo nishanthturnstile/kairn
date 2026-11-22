@@ -935,7 +935,7 @@ The agreed complete build remains R1. Deferred extensions stay in the [product d
 
 | Decision | Current direction | Completion evidence |
 |---|---|---|
-| Brand and distribution identity | Descriptive working title until selected. | Name, app identity, domain, and rights checks where applicable. |
+| Brand and distribution identity | Kairn is the product name and Shared Cairn is its mark. | Production domain, store identifiers and applicable rights checks. |
 | Native support | Android public distribution first; Android and iOS development/local testing now. | Supported OS versions and declared Android-phone emulator and iPhone Simulator profiles from capture/import tests. Record the actual MacBook architecture and installed tool/runtime versions at setup. |
 | Mobile distribution | Local builds without an EAS subscription. Apple enrollment and public iPhone distribution remain a separate decision from current Simulator development. | Android signing and applicable Play closed-testing/production-access checks before Android publication; Apple distribution signing, TestFlight, and store review after enrollment. See the development and validation plan. |
 | Media, route, storage, question, and original-export grant limits | Bounded, transparent, configurable. | Numerical operation limits and grant-expiry bounds are published and tested at their maximum. |

@@ -2,7 +2,7 @@ import { Image, View } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { styles } from "./controls";
 import { FoldGlyph } from "./glyph";
-import { AppText } from "./primitives";
+import { AppText, useAccessibilityAnnouncement } from "./primitives";
 
 export function JourneyMap() {
   const { rt } = useUnistyles();
@@ -24,10 +24,13 @@ export function JourneyMap() {
 export function ContentLoading({
   label,
   skeleton = true,
+  announce = false,
 }: {
   label: string;
   skeleton?: boolean;
+  announce?: boolean;
 }) {
+  useAccessibilityAnnouncement(announce ? label : undefined);
   const {
     theme: {
       semantic: { color },
@@ -39,6 +42,7 @@ export function ContentLoading({
       accessibilityRole="progressbar"
       accessible
       accessibilityLabel={label}
+      accessibilityLiveRegion={announce ? "polite" : undefined}
       accessibilityState={{ busy: true }}
     >
       <View style={styles.inline}>

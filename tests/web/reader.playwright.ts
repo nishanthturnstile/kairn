@@ -39,9 +39,12 @@ test("isolates reader HTML and hydrates the same chapters and controls", async (
     "mask-image",
     /brand\/horizontal\.svg/,
   );
-  expect(await page.locator('link[rel="icon"]').getAttribute("href")).toBe(
-    "/brand/favicon.svg",
-  );
+  await expect(
+    page.locator('link[rel="icon"][type="image/svg+xml"]'),
+  ).toHaveAttribute("href", "/brand/favicon.svg");
+  await expect(
+    page.locator('link[rel="icon"][href="/favicon.ico"]'),
+  ).toHaveAttribute("sizes", "16x16 32x32 48x48 96x96");
   const textSize = page.getByRole("button", { name: "Larger text" });
   await textSize.click();
   await expect(textSize).toHaveAttribute("aria-pressed", "true");
@@ -95,6 +98,9 @@ test("signed-out routes render only account access", async ({ page }) => {
     await expect(page.getByRole("navigation", { name: "Main" })).toHaveCount(0);
     expect(new URL(page.url()).pathname).toBe("/account");
   }
+  await expect(
+    page.locator('link[rel="icon"][href="/favicon.ico"]'),
+  ).toHaveCount(1);
   expect(protectedReads).toEqual([]);
 });
 
