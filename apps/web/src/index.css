@@ -129,31 +129,3 @@
 @utility control-border-e {
   border-inline-end-width: var(--kairn-semantic-border-control);
 }
-
-@layer components {
-  .confirmation-check {
-    display: block;
-    inline-size: 0.55rem;
-    block-size: 0.3rem;
-    border-block-end: 2px solid currentColor;
-    border-inline-start: 2px solid currentColor;
-    transform: translateY(-0.05rem) rotate(-45deg);
-  }
-
-  .auth-illustration {
-    display: none;
-  }
-
-  @media (min-width: 64rem) {
-    .auth-illustration {
-      position: sticky;
-      top: 0;
-      display: block;
-      align-self: start;
-      min-block-size: 100svh;
-      background:
-        var(--color-muted) url("./assets/konkan-ferry.webp") center 57% / cover
-        no-repeat;
-    }
-  }
-}

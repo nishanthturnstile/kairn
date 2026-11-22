@@ -30,7 +30,7 @@ import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
 import { AppearanceIcon, appearanceLabels } from "./appearance-switcher";
 import { ProfileAvatar } from "./profile-avatar";
-import { Alert, AlertAction, AlertTitle } from "./ui/alert";
+import { Alert, AlertAction, AlertDescription } from "./ui/alert";
 import { Button, ButtonLink } from "./ui/button";
 import {
   DropdownMenu,
@@ -77,7 +77,7 @@ export function WorkspaceLayout({
   accountId: string;
   pathname: string;
 }) {
-  const { signOut, signOutFailed } = useSessionAccess();
+  const { signOut, signOutError } = useSessionAccess();
 
   return (
     <SidebarProvider>
@@ -103,14 +103,14 @@ export function WorkspaceLayout({
           tabIndex={-1}
           className="mx-auto w-full min-w-0 max-w-[82rem] wrap-anywhere px-4 py-4 sm:px-6 lg:py-section"
         >
-          {signOutFailed && pathname !== "/account" && (
+          {signOutError && pathname !== "/account" && (
             <Alert variant="destructive" role="alert" className="mb-4">
-              <AlertTitle>Couldn’t sign out.</AlertTitle>
+              <AlertDescription>{signOutError}</AlertDescription>
               <AlertAction>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => signOut()}
+                  onClick={() => void signOut()}
                 >
                   Try again
                 </Button>
@@ -335,7 +335,10 @@ function AccountMenu({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
+          <DropdownMenuItem
+            variant="destructive"
+            onClick={() => void signOut()}
+          >
             <LogOut aria-hidden="true" />
             Sign out
           </DropdownMenuItem>

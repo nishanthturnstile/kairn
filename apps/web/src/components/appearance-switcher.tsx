@@ -41,8 +41,10 @@ export function AppearanceIcon({
 
 export function AppearanceSwitcher({
   showLabel = false,
+  large = false,
 }: {
   showLabel?: boolean;
+  large?: boolean;
 } = {}) {
   const appearance = useSyncExternalStore(
     subscribeToAppearance,
@@ -58,7 +60,7 @@ export function AppearanceSwitcher({
         render={
           <Button
             type="button"
-            size={showLabel ? "default" : "icon"}
+            size={showLabel ? "default" : large ? "icon-lg" : "icon"}
             variant="outline"
             className={showLabel ? undefined : "rounded-full"}
             aria-label={

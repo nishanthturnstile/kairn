@@ -114,7 +114,7 @@ export function ProfileName({
               autoComplete="nickname"
               maxLength={120}
               required
-              disabled={busy}
+              readOnly={busy}
               value={draft}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? `${id}-error` : undefined}
@@ -133,6 +133,7 @@ export function ProfileName({
             <Button
               type="submit"
               disabled={busy}
+              focusableWhenDisabled
               feedback={busy ? "pending" : "idle"}
             >
               {busy ? "Saving…" : "Save name"}
@@ -141,6 +142,7 @@ export function ProfileName({
               type="button"
               variant="ghost"
               disabled={busy}
+              focusableWhenDisabled
               onClick={closeEditor}
             >
               Cancel

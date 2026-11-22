@@ -79,10 +79,8 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await expect(
     page.getByRole("heading", { name: "Welcome to Kairn" }),
   ).toBeFocused();
-  await expect(page.locator(".onboarding-photo")).toHaveJSProperty(
-    "naturalWidth",
-    1152,
-  );
+  await expect(page.locator(".onboarding-art")).toBeVisible();
+  await expect.poll(() => requestedArt.length).toBeGreaterThan(0);
   const pendingStory = await page.request.get(`${site}/read/example`, {
     maxRedirects: 0,
   });
@@ -95,7 +93,32 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await expect(displayName).toBeFocused();
   await expect(displayName).toHaveValue("Synthetic first-run account");
   await displayName.fill("Anu Rao");
-  await page.getByRole("button", { name: "Save name", exact: true }).click();
+  await page.route(checkpointPath, (route) =>
+    route.fulfill({ status: 503, json: { code: "unavailable" } }),
+  );
+  const backgroundCheck = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/v1/onboarding") &&
+      response.request().method() === "GET" &&
+      response.status() === 503,
+  );
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("visibilitychange")),
+  );
+  await backgroundCheck;
+  await expect(displayName).toHaveValue("Anu Rao");
+  await page.unroute(checkpointPath);
+  await page.route(
+    "**/api/v1/profile",
+    (route) => route.fulfill({ status: 503, json: { code: "unavailable" } }),
+    { times: 1 },
+  );
+  await displayName.press("Enter");
+  await expect(page.getByRole("alert")).toContainText(
+    "Couldn’t save your name",
+  );
+  await expect(displayName).toBeFocused();
+  await displayName.press("Enter");
   await expect(page.getByText("Display name saved.")).toBeVisible();
   await expect(
     page.getByRole("main").getByText("Anu Rao", { exact: true }),
@@ -110,11 +133,20 @@ test("reuses the signup name and resumes setup before creating a first planned j
     },
     { times: 1 },
   );
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  const continueSetup = page.getByRole("button", {
+    name: "Continue",
+    exact: true,
+  });
+  await continueSetup.focus();
+  await continueSetup.press("Enter");
   await expect(
     page.getByText("Couldn’t save your progress. Try again."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(continueSetup).toBeFocused();
+  await expect(continueSetup).toHaveAccessibleDescription(
+    "Couldn’t save your progress. Try again.",
+  );
+  await continueSetup.press("Enter");
   const intentHeading = page.getByRole("heading", {
     name: "What would you like to do first?",
   });
@@ -157,7 +189,9 @@ test("reuses the signup name and resumes setup before creating a first planned j
   await page
     .getByRole("radio", { name: "Plan a journey", exact: true })
     .check();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await expect(
     page.getByRole("heading", { name: "Plan your first journey" }),
@@ -216,9 +250,29 @@ test("keeps an explicit journey return and consumes it after two steps", async (
   const email = await newAccount(page);
   await signIn(page, email);
   await expect(page.getByText("Step 1 of 2")).toBeVisible();
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "Kairn", exact: true }),
+  ).toHaveCount(0);
+  await openAccount(page);
+  await page
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Dashboard", exact: true })
+    .click();
+  await expect(page).toHaveURL(`${site}/onboarding`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
   await expect(page.getByRole("radio", { name: "Look around" })).toBeChecked();
+  await page.route(checkpointPath, async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    await route.fulfill({ status: 503, json: { code: "unavailable" } });
+  });
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Couldn’t save your progress",
+  );
+  await page.unroute(checkpointPath);
   await page
     .getByRole("button", { name: "Continue to journey creation" })
     .click();
@@ -227,6 +281,41 @@ test("keeps an explicit journey return and consumes it after two steps", async (
   await openAccount(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await signIn(page, email);
+  await expect(page).toHaveURL(`${site}/dashboard`);
+  await expect(
+    page.getByRole("heading", { name: "Your journeys start here" }),
+  ).toBeVisible();
+});
+
+test("honors Dashboard after the final save reply is lost and setup reloads", async ({
+  page,
+}) => {
+  await page.goto(`${site}/journeys/new`);
+  const email = await newAccount(page);
+  await signIn(page, email);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  const dashboard = page.getByRole("button", {
+    name: "Go to Dashboard",
+    exact: true,
+  });
+  await expect(dashboard).toBeVisible();
+  await page.route(checkpointPath, async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 503, json: { code: "unavailable" } });
+      return;
+    }
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    await route.abort("failed");
+  });
+  await dashboard.focus();
+  await dashboard.press("Enter");
+  await expect(page.getByRole("alert")).toContainText(
+    "Couldn’t save your progress",
+  );
+  await expect(dashboard).toBeFocused();
+  await page.unroute(checkpointPath);
+  await page.reload();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await expect(
     page.getByRole("heading", { name: "Your journeys start here" }),
@@ -250,17 +339,18 @@ test("reflows both required steps and the past-journey handoff", async ({
       .toBe(320);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   }
-  for (const appearance of ["Light", "Dark", "Outdoor"]) {
+  const appearances = ["Light", "Dark", "Outdoor"] as const;
+  for (const appearance of appearances) {
     await chooseAppearance(page, appearance);
     await assertAccessibleReflow();
   }
-  await expect(page.locator(".onboarding-photo")).toHaveCSS(
-    "animation-duration",
-    "0s",
-  );
+  await expect(page.locator(".onboarding-art")).toBeHidden();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
-  await assertAccessibleReflow();
+  for (const appearance of appearances) {
+    await chooseAppearance(page, appearance);
+    await assertAccessibleReflow();
+  }
   const record = page.getByRole("radio", {
     name: "Record a past journey",
     exact: true,
@@ -268,7 +358,9 @@ test("reflows both required steps and the past-journey handoff", async ({
   await record.focus();
   await record.press("Space");
   await expect(record).toBeChecked();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Record a journey you’ve taken" }),
   ).toBeVisible();
@@ -293,7 +385,9 @@ test("opens Dashboard after two steps and redirects the retired invitation scree
   const next = page.getByRole("button", { name: "Continue", exact: true });
   await next.click();
   await expect(page.getByRole("radio", { name: "Look around" })).toBeChecked();
-  await next.click();
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await page.goto(`${site}/onboarding/companions`);
   await expect(page).toHaveURL(`${site}/dashboard`);
@@ -320,7 +414,9 @@ test("can skip inviting after creation and open the saved journey", async ({
   const next = page.getByRole("button", { name: "Continue", exact: true });
   await next.click();
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
-  await next.click();
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await fillJourney(page, "Quiet trip");
   await page.getByRole("button", { name: "Create & invite people" }).click();
@@ -405,7 +501,9 @@ test("retries creation and invitation delivery for the same saved journey", asyn
   const next = page.getByRole("button", { name: "Continue", exact: true });
   await next.click();
   await expect(page.getByText("Step 2 of 2")).toBeVisible();
-  await next.click();
+  await page
+    .getByRole("button", { name: "Go to Dashboard", exact: true })
+    .click();
   await expect(page).toHaveURL(`${site}/dashboard`);
   await fillJourney(page, "Konkan with companions");
 

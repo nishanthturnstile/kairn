@@ -17,6 +17,7 @@ interface Handoff {
   target: ReturnTarget;
   accountId?: string;
   expiresAt: number;
+  finishAtDashboard?: boolean;
 }
 
 let handoffInMemory: Handoff | undefined;
@@ -92,11 +93,24 @@ export function discardOtherAccountReturn(accountId: string) {
   if (current?.accountId && current.accountId !== accountId) storeHandoff();
 }
 
-export function boundJourneyReturn(accountId: string | null) {
+export function boundJourneyReturn(
+  accountId: string | null,
+  options?: { afterSetup: boolean },
+) {
   const current = readHandoff();
+  if (options?.afterSetup && current?.finishAtDashboard) return;
   return accountId && current?.accountId === accountId
     ? current.target
     : undefined;
+}
+
+export function rememberSetupExit(
+  accountId: string,
+  finishAtDashboard: boolean,
+) {
+  const current = readHandoff();
+  if (current?.accountId === accountId)
+    storeHandoff({ ...current, finishAtDashboard });
 }
 
 export function clearJourneyReturn(accountId: string) {

@@ -1,0 +1,29 @@
+.onboarding-step-meter[data-complete="true"] {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.onboarding-art {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .onboarding-art {
+    display: block;
+    aspect-ratio: 4 / 3;
+    background:
+      var(--color-muted) url("../../assets/onboarding-ferry.webp") center 54% /
+      cover no-repeat;
+  }
+}
+
+@media (forced-colors: active) {
+  .onboarding-step-meter[data-complete="true"] {
+    border-color: Highlight;
+  }
+
+  .onboarding-choice:has(:checked) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

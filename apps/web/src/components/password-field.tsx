@@ -1,5 +1,6 @@
+import { cn } from "cn";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Field, FieldLabel } from "./ui/field";
 import { Input } from "./ui/input";
@@ -8,36 +9,42 @@ export function PasswordField({
   id,
   isNew,
   label = "Password",
-  action,
+  large = false,
+  readOnly = false,
 }: {
   id: string;
   isNew: boolean;
   label?: string;
-  action?: ReactNode;
+  large?: boolean;
+  readOnly?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   return (
     <Field>
-      <div className="flex flex-wrap items-center justify-between gap-x-3">
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
-        {action}
-      </div>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <div className="relative min-w-0">
         <Input
           id={id}
           name="password"
-          className="min-w-0 pe-[calc(var(--spacing-touch)+0.375rem)]"
+          className={cn(
+            "min-w-0 pe-[calc(var(--spacing-touch)+0.375rem)]",
+            large && "min-h-touch",
+          )}
           type={visible ? "text" : "password"}
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete={isNew ? "new-password" : "current-password"}
           minLength={isNew ? 12 : undefined}
           aria-describedby={isNew ? `${id}-hint` : undefined}
+          readOnly={readOnly}
           required
         />
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="absolute inset-y-0 end-0 text-muted-foreground hover:text-primary"
+          size={large ? "icon-lg" : "icon"}
+          className="absolute inset-y-0 end-0 my-auto text-muted-foreground hover:text-primary"
           aria-controls={id}
           aria-label={visible ? "Hide password" : "Show password"}
           onClick={() => setVisible(!visible)}

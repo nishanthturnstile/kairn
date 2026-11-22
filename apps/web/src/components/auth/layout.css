@@ -1,0 +1,13 @@
+.auth-illustration {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .auth-illustration {
+    display: block;
+    min-block-size: clamp(32rem, calc(100svh - 12rem), 46.5rem);
+    background:
+      var(--color-muted) url("../../assets/konkan-ferry.webp") center 55% /
+      cover no-repeat;
+  }
+}

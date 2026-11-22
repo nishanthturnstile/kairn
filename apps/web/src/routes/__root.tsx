@@ -7,8 +7,8 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { AppearanceSwitcher } from "../components/appearance-switcher";
-import { AuthLayout } from "../components/auth-layout";
+import { AccountEntryFrame } from "../components/account-entry-frame";
+import { AuthLayout } from "../components/auth/layout";
 import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { ButtonLink } from "../components/ui/button";
 import { WorkspaceLayout } from "../components/workspace-layout";
@@ -92,38 +92,15 @@ function AppShell() {
     );
   }
   return (
-    <div className="grid min-h-svh grid-rows-[auto_1fr]">
-      <ButtonLink
-        render={<a href="#main" />}
-        variant="outline"
-        className="sr-only focus:not-sr-only focus:absolute focus:inset-s-4 focus:top-4 focus:z-20"
-      >
-        Skip to content
-      </ButtonLink>
-      <header className="control-border-b bg-card">
-        <div className="mx-auto flex max-w-[67rem] flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6 sm:py-3 lg:px-8">
-          <Link
-            to="/dashboard"
-            className="flex min-h-touch items-center text-xl font-semibold text-primary hover:underline"
-          >
-            {publicEnvironment.appName}
-          </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <AppearanceSwitcher />
-            <ButtonLink render={<Link to="/account" />} variant="ghost">
-              Account
-            </ButtonLink>
-          </div>
-        </div>
-      </header>
+    <AccountEntryFrame setup>
       <main
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full min-w-0 max-w-[72rem] wrap-anywhere px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
+        className="grid w-full min-w-0 flex-1 content-start wrap-anywhere py-8 sm:py-12 lg:content-center lg:py-14"
       >
         <WorkspaceEntry scope={scope} pathname={pathname} />
       </main>
-    </div>
+    </AccountEntryFrame>
   );
 }
 
@@ -137,6 +114,7 @@ function WorkspaceEntry({
   const access = useSessionAccess();
   const onboarding = pathname === "/onboarding";
   const progress = useWorkspaceOnboarding(scope, pathname !== "/account/reset");
+  const setupPending = progress.data?.state === "pending";
   const outlet = (
     <OnboardingAccess.Provider value={progress}>
       <Outlet />
@@ -144,7 +122,13 @@ function WorkspaceEntry({
   );
 
   useEffect(() => {
+    const target = boundJourneyReturn(scope.accountId);
+    const dashboardRedirectsToInvitationSetup =
+      pathname === "/dashboard" &&
+      target === "/journey-invitations" &&
+      (!progress.data || progress.data.state === "pending");
     if (
+      !dashboardRedirectsToInvitationSetup &&
       ![
         "/",
         "/account",
@@ -159,7 +143,10 @@ function WorkspaceEntry({
     if (
       progress.data &&
       progress.data.state !== "pending" &&
-      boundJourneyReturn(scope.accountId) === pathname
+      (target === pathname ||
+        (pathname === "/dashboard" &&
+          target &&
+          !boundJourneyReturn(scope.accountId, { afterSetup: true })))
     )
       clearJourneyReturn(scope.accountId);
   }, [access.state, pathname, progress.data, scope.accountId]);
@@ -185,7 +172,7 @@ function WorkspaceEntry({
       />
     );
   }
-  if (progress.isError)
+  if (progress.isError && !(onboarding && setupPending))
     return (
       <div className="grid max-w-2xl gap-4">
         <JourneyRetry
@@ -193,20 +180,22 @@ function WorkspaceEntry({
           busy={progress.isFetching}
           retry={() => void progress.refetch()}
         />
-        <ButtonLink
-          render={<Link to="/account" />}
-          variant="outline"
-          className="justify-self-start"
-        >
-          Account
-        </ButtonLink>
+        {!onboarding && (
+          <ButtonLink
+            render={<Link to="/account" />}
+            variant="outline"
+            className="justify-self-start"
+          >
+            Account
+          </ButtonLink>
+        )}
       </div>
     );
   if (!progress.data) return <JourneyLoading label="Checking your setup" />;
-  if (progress.data.state === "pending" && !onboarding)
+  if (setupPending && !onboarding)
     return <EnterOnboarding accountId={scope.accountId} pathname={pathname} />;
   if (pathname === "/") {
-    const target = boundJourneyReturn(scope.accountId);
+    const target = boundJourneyReturn(scope.accountId, { afterSetup: true });
     return <Navigate {...workspaceDestination(target)} replace />;
   }
   return outlet;
@@ -222,7 +211,8 @@ function EnterOnboarding({
   const navigate = useNavigate();
   useEffect(() => {
     const target = journeyReturnTo(pathname);
-    if (target) saveJourneyReturnTo(target, accountId);
+    if (target && (target !== "/dashboard" || !boundJourneyReturn(accountId)))
+      saveJourneyReturnTo(target, accountId);
     void navigate({ to: "/onboarding", replace: true });
   }, [accountId, navigate, pathname]);
   return <JourneyLoading label="Opening setup" />;

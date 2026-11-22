@@ -87,6 +87,10 @@ Use Lucide for recognizable controls, navigation and state. Import individual ic
 
 Use motion to identify the control or surface that changed. The Inset key compresses on press. Checkboxes and radios compress on press, including presses on their labels, and settle slightly larger when checked. Quiet buttons compress slightly. Switch thumbs move between endpoints, sort chevrons turn on opening, and overlays use brief entrances. The open chevron retains its orientation under reduced motion. Disabled actions keep a resting key, including when they retain focus after completion. A receipt moves a few pixels and fades. The three pleats pulse three times, then rest while the loading label remains visible. Text edits, checked values, tab focus, tables and artwork respond immediately. Prefer CSS opacity and transform transitions around 100–180 ms. Under reduced motion, use the resting mark and apply state changes immediately. Preserve the same text, focus destinations and selection cues.
 
+## Web authentication
+
+Use the shared [authentication shell](apps/web/src/components/auth/layout.tsx) and [screen heading](apps/web/src/components/auth/screen.tsx). Give each signed-out task one primary action and keep email and password fields at least 44 px tall. Keep the appearance control available throughout. Put the confirmation and recovery steps on their own screens, focus the new heading, and leave an explicit way back to sign-in. The [authentication flow](docs/plans/web-account-access.md) lists the supported entry points and responses.
+
 ## Review a change
 
 1. Edit the primitive, then exercise it on a real caller and on `/design-system`. Preserve refs, form attributes, keyboard behavior, and Base UI `render` composition.

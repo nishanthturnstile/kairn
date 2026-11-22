@@ -172,8 +172,11 @@ test("appearance carries across workspace, account and story at large text sizes
       .locator("button:visible, input:visible, select:visible")
       .all()) {
       const bounds = await control.boundingBox();
-      expect(bounds?.height, path).toBeGreaterThanOrEqual(44);
-      expect(bounds?.width, path).toBeGreaterThanOrEqual(44);
+      expect(bounds, path).not.toBeNull();
+      // Bounding boxes can represent a 44 px edge as 43.99997 in Firefox.
+      if (!bounds) continue;
+      expect(Number(bounds.height.toFixed(3)), path).toBeGreaterThanOrEqual(44);
+      expect(Number(bounds.width.toFixed(3)), path).toBeGreaterThanOrEqual(44);
     }
     if (path === "/account") {
       await expect(page.getByLabel("Email", { exact: true })).toHaveCSS(

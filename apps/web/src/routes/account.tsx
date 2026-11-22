@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BadgeCheck, LogOut, MonitorSmartphone } from "lucide-react";
 import { useEffect, useState } from "react";
-import { AuthForm, type AuthMode } from "../components/auth-form";
+import { AuthForm, type AuthMode } from "../components/auth/form";
+import { AuthScreen } from "../components/auth/screen";
 import { InviteDiscoverySetting } from "../components/invite-discovery-setting";
 import { JourneyLoading } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
@@ -67,12 +68,13 @@ function AccountPage() {
   const {
     state,
     refresh,
-    signOutFailed,
+    signOutError,
+    signOut,
     signOutPending,
     signInAccount,
     setSignInAccount,
   } = useSessionAccess();
-  const { verification: confirmed } = verification;
+  const confirmed = verification.error ? undefined : verification.verification;
   const returnTo =
     verification.returnTo ??
     (confirmed && readInvitationHandoff() ? "/journey-invitations" : undefined);
@@ -104,21 +106,22 @@ function AccountPage() {
     );
   if (state === "unavailable")
     return (
-      <section className="grid gap-4 rounded-card control-border bg-card p-inset">
-        <PageHeading title="Sign in" />
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>
-            Account access is temporarily unavailable.
-          </AlertDescription>
-        </Alert>
+      <AuthScreen
+        title={
+          signOutError ? "Sign-out unavailable" : "Account access unavailable"
+        }
+        description={
+          signOutError ??
+          "Kairn couldn’t check your session. Try again to reconnect."
+        }
+      >
         <Button
-          variant="outline"
-          className="justify-self-start"
-          onClick={() => refresh()}
+          size="lg"
+          onClick={() => (signOutError ? void signOut() : refresh())}
         >
           Try again
         </Button>
-      </section>
+      </AuthScreen>
     );
   if (
     state === "verified" &&
@@ -130,9 +133,9 @@ function AccountPage() {
     return (
       <div className="@container/account grid gap-6">
         <PageHeading title="Account" />
-        {signOutFailed && (
+        {signOutError && (
           <Alert variant="destructive" role="alert">
-            <AlertDescription>Couldn’t sign out. Try again.</AlertDescription>
+            <AlertDescription>{signOutError}</AlertDescription>
           </Alert>
         )}
         {progress.data?.state === "pending" && (
@@ -188,45 +191,22 @@ function AccountPage() {
     );
   }
   return (
-    <div className="grid gap-4">
-      {verification.error && (
-        <Alert variant="destructive" role="alert">
-          <AlertDescription>
-            That verification link is invalid or has expired.
-          </AlertDescription>
-        </Alert>
-      )}
-      {verification.passwordReset && (
-        <Alert
-          variant={
-            verification.passwordReset === "pending" ? "warning" : "success"
-          }
-          role="status"
-        >
-          <AlertDescription>
-            {verification.passwordReset === "pending"
-              ? "Password changed and devices signed out. Recovery confirmation is pending."
-              : "Password changed. Sign in with your new password."}
-          </AlertDescription>
-        </Alert>
-      )}
-      <AuthForm
-        mode={verification.mode ?? "sign-in"}
-        canResumeUnbound={Boolean(returnTo || confirmed)}
-        emailVerificationConfirmed={
-          confirmed === "confirmed" && !verification.error
-        }
-        showResend={Boolean(verification.error)}
-        onModeChange={(mode) =>
-          void navigate({
-            search: (previous) => ({
-              ...previous,
-              mode: mode === "sign-in" ? undefined : mode,
-            }),
-          })
-        }
-      />
-    </div>
+    <AuthForm
+      mode={verification.mode ?? "sign-in"}
+      canResumeUnbound={Boolean(returnTo || confirmed)}
+      verification={verification.error ? "invalid" : confirmed}
+      passwordReset={verification.passwordReset}
+      onModeChange={(mode) =>
+        void navigate({
+          search: (previous) => ({
+            ...previous,
+            verification: previous.error ? undefined : previous.verification,
+            error: undefined,
+            mode: mode === "sign-in" ? undefined : mode,
+          }),
+        })
+      }
+    />
   );
 }
 
@@ -296,7 +276,7 @@ function SignedInDevices({ id }: { id: string }) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => signOut()}
+            onClick={() => void signOut()}
           >
             <LogOut aria-hidden="true" data-icon="inline-start" />
             Sign out

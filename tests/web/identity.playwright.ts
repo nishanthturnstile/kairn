@@ -194,9 +194,7 @@ test("browser account flows verify email, revoke another session, and reset the 
     .getByRole("button", { name: "Reset password", exact: true })
     .click();
   await page.getByLabel("Email", { exact: true }).fill(email);
-  await page
-    .getByRole("button", { name: "Reset password", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Send reset link" }).click();
   await page.goto(await mailLink(email, "Reset your Kairn password"));
   await page.getByLabel("New password").fill("Synthetic-browser-replacement");
   await page.getByRole("button", { name: "Save password" }).click();

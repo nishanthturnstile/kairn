@@ -459,16 +459,16 @@ function InvitationReviewRoute() {
     content = (
       <>
         <p>Sign in with the email address that received the invitation.</p>
-        {access.signOutFailed && (
+        {access.signOutError && (
           <Alert variant="destructive">
-            <AlertDescription>
-              Couldn’t switch accounts. Try again.
-            </AlertDescription>
+            <AlertDescription>{access.signOutError}</AlertDescription>
           </Alert>
         )}
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => access.signOut({ switchInvitationAccount: true })}
+            onClick={() =>
+              void access.signOut({ switchInvitationAccount: true })
+            }
           >
             Switch account
           </Button>

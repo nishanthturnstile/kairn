@@ -63,14 +63,17 @@ function CreatorApp() {
   const notify = useReceiptToast();
   const current = authClient.useSession();
   const [rechecking, setRechecking] = useState(false);
-  const [signOutFailed, setSignOutFailed] = useState(false);
+  const [signOutError, setSignOutError] = useState<string>();
+  const [submittingSignOut, setSubmittingSignOut] = useState(false);
   const [signOutRequested, setSignOutRequested] = useState(false);
   const [signInAccount, setSignInAccountId] = useState<string | null>(null);
-  const transition = useRef(false);
+  const refreshInFlight = useRef(false);
+  const signOutInFlight = useRef(false);
+  const signOutOriginRejected = useRef(false);
   const previousAccount = useRef<string | null>(null);
   const switchingInvitationAccount = useRef(false);
   const setSignInAccount = useCallback((id: string | null) => {
-    if (id) setSignOutRequested(false);
+    if (id) setSignOutError(undefined);
     setSignInAccountId(id);
   }, []);
   const accountId =
@@ -80,7 +83,10 @@ function CreatorApp() {
   // The automatic sign-out refresh can replace the explicit session request.
   const signOutPending =
     signOutRequested &&
-    (rechecking || (accountId !== null && current.isRefetching));
+    (submittingSignOut ||
+      rechecking ||
+      current.isRefetching ||
+      current.isPending);
   const checking = current.isPending || rechecking || signOutPending;
   useEffect(() => {
     if (!checking) {
@@ -100,22 +106,18 @@ function CreatorApp() {
   const scope = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const router = useMemo(() => createCreatorRouter(scope), [scope]);
   const refetch = current.refetch;
-  const recheck = useCallback(
-    async (action?: () => Promise<void>) => {
-      if (transition.current) return;
-      transition.current = true;
-      setRechecking(true);
-      session.setVerifiedAccount(null);
-      try {
-        await action?.();
-        await refetch();
-      } finally {
-        transition.current = false;
-        setRechecking(false);
-      }
-    },
-    [refetch],
-  );
+  const recheck = useCallback(async () => {
+    if (refreshInFlight.current || signOutInFlight.current) return;
+    refreshInFlight.current = true;
+    setRechecking(true);
+    session.setVerifiedAccount(null);
+    try {
+      await refetch();
+    } finally {
+      refreshInFlight.current = false;
+      setRechecking(false);
+    }
+  }, [refetch]);
   const refresh = useCallback(
     (rejectedScope?: AccountScope) => {
       if (rejectedScope && session.getSnapshot() !== rejectedScope) return;
@@ -123,23 +125,32 @@ function CreatorApp() {
     },
     [recheck],
   );
-  function signOut(options?: { switchInvitationAccount?: boolean }) {
+  async function signOut(options?: { switchInvitationAccount?: boolean }) {
+    if (signOutInFlight.current) return;
+    signOutInFlight.current = true;
+    signOutOriginRejected.current = false;
+    const invitation = readInvitationHandoff();
     switchingInvitationAccount.current = Boolean(
-      options?.switchInvitationAccount &&
-        readInvitationHandoff() &&
-        !readInvitationHandoff()?.accountId,
+      options?.switchInvitationAccount && invitation && !invitation.accountId,
     );
     if (!switchingInvitationAccount.current) clearInvitationHandoff();
+    setSignOutError(undefined);
     setSignOutRequested(true);
+    setSubmittingSignOut(true);
     setSignInAccount(null);
-    void recheck(async () => {
-      setSignOutFailed(false);
+    session.setVerifiedAccount(null);
+    try {
       try {
-        setSignOutFailed(Boolean((await authClient.signOut()).error));
+        const { error } = await authClient.signOut();
+        signOutOriginRejected.current = error?.code === "INVALID_ORIGIN";
       } catch {
-        setSignOutFailed(true);
+        // The request may have committed before its response was lost.
       }
-    });
+      // Check the server even if an earlier refresh is in flight or the POST failed.
+      await refetch();
+    } finally {
+      setSubmittingSignOut(false);
+    }
   }
   const state = checking
     ? "checking"
@@ -152,8 +163,20 @@ function CreatorApp() {
           : "signed-out";
 
   useEffect(() => {
+    if (state === "signed-out") setSignOutError(undefined);
     if (!signOutRequested || state === "checking") return;
-    if (state === "signed-out") notify("You’re signed out.");
+    if (state === "signed-out") {
+      notify("You’re signed out.");
+    } else {
+      setSignOutError(
+        signOutOriginRejected.current
+          ? "Couldn’t sign out from this address. Open Kairn at its configured address and try again."
+          : state === "unavailable"
+            ? "Couldn’t confirm that you signed out. Try again."
+            : "Couldn’t sign out. Try again.",
+      );
+    }
+    signOutInFlight.current = false;
     setSignOutRequested(false);
   }, [signOutRequested, state, notify]);
   return (
@@ -162,7 +185,7 @@ function CreatorApp() {
         state,
         refresh,
         signOut,
-        signOutFailed,
+        signOutError,
         signOutPending,
         signInAccount,
         setSignInAccount,
