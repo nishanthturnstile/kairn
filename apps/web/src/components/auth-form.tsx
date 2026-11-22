@@ -192,7 +192,7 @@ export function AuthForm({
     );
 
   return (
-    <section className="grid gap-6 sm:gap-8">
+    <section className="grid gap-section">
       <header className="grid gap-2">
         <h1
           ref={heading}
@@ -280,7 +280,11 @@ export function AuthForm({
             <AlertDescription>{feedback.text}</AlertDescription>
           </Alert>
         )}
-        <Button type="submit" disabled={busy}>
+        <Button
+          type="submit"
+          disabled={busy}
+          feedback={busy ? "pending" : "idle"}
+        >
           {busy ? description.pending : description.label}
         </Button>
       </form>

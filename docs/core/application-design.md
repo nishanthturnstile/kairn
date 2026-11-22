@@ -86,11 +86,11 @@ Discover uses approved destination aliases, category, visit dates, and status. P
 
 Use owned shadcn/Tailwind components on web and native controls with Unistyles on phones. Share semantic tokens, terminology, evidence labels, and pure rules; preserve platform navigation, keyboard, focus, and accessibility expectations. Do not add a second UI framework for visual uniformity.
 
-Use one readable UI sans-serif family, system fallbacks, a restrained accent for actions/selection, and consistent status tokens. Story typography may have a separate reading treatment if it meets font and layout budgets. Select the font family and colour palette during interface design, within these accessibility and payload budgets.
+[Fold](../../DESIGN.md) defines the web palette, typography, spacing, component imports and interaction states. [Journey interactions](journey-interactions.md) covers product-specific content, accessibility and recovery.
 
-Controls need focus, pressed, disabled, loading, error, and success states where applicable. Labels accompany unfamiliar icons. Use at least 44 logical-point iPhone and 48 dp Android touch areas as product targets; primary web touch controls target 44 CSS px and must meet WCAG 2.2 AA including spacing exceptions. Provide visible focus, scalable text, contrast, screen-reader names, and non-colour evidence distinctions. [WCAG target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
+Controls need focus, pressed, disabled, loading, error, and success states where applicable. Labels accompany unfamiliar icons. Use at least 44 logical-point iPhone and 48 dp Android touch areas as product targets; primary web touch controls target 48 CSS px and must meet WCAG 2.2 AA including spacing exceptions. Provide visible focus, scalable text, contrast, screen-reader names, and non-colour evidence distinctions. [WCAG target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 
-Use brief state transitions, generally 150–250 ms, respecting reduced motion. No decorative loading choreography, scroll capture, forced overlays for every photo, or modal chains for ordinary editing. Use progressive disclosure for rarely used controls without hiding the next task. [Progressive disclosure research](https://www.nngroup.com/articles/progressive-disclosure/).
+Use the Fold motion timings on web and respect reduced-motion preferences on every platform. No decorative loading choreography, scroll capture, forced overlays for every photo, or modal chains for ordinary editing. Use progressive disclosure for rarely used controls without hiding the next task. [Fold motion](../../DESIGN.md#feedback-icons-and-motion) · [Progressive disclosure research](https://www.nngroup.com/articles/progressive-disclosure/).
 
 ## 10. Experience and performance acceptance
 

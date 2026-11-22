@@ -7,14 +7,14 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarDays, MapIcon, Plus } from "lucide-react";
 import { useEffect, useRef } from "react";
-import beach from "../assets/onboarding-beach.webp";
+import { JourneyMap } from "../components/illustrations/journey-map";
 import { JourneyDate } from "../components/journeys/dates";
 import {
   JourneyGate,
   JourneyLoading,
   JourneyRetry,
 } from "../components/journeys/states";
-import { Button } from "../components/ui/button";
+import { ButtonLink } from "../components/ui/button";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { journeyResult } from "../lib/journey-api";
 import { journeyIntentCopy } from "../lib/journey-intent-copy";
@@ -71,7 +71,7 @@ function DashboardHome({
   const showFirstJourney = currentSummary?.journeyCount === 0;
 
   return (
-    <div className="@container/dashboard grid gap-7 sm:gap-9">
+    <div className="@container/dashboard grid gap-section">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="grid gap-1">
           <h1
@@ -104,14 +104,12 @@ function DashboardHome({
 
 function CreateJourneyLink({ intent }: { intent?: OnboardingIntent }) {
   return (
-    <Button asChild>
-      <Link to="/journeys/new" search={{ intent }}>
-        <Plus aria-hidden="true" data-icon="inline-start" />
-        <span>
-          {intent ? journeyIntentCopy[intent].action : "Create a journey"}
-        </span>
-      </Link>
-    </Button>
+    <ButtonLink render={<Link to="/journeys/new" search={{ intent }} />}>
+      <Plus aria-hidden="true" data-icon="inline-start" />
+      <span>
+        {intent ? journeyIntentCopy[intent].action : "Create a journey"}
+      </span>
+    </ButtonLink>
   );
 }
 
@@ -130,12 +128,10 @@ function JourneyOverview({
         ) : (
           <NextJourney journey={summary.nextJourney} />
         )}
-        <section aria-labelledby="dashboard-overview">
-          <Card className="h-full gap-2 [--card-spacing:--spacing(5)]">
+        <section aria-label="Overview">
+          <Card className="h-full gap-2">
             <CardHeader>
-              <h2 id="dashboard-overview" className="text-xl font-semibold">
-                Overview
-              </h2>
+              <h2 className="text-xl font-semibold">Overview</h2>
             </CardHeader>
             <CardContent>
               <dl className="grid divide-y divide-border/45">
@@ -168,17 +164,20 @@ function JourneyOverview({
 
       {summary.journeyCount > 0 && (
         <section aria-labelledby="dashboard-recent">
-          <Card className="gap-2 [--card-spacing:--spacing(5)]">
+          <Card className="gap-2">
             <CardHeader className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <h2 id="dashboard-recent" className="text-xl font-semibold">
                 Recent journeys
               </h2>
-              <Button asChild variant="link" size="sm" className="-me-2">
-                <Link to="/journeys">
-                  All journeys
-                  <ArrowRight aria-hidden="true" data-icon="inline-end" />
-                </Link>
-              </Button>
+              <ButtonLink
+                render={<Link to="/journeys" />}
+                variant="link"
+                size="sm"
+                className="-me-2"
+              >
+                All journeys
+                <ArrowRight aria-hidden="true" data-icon="inline-end" />
+              </ButtonLink>
             </CardHeader>
             <CardContent>
               {summary.recentJourneys.length ? (
@@ -203,17 +202,16 @@ function JourneyOverview({
 }
 
 function FirstJourney({ intent }: { intent?: OnboardingIntent }) {
+  const title = intent
+    ? journeyIntentCopy[intent].heading
+    : "Your journeys start here";
   return (
     <section
-      aria-labelledby="first-journey"
+      aria-label={title}
       className="relative grid overflow-hidden rounded-card control-border bg-card @min-[31rem]/dashboard:grid-cols-[minmax(0,1fr)_38%]"
     >
-      <div className="grid content-center justify-items-start gap-3 p-5 sm:p-7">
-        <h2 id="first-journey" className="text-xl font-bold">
-          {intent
-            ? journeyIntentCopy[intent].heading
-            : "Your journeys start here"}
-        </h2>
+      <div className="grid content-center justify-items-start gap-3 p-inset">
+        <h2 className="text-xl font-bold">{title}</h2>
         <p className="max-w-[38ch] text-muted-foreground">
           {intent
             ? journeyIntentCopy[intent].description
@@ -223,13 +221,7 @@ function FirstJourney({ intent }: { intent?: OnboardingIntent }) {
           <CreateJourneyLink intent={intent} />
         </div>
       </div>
-      <div className="relative min-h-32 bg-muted @min-[31rem]/dashboard:min-h-55">
-        <img
-          src={beach}
-          alt=""
-          className="absolute inset-0 size-full object-cover object-[58%_center]"
-        />
-      </div>
+      <JourneyMap />
     </section>
   );
 }
@@ -238,7 +230,7 @@ function NextJourney({ journey }: { journey?: DashboardJourney | null }) {
   return (
     <section
       aria-labelledby="next-journey"
-      className="grid content-start gap-5 rounded-card control-border bg-accent p-5 text-accent-foreground sm:p-7"
+      className="grid content-start gap-4 rounded-card control-border bg-accent p-inset text-accent-foreground"
     >
       <h2
         id="next-journey"

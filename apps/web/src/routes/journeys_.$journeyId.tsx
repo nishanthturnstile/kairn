@@ -16,6 +16,7 @@ import {
   LockKeyhole,
   Users,
 } from "lucide-react";
+import { type RefCallback, useCallback, useRef } from "react";
 import { JourneyDate } from "../components/journeys/dates";
 import {
   JourneyBackLink,
@@ -25,11 +26,11 @@ import {
 } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertTitle } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { ButtonLink } from "../components/ui/button";
 import { useJourneyAccess } from "../lib/journey-access";
 import type { AccountScope } from "../lib/session";
 
-const pageLayout = "@container/journey-detail mx-auto grid max-w-4xl gap-5";
+const pageLayout = "@container/journey-detail mx-auto grid max-w-4xl gap-4";
 const statusIcons = {
   active: Compass,
   upcoming: CalendarDays,
@@ -62,9 +63,9 @@ function UnavailableJourney() {
         <AlertTitle>This journey is unavailable</AlertTitle>
       </Alert>
       <div className="flex flex-wrap gap-2">
-        <Button asChild variant="ghost">
-          <Link to="/dashboard">Go to Dashboard</Link>
-        </Button>
+        <ButtonLink render={<Link to="/dashboard" />} variant="ghost">
+          Go to Dashboard
+        </ButtonLink>
       </div>
     </section>
   );
@@ -78,6 +79,12 @@ function JourneyDetail({
   journeyId: string;
 }) {
   const detail = useJourneyAccess(scope, journeyId);
+  const presented = useRef(false);
+  const focusOnEntry = useCallback((heading: HTMLHeadingElement | null) => {
+    if (!heading || presented.current) return;
+    presented.current = true;
+    if (document.activeElement === document.body) heading.focus();
+  }, []);
   if (
     !detail.checking &&
     !detail.isError &&
@@ -93,7 +100,7 @@ function JourneyDetail({
     <section className={pageLayout}>
       <JourneyBackLink />
       {snapshot ? (
-        <JourneyOverview {...snapshot} />
+        <JourneyOverview {...snapshot} headingRef={focusOnEntry} />
       ) : (
         <>
           <PageHeading title="Journey" />
@@ -117,9 +124,11 @@ function JourneyDetail({
 }
 
 function JourneyOverview({
+  headingRef,
   journey,
   asOf,
 }: {
+  headingRef: RefCallback<HTMLHeadingElement>;
   journey: PrivateJourney;
   asOf: number;
 }) {
@@ -128,8 +137,12 @@ function JourneyOverview({
   const StatusIcon = status && statusIcons[status];
   return (
     <article className="min-w-0 overflow-hidden rounded-card control-border bg-card">
-      <header className="grid gap-4 bg-accent p-5 @min-[32rem]/journey-detail:p-8">
-        <h1 className="min-w-0 text-4xl font-semibold wrap-anywhere">
+      <header className="grid gap-4 bg-accent p-inset">
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="min-w-0 text-4xl font-semibold wrap-anywhere"
+        >
           {journey.title}
         </h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold">
@@ -159,7 +172,7 @@ function JourneyOverview({
       </header>
       <section
         aria-labelledby="journey-schedule"
-        className="grid gap-5 border-t p-5 @min-[32rem]/journey-detail:p-8"
+        className="grid gap-4 border-t p-inset"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <h2 id="journey-schedule" className="text-xl font-semibold">
@@ -187,7 +200,7 @@ function JourneyOverview({
       </section>
       <section
         aria-labelledby="journey-people"
-        className="flex flex-wrap items-center justify-between gap-3 border-t p-5 @min-[32rem]/journey-detail:p-8"
+        className="flex flex-wrap items-center justify-between gap-3 border-t p-inset"
       >
         <div>
           <h2 id="journey-people" className="text-xl font-semibold">
@@ -199,14 +212,17 @@ function JourneyOverview({
               : "Journey member"}
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link
-            to="/journeys/$journeyId/people"
-            params={{ journeyId: journey.id }}
-          >
-            <Users aria-hidden="true" data-icon="inline-start" /> View people
-          </Link>
-        </Button>
+        <ButtonLink
+          render={
+            <Link
+              to="/journeys/$journeyId/people"
+              params={{ journeyId: journey.id }}
+            />
+          }
+          variant="outline"
+        >
+          <Users aria-hidden="true" data-icon="inline-start" /> View people
+        </ButtonLink>
       </section>
     </article>
   );

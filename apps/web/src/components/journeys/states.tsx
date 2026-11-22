@@ -5,18 +5,11 @@ import type { journeyReturnTo } from "../../lib/journey-return";
 import { useSessionAccess } from "../../lib/session-access";
 import { PageHeading } from "../page-heading";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "../ui/alert";
-import { Button } from "../ui/button";
-import { Skeleton } from "../ui/skeleton";
+import { Button, ButtonLink } from "../ui/button";
 
-export function JourneyLoading({ label }: { label: string }) {
-  return (
-    <output className="grid w-full min-w-0 grid-cols-1 gap-3 rounded-card control-border bg-card p-4">
-      <span className="text-muted-foreground">{label}</span>
-      <Skeleton className="h-4 w-full max-w-40" />
-      <Skeleton className="h-4 w-full max-w-64" />
-    </output>
-  );
-}
+export { ContentLoading as JourneyLoading } from "../ui/loading";
+
+import { ContentLoading } from "../ui/loading";
 
 export function JourneyRetry({
   title,
@@ -54,7 +47,7 @@ export function JourneyGate({
     <section className="grid max-w-2xl gap-6">
       <PageHeading title={title} />
       {access.state === "checking" && (
-        <JourneyLoading label="Checking your session" />
+        <ContentLoading label="Checking your session" />
       )}
       {access.state === "unavailable" && (
         <JourneyRetry
@@ -67,11 +60,16 @@ export function JourneyGate({
           <AlertTitle>Sign in to continue</AlertTitle>
           <AlertDescription>Your journeys are private.</AlertDescription>
           <AlertAction>
-            <Button asChild>
-              <Link to="/account" search={{ returnTo: returnTo ?? undefined }}>
-                Sign in
-              </Link>
-            </Button>
+            <ButtonLink
+              render={
+                <Link
+                  to="/account"
+                  search={{ returnTo: returnTo ?? undefined }}
+                />
+              }
+            >
+              Sign in
+            </ButtonLink>
           </AlertAction>
         </Alert>
       )}
@@ -81,11 +79,14 @@ export function JourneyGate({
 
 export function JourneyBackLink() {
   return (
-    <Button asChild variant="ghost" size="sm" className="justify-self-start">
-      <Link to="/journeys">
-        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-        Back to Journeys
-      </Link>
-    </Button>
+    <ButtonLink
+      render={<Link to="/journeys" />}
+      variant="ghost"
+      size="sm"
+      className="justify-self-start"
+    >
+      <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+      Back to Journeys
+    </ButtonLink>
   );
 }

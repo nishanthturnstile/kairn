@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { wcagAATags } from "./accessibility";
 import { mailLink, site } from "./identity-fixture";
 import { openAccount } from "./workspace-fixture";
 
@@ -124,11 +125,8 @@ test("browser account flows verify email, revoke another session, and reset the 
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBe(320);
     expect(
-      (
-        await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).withTags(wcagAATags).analyze())
+        .violations,
     ).toEqual([]);
     if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
       await page.screenshot({
@@ -178,9 +176,7 @@ test("browser account flows verify email, revoke another session, and reset the 
       page.getByRole("main").getByText("Signing out", { exact: true }),
     ).toBeVisible();
     releaseSessionChecks.resolve();
-    const toast = page
-      .getByRole("status")
-      .filter({ hasText: "You’re signed out." });
+    const toast = page.getByRole("dialog", { name: "You’re signed out." });
     await expect(toast).toBeVisible();
     await expect(
       page.getByRole("main").getByText("You’re signed out."),

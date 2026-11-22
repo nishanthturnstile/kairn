@@ -10,6 +10,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createRoot } from "react-dom/client";
+import { LaunchFeedback } from "./components/ui/loading";
+import { ToastProvider, useReceiptToast } from "./components/ui/toast";
 import { initializeAppearance } from "./lib/appearance";
 import { authClient } from "./lib/auth";
 import {
@@ -32,6 +34,9 @@ function createCreatorRouter(scope: ReturnType<typeof session.getSnapshot>) {
     routeTree,
     context: { scope },
     scrollRestoration: true,
+    defaultPendingComponent: LaunchFeedback,
+    defaultPendingMs: 200,
+    defaultPendingMinMs: 0,
   });
 }
 
@@ -48,11 +53,14 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <CreatorApp />
+    <ToastProvider>
+      <CreatorApp />
+    </ToastProvider>
   </StrictMode>,
 );
 
 function CreatorApp() {
+  const notify = useReceiptToast();
   const current = authClient.useSession();
   const [rechecking, setRechecking] = useState(false);
   const [signOutFailed, setSignOutFailed] = useState(false);
@@ -142,13 +150,12 @@ function CreatorApp() {
         : accountId
           ? "verified"
           : "signed-out";
-  const showSignedOut = signOutRequested && state === "signed-out";
+
   useEffect(() => {
-    if (signOutRequested && state === "verified") setSignOutRequested(false);
-    if (!showSignedOut) return;
-    const timeout = window.setTimeout(() => setSignOutRequested(false), 5_000);
-    return () => window.clearTimeout(timeout);
-  }, [showSignedOut, signOutRequested, state]);
+    if (!signOutRequested || state === "checking") return;
+    if (state === "signed-out") notify("You’re signed out.");
+    setSignOutRequested(false);
+  }, [signOutRequested, state, notify]);
   return (
     <SessionAccess.Provider
       value={{
@@ -167,23 +174,6 @@ function CreatorApp() {
       >
         <RouterProvider router={router} />
       </QueryClientProvider>
-      <div
-        role="status"
-        aria-atomic="true"
-        className="pointer-events-none fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex"
-      >
-        {showSignedOut && (
-          <div className="sign-out-toast flex min-w-0 items-center gap-3 rounded-card bg-primary px-4 py-3 font-semibold text-primary-foreground wrap-anywhere shadow-[0_4px_16px_rgb(0_0_0/14%)]">
-            <span
-              aria-hidden="true"
-              className="flex size-5 shrink-0 items-center justify-center rounded-full border border-current"
-            >
-              <span className="confirmation-check" />
-            </span>
-            You’re signed out.
-          </div>
-        )}
-      </div>
     </SessionAccess.Provider>
   );
 }

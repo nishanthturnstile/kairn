@@ -5,7 +5,7 @@ export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="field-group"
-      className={cn("grid gap-4", className)}
+      className={cn("grid gap-3", className)}
       {...props}
     />
   );
@@ -13,7 +13,7 @@ export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
 
 export function Field({ className, ...props }: ComponentProps<"div">) {
   return (
-    <div data-slot="field" className={cn("grid gap-2", className)} {...props} />
+    <div data-slot="field" className={cn("grid gap-1", className)} {...props} />
   );
 }
 
@@ -26,7 +26,7 @@ export function FieldLabel({
   return (
     <label
       data-slot="field-label"
-      className={cn("font-semibold", className)}
+      className={cn("text-sm font-semibold", className)}
       htmlFor={htmlFor}
       {...props}
     >

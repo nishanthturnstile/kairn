@@ -1,0 +1,502 @@
+/* Web semantic roles. The shared token package supplies outdoor contrast,
+   editorial type and route evidence until the native migration. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("./assets/fonts/bricolage-latin.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+}
+:root {
+  --fold-control: 2.125rem;
+  --fold-target-floor: 0px;
+  --fold-key: light-dark(#d3f477, #28331e);
+  --fold-key-ink: light-dark(#22271b, #d3f477);
+  --fold-citron: #d3f477;
+  --fold-citron-ink: #20261a;
+  --fold-citron-hover: #e3ffa0;
+  --fold-citron-pressed: #c5e56c;
+  --fold-citron-focus: #263114;
+  --fold-dock: #262922;
+  --fold-dock-ink: #e5e7da;
+  --fold-dock-disabled: #bec1b4;
+  --fold-lilac-ink: #352a41;
+  --fold-clay-ink: #5d3d2d;
+  --fold-lilac: #dcd4f1;
+  --fold-clay: #e8a483;
+  --fold-rail: light-dark(#f3f2ec, #171916);
+  --fold-divider: light-dark(#d9dbd0, #42473d);
+  --fold-focus: light-dark(#4f6334, #d3f477);
+  --fold-accent: light-dark(#e1e6d4, #37412e);
+  --fold-radius: 6px;
+  --fold-panel-radius: 10px;
+}
+:root:not([data-appearance="outdoor"]) {
+  --kairn-semantic-color-canvas: light-dark(#fbfaf6, #1b1d1a);
+  --kairn-semantic-color-surface: light-dark(#fffefa, #252823);
+  --kairn-semantic-color-ink: light-dark(#20221d, #f1f2e7);
+  --kairn-semantic-color-secondary-text: light-dark(#61645a, #bdc0b3);
+  --kairn-semantic-color-boundary: light-dark(#787c6f, #919786);
+  --kairn-semantic-color-action: light-dark(#24271f, #d3f477);
+  --kairn-semantic-color-on-action: light-dark(#fffef8, #1c2315);
+  --kairn-semantic-color-action-wash: light-dark(#eeefe7, #34392f);
+  --kairn-semantic-color-error: light-dark(#a53126, #ffa49c);
+  --kairn-semantic-color-success: light-dark(#3b602c, #b5df9d);
+}
+:root[data-appearance="outdoor"] {
+  --fold-divider: var(--kairn-semantic-color-boundary);
+  --fold-focus: var(--kairn-semantic-color-information);
+  --fold-accent: var(--kairn-semantic-color-action-wash);
+  --fold-rail: var(--kairn-semantic-color-surface);
+  --fold-target-floor: 44px;
+}
+@media (any-pointer: coarse) {
+  :root,
+  :root[data-appearance="outdoor"] {
+    --fold-target-floor: 48px;
+  }
+}
+
+/* Keep the primary face compact inside the full touch target. */
+@media (any-pointer: coarse) {
+  .fold-button[data-variant="default"]:has([data-slot="button-key"]) {
+    border-block: 6px solid transparent;
+    background-clip: padding-box;
+    min-inline-size: 48px;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-slot="tabs-trigger"][data-active],
+  [data-slot="sidebar-menu-button"][data-active] {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"][data-highlighted] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+:root {
+  --fold-motion-press: 120ms;
+  --fold-motion-enter: 180ms;
+  --fold-ease-out: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --fold-map-paper: light-dark(#f8f5dc, #e9e5c8);
+  --fold-map-land: light-dark(#c9da94, #b1bd85);
+  --fold-map-ink: #34382c;
+  --fold-map-contour: #859370;
+  --fold-map-shadow: light-dark(#c5bdcb, #575347);
+}
+
+[data-slot="fold-mark"] {
+  display: inline-flex;
+  flex: none;
+  gap: 0.07em;
+  width: 1.2em;
+  height: 1.05em;
+  align-items: center;
+  color: inherit;
+}
+[data-slot="fold-mark"] > i {
+  flex: 1;
+  height: 0.8em;
+  background: currentColor;
+  transform: skewY(-20deg);
+}
+[data-slot="fold-mark"] > i:nth-child(2) {
+  transform: skewY(20deg);
+  opacity: 0.65;
+}
+[data-slot="fold-mark"] > i:nth-child(3) {
+  height: 0.64em;
+}
+.fold-launch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--kairn-semantic-color-ink);
+  background: var(--kairn-semantic-color-canvas);
+  font-weight: 600;
+}
+.fold-launch-initial {
+  min-height: 100svh;
+}
+.fold-launch-initial[hidden] {
+  display: none;
+}
+body:has(.no-script-note) .fold-launch-initial {
+  display: none;
+}
+
+.journey-map-print {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+  place-items: center;
+  background: light-dark(#ebe7ee, #353334);
+}
+.journey-map-print svg {
+  display: block;
+  width: min(100%, 20rem);
+  height: auto;
+}
+
+.fold-toast-viewport {
+  position: fixed;
+  z-index: 60;
+  inset-inline-end: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  width: max-content;
+  max-width: calc(100% - 1.5rem);
+  display: grid;
+  gap: 0.375rem;
+  pointer-events: none;
+}
+[data-slot="receipt-toast"] {
+  pointer-events: auto;
+}
+[data-slot="receipt-toast"][data-swiping] {
+  transform: translateX(var(--toast-swipe-movement-x));
+}
+[data-slot="dropdown-menu-item"][data-highlighted],
+[data-slot="dropdown-menu-radio-item"][data-highlighted] {
+  outline: 2px solid var(--fold-focus);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-slot="fold-mark"][data-moving] > i {
+    animation: fold-crease 900ms ease-in-out 3;
+  }
+  [data-slot="fold-mark"][data-moving] > i:nth-child(2) {
+    animation-delay: 100ms;
+  }
+  [data-slot="fold-mark"][data-moving] > i:nth-child(3) {
+    animation-delay: 200ms;
+  }
+  [data-slot="receipt-toast"] {
+    transition:
+      opacity var(--fold-motion-enter),
+      translate var(--fold-motion-enter) var(--fold-ease-out);
+  }
+  [data-slot="receipt-toast"]:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+    translate: 0 0.3rem;
+  }
+  [data-slot="dialog-content"],
+  [data-slot="appearance-popup"] {
+    transition: opacity var(--fold-motion-enter) var(--fold-ease-out);
+  }
+  :is([data-slot="dialog-content"], [data-slot="appearance-popup"]):is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+    opacity: 0;
+  }
+  [data-slot="switch"]::before {
+    transition: translate var(--fold-motion-press) var(--fold-ease-out);
+  }
+  [data-slot="switch"]:checked::before {
+    translate: 0.98rem -50%;
+  }
+  [data-slot="switch"]:dir(rtl):checked::before {
+    translate: -0.98rem -50%;
+  }
+  [data-slot="switch"]:checked::before {
+    inset-inline: 0.125rem auto;
+  }
+  [data-menu-chevron] {
+    transition: rotate var(--fold-motion-press) var(--fold-ease-out);
+  }
+}
+[aria-expanded="true"] [data-menu-chevron] {
+  rotate: 180deg;
+}
+@keyframes fold-crease {
+  0%,
+  75%,
+  100% {
+    scale: 1 1;
+  }
+  35% {
+    scale: 1 0.48;
+  }
+}
+@media (forced-colors: active) {
+  [data-slot="fold-mark"] > i {
+    background: CanvasText;
+  }
+  .journey-map-print {
+    forced-color-adjust: none;
+  }
+  [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"][data-highlighted] {
+    outline-color: Highlight;
+  }
+}
+
+[data-slot="sidebar-menu-button"][data-active] {
+  border-inline-start: 3px solid var(--fold-citron-ink);
+}
+@media (forced-colors: active) {
+  [data-slot="sidebar-menu-button"][data-active] {
+    border-inline-start-color: Highlight;
+  }
+}
+
+/* The active destination keeps its ink and citron face through interaction. */
+:is(
+  [data-slot="tabs-trigger"],
+  [data-slot="sidebar-menu-button"]
+)[data-active] {
+  color: var(--fold-citron-ink);
+  background-color: var(--fold-citron);
+  font-weight: 700;
+}
+@media (hover: hover) {
+  :is(
+    [data-slot="tabs-trigger"],
+    [data-slot="sidebar-menu-button"]
+  )[data-active]:hover:not(:disabled, [data-disabled]) {
+    background-color: var(--fold-citron-hover);
+  }
+}
+:is(
+  [data-slot="tabs-trigger"],
+  [data-slot="sidebar-menu-button"]
+)[data-active]:active:not(:disabled, [data-disabled]) {
+  background-color: var(--fold-citron-pressed);
+}
+:is(
+  [data-slot="tabs-trigger"],
+  [data-slot="sidebar-menu-button"]
+)[data-active]:focus {
+  outline: 2px solid var(--fold-citron-focus);
+  outline-offset: -3px;
+}
+[data-slot="tabs-trigger"]:is(:disabled, [data-disabled]) {
+  cursor: not-allowed;
+  color: var(--fold-dock-disabled);
+  background-color: transparent;
+  opacity: 0.7;
+}
+@media (forced-colors: active) {
+  :is(
+    [data-slot="tabs-trigger"],
+    [data-slot="sidebar-menu-button"]
+  )[data-active]:focus {
+    outline-color: Highlight;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is([data-slot="checkbox"], [data-slot="radio"]) {
+    transition: scale var(--fold-motion-press) var(--fold-ease-out);
+  }
+  :is([data-slot="checkbox"], [data-slot="radio"]):checked:enabled {
+    scale: 1.06;
+  }
+  :is([data-slot="checkbox"], [data-slot="radio"]):active:enabled,
+  label:active > :is([data-slot="checkbox"], [data-slot="radio"]):enabled {
+    scale: 0.88;
+  }
+  @media (hover: hover) {
+    .fold-button:hover:not(:disabled, [aria-disabled="true"])
+      [data-slot="button-key"] {
+      translate: -1px 0;
+    }
+  }
+  .fold-button:active:not(:disabled, [aria-disabled="true"])
+    [data-slot="button-key"] {
+    scale: 0.9;
+  }
+  .fold-button:not(:has([data-slot="button-key"])) {
+    transition:
+      background-color var(--fold-motion-press),
+      color var(--fold-motion-press),
+      scale var(--fold-motion-press);
+  }
+  .fold-button:not(
+    :has([data-slot="button-key"]),
+    :disabled,
+    [aria-disabled="true"]
+  ):active {
+    scale: 0.97;
+  }
+}
+
+/* Shared date and time picker surface. */
+.fold-picker {
+  container: fold-picker / inline-size;
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: var(--kairn-semantic-space-step8);
+  width: min(24rem, var(--available-width), calc(100vw - 16px));
+  max-height: var(--available-height);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-input);
+  border-radius: var(--fold-panel-radius);
+  padding: var(--kairn-semantic-space-step12);
+  color: var(--color-popover-foreground);
+  background: var(--color-popover);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.14);
+}
+.fold-picker-title {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--kairn-semantic-space-step4);
+  font-weight: 700;
+}
+.fold-calendar-nav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--kairn-semantic-space-step4);
+  align-items: center;
+}
+.fold-period-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kairn-semantic-space-step4);
+}
+.fold-period-fields select {
+  flex: 1 1 4rem;
+  padding-inline: var(--kairn-semantic-space-step4);
+}
+.fold-period-fields select:first-child {
+  flex-basis: 5.5rem;
+}
+/* Seven targets need 336 px on touch screens. Use the native day choice
+   when that row or seven scaled weekday labels would run out of room. */
+.fold-compact-day,
+.fold-picker-label {
+  display: none;
+}
+@container fold-picker (width < 336px) or (width < 19rem) {
+  .fold-compact-day {
+    display: grid;
+    gap: var(--kairn-semantic-space-step8);
+  }
+  .fold-calendar {
+    display: none;
+  }
+  .fold-calendar-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fold-period-fields {
+    grid-area: 2 / 1 / 3 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
+  }
+  .fold-calendar-nav > button:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+}
+@container schedule (width < 12rem) {
+  .fold-schedule-control {
+    display: grid;
+    justify-items: end;
+    gap: var(--kairn-semantic-space-step4);
+  }
+  .fold-schedule-control input {
+    padding-inline: 0.25rem;
+  }
+  .fold-schedule-control button {
+    position: static;
+    min-height: var(--spacing-control);
+    height: auto;
+    translate: none;
+    width: auto;
+    padding: 0.25rem 0.5rem;
+  }
+  .fold-picker-label {
+    display: inline;
+  }
+}
+.fold-calendar .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+  margin-top: 0.25rem;
+}
+.fold-calendar .rdp-weekday {
+  color: var(--color-muted-foreground);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.fold-calendar .rdp-day_button {
+  display: grid;
+  place-items: center;
+  min-height: max(2rem, var(--fold-target-floor));
+  border-radius: var(--fold-radius);
+  cursor: pointer;
+}
+.fold-calendar .rdp-day_button {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.fold-calendar button[aria-disabled="true"] {
+  opacity: 0.48;
+  cursor: default;
+}
+.fold-calendar .rdp-today .rdp-day_button {
+  text-decoration: underline;
+  text-underline-offset: 0.17em;
+}
+@media (hover: hover) {
+  .fold-calendar button:where(:hover):not([aria-disabled="true"]),
+  .fold-time-option:hover {
+    background: var(--fold-accent);
+  }
+}
+.fold-calendar .rdp-selected .rdp-day_button,
+.fold-time-option:has(:checked) {
+  background: var(--fold-citron);
+  border: 2px solid var(--fold-citron-ink);
+  color: var(--fold-citron-ink);
+  font-weight: 700;
+}
+.fold-calendar button:focus-visible,
+.fold-time-option:has(:focus-visible) {
+  outline: 2px solid currentColor;
+  outline-offset: -5px;
+}
+.fold-time-rail {
+  position: relative;
+  height: min(10.5rem, 32dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--fold-radius);
+  padding: 2px;
+}
+.fold-time-option {
+  position: relative;
+  display: grid;
+  min-height: max(2rem, var(--fold-target-floor));
+  place-items: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+@media (forced-colors: active) {
+  .fold-calendar .rdp-selected .rdp-day_button,
+  .fold-time-option:has(:checked) {
+    border: 2px solid Highlight;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fold-picker {
+    transition: translate var(--fold-motion-press);
+  }
+  .fold-picker[data-starting-style] {
+    translate: 0 -2px;
+  }
+}
+
+[data-slot="sheet-content"][data-close-button] [data-slot="sheet-title"] {
+  padding-inline-end: max(2.25rem, var(--fold-target-floor));
+}

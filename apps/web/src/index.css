@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@kairn/design-tokens/tokens.css";
+@import "./fold.css";
 
 @font-face {
   font-family: "Source Sans 3";
@@ -12,7 +13,7 @@
 
 @theme inline {
   --font-sans: var(--kairn-semantic-font-family-ui);
-  --font-heading: var(--font-sans);
+  --font-heading: "Bricolage Grotesque", var(--font-sans);
   --font-story: var(--kairn-semantic-font-family-story);
   --color-background: var(--kairn-semantic-color-canvas);
   --color-foreground: var(--kairn-semantic-color-ink);
@@ -20,7 +21,7 @@
   --color-card-foreground: var(--kairn-semantic-color-ink);
   --color-popover: var(--color-card);
   --color-popover-foreground: var(--color-foreground);
-  --color-sidebar: var(--color-card);
+  --color-sidebar: var(--fold-rail);
   --color-sidebar-foreground: var(--color-foreground);
   --color-sidebar-accent: var(--color-accent);
   --color-sidebar-accent-foreground: var(--color-accent-foreground);
@@ -30,15 +31,29 @@
   --color-muted-foreground: var(--kairn-semantic-color-secondary-text);
   --color-secondary: var(--kairn-semantic-color-action-wash);
   --color-secondary-foreground: var(--kairn-semantic-color-ink);
-  --color-accent: var(--kairn-semantic-color-action-wash);
+  --color-accent: var(--fold-accent);
   --color-accent-foreground: var(--kairn-semantic-color-action);
   --color-information: var(--kairn-semantic-color-information);
   --color-success: var(--kairn-semantic-color-success);
   --color-warning: var(--kairn-semantic-color-warning);
   --color-destructive: var(--kairn-semantic-color-error);
-  --color-border: var(--kairn-semantic-color-boundary);
+  --color-border: var(--fold-divider);
   --color-input: var(--kairn-semantic-color-boundary);
-  --color-ring: var(--kairn-semantic-color-information);
+  --color-ring: var(--fold-focus);
+  --color-receipt: var(--kairn-semantic-color-ink);
+  --color-receipt-foreground: var(--kairn-semantic-color-surface);
+  --color-dock: var(--fold-dock);
+  --color-dock-foreground: var(--fold-dock-ink);
+  --color-citron-foreground: var(--fold-citron-ink);
+  --color-lilac-foreground: var(--fold-lilac-ink);
+  --color-clay-foreground: var(--fold-clay-ink);
+  --color-scrim: rgb(0 0 0 / 40%);
+  --color-key: var(--fold-key);
+  --color-key-foreground: var(--fold-key-ink);
+  --color-lilac: var(--fold-lilac);
+  --color-clay: var(--fold-clay);
+  --color-citron: var(--fold-citron);
+  --text-control: 0.9375rem;
   --text-sm: var(--kairn-semantic-font-size-caption);
   --text-sm--line-height: var(--kairn-semantic-line-height-caption);
   --text-base: var(--kairn-semantic-font-size-body);
@@ -52,17 +67,20 @@
   --font-weight-normal: var(--kairn-semantic-font-weight-body);
   --font-weight-semibold: var(--kairn-semantic-font-weight-label);
   --font-weight-bold: var(--kairn-semantic-font-weight-emphasis);
-  --spacing-section: var(--kairn-semantic-space-step40);
-  --spacing-touch: max(44px, 2.75rem);
+  --spacing: var(--kairn-semantic-space-step4);
+  --spacing-inset: var(--kairn-semantic-space-step16);
+  --spacing-section: var(--kairn-semantic-space-step24);
+  --spacing-control: max(var(--fold-target-floor), var(--fold-control));
+  --spacing-touch: max(var(--fold-target-floor), 44px, 2.75rem);
   --radius-tag: var(--kairn-semantic-radius-tag);
-  --radius-control: var(--kairn-semantic-radius-control);
-  --radius-card: var(--kairn-semantic-radius-card);
+  --radius-control: var(--fold-radius);
+  --radius-card: var(--fold-panel-radius);
   --default-transition-duration: var(--kairn-semantic-motion-selection);
   --default-transition-timing-function: var(--kairn-semantic-easing-selection);
 }
 
 :root {
-  --radius: var(--kairn-semantic-radius-control);
+  --radius: var(--fold-radius);
 }
 
 @layer base {
@@ -80,8 +98,17 @@
     @apply font-sans;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+
   :focus-visible {
-    outline: 2px solid var(--kairn-semantic-color-information);
+    outline: 3px solid var(--fold-focus);
     outline-offset: 2px;
   }
 
@@ -113,24 +140,6 @@
     transform: translateY(-0.05rem) rotate(-45deg);
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    .sign-out-toast {
-      animation: sign-out-toast-in var(--kairn-semantic-motion-panel)
-        var(--kairn-semantic-easing-selection) both;
-    }
-  }
-
-  @keyframes sign-out-toast-in {
-    from {
-      opacity: 0;
-      transform: translateY(0.35rem);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   .auth-illustration {
     display: none;
   }
@@ -146,89 +155,5 @@
         var(--color-muted) url("./assets/konkan-ferry.webp") center 57% / cover
         no-repeat;
     }
-  }
-
-  .appearance-glyph,
-  .password-glyph {
-    position: relative;
-    display: grid;
-    flex: none;
-    width: 1.25rem;
-    height: 1.25rem;
-    place-items: center;
-  }
-
-  .appearance-glyph::before,
-  .appearance-glyph::after,
-  .password-glyph::before,
-  .password-glyph::after {
-    position: absolute;
-    content: "";
-  }
-
-  .appearance-glyph[data-mode="system"]::before {
-    inset: 0.1rem;
-    border: 1.5px solid currentColor;
-    border-radius: 50%;
-    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
-  }
-
-  .appearance-glyph[data-mode="light"]::before,
-  .appearance-glyph[data-mode="outdoor"]::before {
-    width: 0.59rem;
-    height: 0.59rem;
-    border: 1.5px solid currentColor;
-    border-radius: 50%;
-  }
-
-  .appearance-glyph[data-mode="light"]::after,
-  .appearance-glyph[data-mode="outdoor"]::after {
-    width: 0.1rem;
-    height: 0.1rem;
-    border-radius: 50%;
-    box-shadow:
-      0 -0.56rem currentColor,
-      0 0.56rem currentColor,
-      -0.56rem 0 currentColor,
-      0.56rem 0 currentColor,
-      0.38rem -0.38rem currentColor,
-      -0.38rem -0.38rem currentColor,
-      0.38rem 0.38rem currentColor,
-      -0.38rem 0.38rem currentColor;
-  }
-
-  .appearance-glyph[data-mode="dark"]::before {
-    inset: 0.09rem;
-    border-radius: 50%;
-    box-shadow: inset -0.32rem -0.18rem currentColor;
-  }
-
-  .appearance-glyph[data-mode="outdoor"]::before {
-    background: currentColor;
-  }
-
-  .password-glyph::before {
-    width: 0.85rem;
-    height: 0.85rem;
-    border: 1.5px solid currentColor;
-    border-radius: 72% 0;
-    transform: rotate(45deg);
-  }
-
-  .password-glyph::after {
-    width: 0.27rem;
-    height: 0.27rem;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .password-glyph-slash {
-    z-index: 1;
-    width: 1.3rem;
-    height: 1.5px;
-    border-radius: 1rem;
-    background: currentColor;
-    box-shadow: 0 1px var(--color-card);
-    transform: rotate(-45deg);
   }
 }

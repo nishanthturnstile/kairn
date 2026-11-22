@@ -4,7 +4,7 @@ import { type SubmitEvent, useEffect, useState } from "react";
 import { PageHeading } from "../components/page-heading";
 import { PasswordField } from "../components/password-field";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { Button, ButtonLink } from "../components/ui/button";
 import { authClient } from "../lib/auth";
 import { useSessionAccess } from "../lib/session-access";
 
@@ -85,7 +85,11 @@ function ResetPassword() {
       {token && (
         <form className="grid gap-4" onSubmit={(event) => void reset(event)}>
           <PasswordField id="reset-password" label="New password" isNew />
-          <Button type="submit" disabled={busy}>
+          <Button
+            type="submit"
+            disabled={busy}
+            feedback={busy ? "pending" : "idle"}
+          >
             {busy ? "Saving password…" : "Save password"}
           </Button>
         </form>
@@ -103,15 +107,21 @@ function ResetPassword() {
         </Alert>
       )}
       {!token && !feedback && (
-        <Button asChild variant="outline" className="justify-self-start">
-          <Link to="/account" search={{ mode: "recover" }}>
-            Request a new link
-          </Link>
-        </Button>
+        <ButtonLink
+          render={<Link to="/account" search={{ mode: "recover" }} />}
+          variant="outline"
+          className="justify-self-start"
+        >
+          Request a new link
+        </ButtonLink>
       )}
-      <Button asChild variant="link" className="justify-self-start">
-        <Link to="/account">Back to sign in</Link>
-      </Button>
+      <ButtonLink
+        render={<Link to="/account" />}
+        variant="link"
+        className="justify-self-start"
+      >
+        Back to sign in
+      </ButtonLink>
     </section>
   );
 }

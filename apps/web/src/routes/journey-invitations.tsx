@@ -9,7 +9,7 @@ import { JourneyDate } from "../components/journeys/dates";
 import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { Button, ButtonLink } from "../components/ui/button";
 import {
   captureInvitationFragment,
   clearInvitationHandoff,
@@ -298,11 +298,12 @@ function InvitationReviewRoute() {
 
   const retry = () => setAttempt((value) => value + 1);
   const back = (
-    <Button asChild variant="ghost">
-      <Link to="/dashboard" onClick={abandon}>
-        Back to Dashboard
-      </Link>
-    </Button>
+    <ButtonLink
+      render={<Link to="/dashboard" onClick={abandon} />}
+      variant="ghost"
+    >
+      Back to Dashboard
+    </ButtonLink>
   );
 
   let content: React.ReactNode;
@@ -363,23 +364,28 @@ function InvitationReviewRoute() {
             : "This invitation is unavailable. Ask the organiser for a new link."}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link
-              to="/account"
-              search={{ returnTo: handoff ? destination : undefined }}
-            >
-              Sign in
-            </Link>
-          </Button>
-          {handoff && (
-            <Button asChild variant="outline">
+          <ButtonLink
+            render={
               <Link
                 to="/account"
-                search={{ returnTo: destination, mode: "sign-up" }}
-              >
-                Create account
-              </Link>
-            </Button>
+                search={{ returnTo: handoff ? destination : undefined }}
+              />
+            }
+          >
+            Sign in
+          </ButtonLink>
+          {handoff && (
+            <ButtonLink
+              render={
+                <Link
+                  to="/account"
+                  search={{ returnTo: destination, mode: "sign-up" }}
+                />
+              }
+              variant="outline"
+            >
+              Create account
+            </ButtonLink>
           )}
         </div>
       </>
@@ -422,7 +428,11 @@ function InvitationReviewRoute() {
           </Alert>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button disabled={joining} onClick={() => void join()}>
+          <Button
+            disabled={joining}
+            feedback={joining ? "pending" : "idle"}
+            onClick={() => void join()}
+          >
             {joining
               ? "Joining…"
               : problem === "accept"
@@ -477,17 +487,19 @@ function InvitationReviewRoute() {
               : "This invitation is unavailable."}{" "}
           Ask the organiser for a new link.
         </p>
-        <Button asChild variant="outline" className="justify-self-start">
-          <Link to="/journeys" onClick={abandon}>
-            Go to Journeys
-          </Link>
-        </Button>
+        <ButtonLink
+          render={<Link to="/journeys" onClick={abandon} />}
+          variant="outline"
+          className="justify-self-start"
+        >
+          Go to Journeys
+        </ButtonLink>
       </>
     );
   }
 
   return (
-    <section className="grid min-w-0 gap-5">
+    <section className="grid min-w-0 gap-4">
       <span className="flex size-12 items-center justify-center rounded-control bg-accent text-primary">
         <MailOpen aria-hidden="true" />
       </span>

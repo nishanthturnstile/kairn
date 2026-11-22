@@ -12,7 +12,7 @@ for (const appearance of ["Light", "Dark", "Outdoor"] as const) {
   test(`route gaps and estimated connections in ${appearance}`, async ({
     page,
   }) => {
-    const file = resolve("docs/design-system/foundations.html");
+    const file = resolve("tests/fixtures/design-evidence/foundations.html");
     await page.goto(pathToFileURL(file).href);
     await page.getByLabel("Appearance").selectOption(appearance);
     await page.evaluate(() => document.fonts.ready);

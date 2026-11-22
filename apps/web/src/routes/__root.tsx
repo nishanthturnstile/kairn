@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { AppearanceSwitcher } from "../components/appearance-switcher";
 import { AuthLayout } from "../components/auth-layout";
 import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
-import { Button } from "../components/ui/button";
+import { ButtonLink } from "../components/ui/button";
 import { WorkspaceLayout } from "../components/workspace-layout";
 import { publicEnvironment } from "../env";
 import { clearInvitationHandoff } from "../lib/invitation-handoff";
@@ -25,6 +25,27 @@ import {
 import { OnboardingAccess, useWorkspaceOnboarding } from "../lib/onboarding";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
+import type { FileRoutesById } from "../routeTree.gen";
+
+// Generic task names keep private journey names out of tab titles and browser history.
+const pageTitles = {
+  __root__: "Workspace",
+  "/": "Home",
+  "/account": "Account",
+  "/account_/reset": "Reset password",
+  "/dashboard": "Dashboard",
+  "/design-system": "Fold design system",
+  "/discover": "Discover",
+  "/journey-invitations": "Journey invitation",
+  "/journeys": "Journeys",
+  "/journeys_/new": "Create a journey",
+  "/journeys_/$journeyId": "Journey details",
+  "/journeys_/$journeyId_/invite": "Invite people",
+  "/journeys_/$journeyId_/people": "Journey people",
+  "/onboarding": "Account setup",
+  "/onboarding_/companions": "Invite companions",
+  "/saved": "Saved",
+} satisfies Record<keyof FileRoutesById, string>;
 
 export const Route = createRootRouteWithContext<{
   scope: AccountScope;
@@ -35,11 +56,18 @@ export const Route = createRootRouteWithContext<{
 function AppShell() {
   const { scope } = Route.useRouteContext();
   const access = useSessionAccess();
+  const pageTitle = useRouterState({
+    select: ({ matches }) => pageTitles[matches.at(-1)?.routeId ?? "__root__"],
+  });
+  useEffect(() => {
+    document.title = `${pageTitle} · ${publicEnvironment.appName}`;
+  }, [pageTitle]);
   const pathname = useRouterState({
     select: ({ matches, location }) =>
       (matches.at(-1)?.pathname ?? location.pathname).replace(/\/+$/, "") ||
       "/",
   });
+  if (pathname === "/design-system") return <Outlet />;
   const onboarding = pathname === "/onboarding";
   if (
     access.state !== "verified" ||
@@ -65,13 +93,13 @@ function AppShell() {
   }
   return (
     <div className="grid min-h-svh grid-rows-[auto_1fr]">
-      <Button
-        asChild
+      <ButtonLink
+        render={<a href="#main" />}
         variant="outline"
         className="sr-only focus:not-sr-only focus:absolute focus:inset-s-4 focus:top-4 focus:z-20"
       >
-        <a href="#main">Skip to content</a>
-      </Button>
+        Skip to content
+      </ButtonLink>
       <header className="control-border-b bg-card">
         <div className="mx-auto flex max-w-[67rem] flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6 sm:py-3 lg:px-8">
           <Link
@@ -82,9 +110,9 @@ function AppShell() {
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             <AppearanceSwitcher />
-            <Button asChild variant="ghost">
-              <Link to="/account">Account</Link>
-            </Button>
+            <ButtonLink render={<Link to="/account" />} variant="ghost">
+              Account
+            </ButtonLink>
           </div>
         </div>
       </header>
@@ -165,9 +193,13 @@ function WorkspaceEntry({
           busy={progress.isFetching}
           retry={() => void progress.refetch()}
         />
-        <Button asChild variant="outline" className="justify-self-start">
-          <Link to="/account">Account</Link>
-        </Button>
+        <ButtonLink
+          render={<Link to="/account" />}
+          variant="outline"
+          className="justify-self-start"
+        >
+          Account
+        </ButtonLink>
       </div>
     );
   if (!progress.data) return <JourneyLoading label="Checking your setup" />;

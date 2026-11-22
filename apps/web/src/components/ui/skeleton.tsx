@@ -5,7 +5,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="skeleton"
       aria-hidden="true"
-      className={cn("rounded-tag bg-muted", className)}
+      className={cn("rounded-tag bg-accent", className)}
       {...props}
     />
   );

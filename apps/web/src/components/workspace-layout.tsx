@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   LogOut,
   MapIcon,
-  Mountain,
   UserRound,
   XIcon,
 } from "lucide-react";
@@ -29,10 +28,10 @@ import { authClient } from "../lib/auth";
 import { useProfile } from "../lib/profile";
 import type { AccountScope } from "../lib/session";
 import { useSessionAccess } from "../lib/session-access";
-import { appearanceLabels } from "./appearance-switcher";
+import { AppearanceIcon, appearanceLabels } from "./appearance-switcher";
 import { ProfileAvatar } from "./profile-avatar";
 import { Alert, AlertAction, AlertTitle } from "./ui/alert";
-import { Button } from "./ui/button";
+import { Button, ButtonLink } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { FoldMark } from "./ui/fold-mark";
 import { SheetClose } from "./ui/sheet";
 import {
   Sidebar,
@@ -81,27 +81,27 @@ export function WorkspaceLayout({
 
   return (
     <SidebarProvider>
-      <Button
-        asChild
+      <ButtonLink
+        render={<a href="#main" />}
         variant="outline"
         className="sr-only focus:not-sr-only focus:absolute focus:inset-s-4 focus:top-4 focus:z-20"
       >
-        <a href="#main">Skip to content</a>
-      </Button>
+        Skip to content
+      </ButtonLink>
       <WorkspaceSidebar
         scope={scope}
         accountId={accountId}
         pathname={pathname}
       />
       <SidebarInset>
-        <header className="flex min-h-16 flex-wrap items-center control-border-b bg-card px-2 sm:px-5">
+        <header className="flex min-h-12 flex-wrap items-center control-border-b bg-card px-2 sm:px-5">
           <SidebarTrigger />
           <WorkspaceBrand className="md:hidden" />
         </header>
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full min-w-0 max-w-[82rem] wrap-anywhere px-4 py-8 sm:px-6 lg:px-section lg:py-10"
+          className="mx-auto w-full min-w-0 max-w-[82rem] wrap-anywhere px-4 py-4 sm:px-6 lg:py-section"
         >
           {signOutFailed && pathname !== "/account" && (
             <Alert variant="destructive" role="alert" className="mb-4">
@@ -143,7 +143,7 @@ function WorkspaceBrand({
           aria-hidden="true"
           className="grid size-8 shrink-0 place-items-center rounded-control bg-primary text-primary-foreground"
         >
-          <Mountain className="size-5" />
+          <FoldMark />
         </span>
         <span className="group-data-[collapsible=icon]/sidebar:sr-only">
           {publicEnvironment.appName}
@@ -180,15 +180,17 @@ function WorkspaceSidebar({
       <SidebarHeader className="flex-wrap justify-between control-border-b">
         <WorkspaceBrand onClick={closeOnNavigation} />
         {isMobile && (
-          <SheetClose asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Close"
-            >
-              <XIcon aria-hidden="true" />
-            </Button>
+          <SheetClose
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close"
+              />
+            }
+          >
+            <XIcon aria-hidden="true" />
           </SheetClose>
         )}
       </SidebarHeader>
@@ -198,23 +200,23 @@ function WorkspaceSidebar({
             {destinations.map(({ to, label, icon: Icon }) => (
               <SidebarMenuItem key={to}>
                 <SidebarMenuButton
-                  asChild
+                  render={
+                    <Link
+                      to={to}
+                      activeOptions={{
+                        exact: to !== "/journeys",
+                        includeSearch: false,
+                      }}
+                      onClick={closeOnNavigation}
+                    />
+                  }
                   isActive={pathname === to || pathname.startsWith(`${to}/`)}
                   tooltip={label}
                 >
-                  <Link
-                    to={to}
-                    activeOptions={{
-                      exact: to !== "/journeys",
-                      includeSearch: false,
-                    }}
-                    onClick={closeOnNavigation}
-                  >
-                    <Icon aria-hidden="true" />
-                    <span className="group-data-[collapsible=icon]/sidebar:sr-only">
-                      {label}
-                    </span>
-                  </Link>
+                  <Icon aria-hidden="true" />
+                  <span className="group-data-[collapsible=icon]/sidebar:sr-only">
+                    {label}
+                  </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -256,28 +258,30 @@ function AccountMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <SidebarMenuButton
-          type="button"
-          tooltip="Account menu"
-          isActive={active}
-          className="min-h-14 max-sm:gap-2 max-sm:px-2"
-        >
-          <ProfileAvatar name={displayName} />
-          <span className="grid min-w-0 flex-1 gap-0.5 leading-tight group-data-[collapsible=icon]/sidebar:sr-only">
-            <span className="wrap-anywhere">{name}</span>
-            {user?.email && (
-              <span className="truncate text-sm font-normal text-muted-foreground">
-                {user.email}
-              </span>
-            )}
-          </span>
-          <span className="sr-only"> account menu</span>
-          <ChevronDown
-            aria-hidden="true"
-            className="hidden min-[360px]:block group-data-[collapsible=icon]/sidebar:hidden"
+      <DropdownMenuTrigger
+        render={
+          <SidebarMenuButton
+            type="button"
+            tooltip="Account menu"
+            isActive={active}
+            className="min-h-14 max-sm:gap-2 max-sm:px-2"
           />
-        </SidebarMenuButton>
+        }
+      >
+        <ProfileAvatar name={displayName} />
+        <span className="grid min-w-0 flex-1 gap-0.5 leading-tight group-data-[collapsible=icon]/sidebar:sr-only">
+          <span className="wrap-anywhere">{name}</span>
+          {user?.email && (
+            <span className="truncate text-sm font-normal text-muted-foreground">
+              {user.email}
+            </span>
+          )}
+        </span>
+        <span className="sr-only"> account menu</span>
+        <ChevronDown
+          aria-hidden="true"
+          className="hidden min-[360px]:block group-data-[collapsible=icon]/sidebar:hidden"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side={isMobile ? "top" : "right"}
@@ -287,52 +291,51 @@ function AccountMenu({
         aria-label="Account menu"
         className="w-[17rem] min-w-0 max-w-[calc(100vw-1rem)]"
       >
-        <DropdownMenuLabel className="grid gap-0.5 wrap-anywhere">
-          <span className="text-base font-semibold text-foreground">
-            {name}
-          </span>
-          {user?.email && <span className="font-normal">{user.email}</span>}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild onSelect={() => setOpenMobile(false)}>
-            <Link to="/account">
-              <UserRound aria-hidden="true" />
-              Account
-            </Link>
+          <DropdownMenuLabel className="grid gap-0.5 wrap-anywhere">
+            <span className="text-base font-semibold text-foreground">
+              {name}
+            </span>
+            {user?.email && <span className="font-normal">{user.email}</span>}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            render={<Link to="/account" />}
+            onClick={() => setOpenMobile(false)}
+          >
+            <UserRound aria-hidden="true" />
+            Account
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel id="workspace-appearance">
-          Appearance
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          aria-labelledby="workspace-appearance"
-          className="grid grid-cols-[repeat(auto-fit,minmax(min(7.5rem,100%),1fr))] gap-1 px-1 pb-1"
-          value={appearance}
-          onValueChange={(value) => {
-            const next = appearanceOptions.find((option) => option === value);
-            if (next) setAppearance(next);
-          }}
-        >
-          {appearanceOptions.map((option) => (
-            <DropdownMenuRadioItem
-              key={option}
-              value={option}
-              className="ps-2 pe-7 wrap-anywhere data-[state=checked]:bg-accent data-[state=checked]:text-accent-foreground"
-            >
-              <span
-                aria-hidden="true"
-                className="appearance-glyph"
-                data-mode={option}
-              />
-              {appearanceLabels[option]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel id="workspace-appearance">
+            Appearance
+          </DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            aria-labelledby="workspace-appearance"
+            className="grid grid-cols-[repeat(auto-fit,minmax(min(7.5rem,100%),1fr))] gap-1 px-1 pb-1"
+            value={appearance}
+            onValueChange={(value) => {
+              const next = appearanceOptions.find((option) => option === value);
+              if (next) setAppearance(next);
+            }}
+          >
+            {appearanceOptions.map((option) => (
+              <DropdownMenuRadioItem
+                key={option}
+                value={option}
+                className="ps-2 pe-7 wrap-anywhere data-checked:bg-accent data-checked:text-accent-foreground"
+              >
+                <AppearanceIcon mode={option} />
+                {appearanceLabels[option]}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onSelect={() => signOut()}>
+          <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
             <LogOut aria-hidden="true" />
             Sign out
           </DropdownMenuItem>

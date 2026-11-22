@@ -5,9 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
     <title>Kairn</title>
+    <script>
+      // Apply the saved canvas before the application bundle is ready.
+      try {
+        const mode = localStorage.getItem("kairn.appearance");
+        if (["light", "dark", "outdoor"].includes(mode)) {
+          document.documentElement.dataset.appearance = mode;
+        }
+      } catch {
+        // The stylesheet follows the OS when local storage is unavailable.
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div role="status" class="fold-launch fold-launch-initial" hidden>
+        <span data-slot="fold-mark" data-moving="true" aria-hidden="true"><i></i><i></i><i></i></span>
+        Opening Kairn…
+      </div>
+    </div>
+    <script>
+      setTimeout(() => {
+        document.querySelector(".fold-launch-initial")?.removeAttribute("hidden");
+      }, 200);
+    </script>
+    <noscript><p class="no-script-note">Kairn needs JavaScript to open your workspace.</p></noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

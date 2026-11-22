@@ -1,3 +1,4 @@
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "./ui/button";
 import { Field, FieldLabel } from "./ui/field";
@@ -41,9 +42,11 @@ export function PasswordField({
           aria-label={visible ? "Hide password" : "Show password"}
           onClick={() => setVisible(!visible)}
         >
-          <span aria-hidden="true" className="password-glyph">
-            {!visible && <span className="password-glyph-slash" />}
-          </span>
+          {visible ? (
+            <EyeOffIcon aria-hidden="true" />
+          ) : (
+            <EyeIcon aria-hidden="true" />
+          )}
         </Button>
       </div>
       {isNew && (

@@ -60,8 +60,7 @@ export function validateJourneyDraft(draft: JourneyDraft) {
     if (!time)
       errors[timeField] =
         `Enter ${part === "start" ? "a" : "an"} ${part} time.`;
-    else if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))
-      errors[timeField] = fieldMessages[timeField];
+    else if (!isClockTime(time)) errors[timeField] = fieldMessages[timeField];
   }
   const result = createJourney.safeParse({
     title: draft.title,
@@ -89,7 +88,11 @@ export function validateJourneyDraft(draft: JourneyDraft) {
   return { input: result.data };
 }
 
-function isCalendarDate(value: string) {
+export function isClockTime(time: string) {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time);
+}
+
+export function isCalendarDate(value: string) {
   if (!/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00Z`);
   return (

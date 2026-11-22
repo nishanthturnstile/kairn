@@ -106,7 +106,7 @@ export function ProfileName({
           className="grid min-w-0 gap-3"
           onSubmit={(event) => void save(event)}
         >
-          <Field>
+          <Field data-invalid={Boolean(error) || undefined}>
             <FieldLabel htmlFor={id}>Display name</FieldLabel>
             <Input
               id={id}
@@ -130,7 +130,11 @@ export function ProfileName({
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={busy}>
+            <Button
+              type="submit"
+              disabled={busy}
+              feedback={busy ? "pending" : "idle"}
+            >
               {busy ? "Saving…" : "Save name"}
             </Button>
             <Button

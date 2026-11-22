@@ -86,7 +86,6 @@ export function InviteComposer({
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const field = useId();
-  const heading = useId();
   const wide = useMediaQuery("(min-width: 768px)");
   const { refresh } = useSessionAccess();
 
@@ -297,7 +296,7 @@ export function InviteComposer({
       className={
         afterCreation
           ? "grid min-w-0 content-start gap-4"
-          : "grid min-w-0 gap-5"
+          : "grid min-w-0 gap-4"
       }
     >
       <fieldset
@@ -523,6 +522,7 @@ export function InviteComposer({
   );
   const sendAction = (
     <Button
+      feedback={sending ? "pending" : "idle"}
       disabled={sending || (!uncertain && unsent.length === 0)}
       onClick={() => void send()}
     >
@@ -549,14 +549,12 @@ export function InviteComposer({
         className="min-w-0 overflow-hidden rounded-card control-border bg-card"
       >
         <legend className="sr-only">Journey invitations</legend>
-        <div className="grid min-w-0 gap-4 p-4 @min-[32rem]/journey-invite:p-5 @min-[43rem]/journey-invite:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4 p-inset @min-[43rem]/journey-invite:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <section
-            aria-labelledby={heading}
+            aria-label="Add recipients"
             className="grid min-w-0 content-start gap-4"
           >
-            <h2 id={heading} className="text-xl font-semibold">
-              Add recipients
-            </h2>
+            <h2 className="text-xl font-semibold">Add recipients</h2>
             {finder}
           </section>
           <section
@@ -591,7 +589,7 @@ export function InviteComposer({
             </p>
           </section>
         </div>
-        <div className="grid gap-3 border-t border-border px-4 py-3 @min-[32rem]/journey-invite:px-5">
+        <div className="grid gap-3 border-t border-border px-inset py-3">
           {feedback}
           <div className="flex flex-wrap items-center justify-end gap-2">
             {dismissAction}
@@ -602,7 +600,7 @@ export function InviteComposer({
     );
 
   const fields = (
-    <fieldset disabled={suspended} className="grid min-w-0 gap-5">
+    <fieldset disabled={suspended} className="grid min-w-0 gap-4">
       {finder}
       {recipientList}
       {feedback}
@@ -616,13 +614,11 @@ export function InviteComposer({
   if (wide)
     return (
       <section
-        aria-labelledby={heading}
-        className="grid min-w-0 gap-4 rounded-card control-border bg-card p-3 sm:p-5"
+        aria-label="Invite people"
+        className="grid min-w-0 gap-4 rounded-card control-border bg-card p-3 sm:p-inset"
       >
         <div className="grid gap-1">
-          <h2 id={heading} className="text-xl font-semibold">
-            Invite people
-          </h2>
+          <h2 className="text-xl font-semibold">Invite people</h2>
           <p className="text-muted-foreground">{description}</p>
         </div>
         {fields}
@@ -637,7 +633,7 @@ export function InviteComposer({
     >
       <SheetContent
         showCloseButton={false}
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        finalFocus={false}
         className="data-[side=right]:w-full overflow-auto p-4"
       >
         <SheetHeader className="p-0">

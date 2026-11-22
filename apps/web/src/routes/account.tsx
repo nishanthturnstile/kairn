@@ -12,9 +12,9 @@ import { JourneyLoading } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { Button, ButtonLink } from "../components/ui/button";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
-import { Skeleton } from "../components/ui/skeleton";
+import { ContentLoading } from "../components/ui/loading";
 import { authClient } from "../lib/auth";
 import { readInvitationHandoff } from "../lib/invitation-handoff";
 import { journeyReturnTo, saveJourneyReturnTo } from "../lib/journey-return";
@@ -104,7 +104,7 @@ function AccountPage() {
     );
   if (state === "unavailable")
     return (
-      <section className="grid gap-4 rounded-card control-border bg-card p-4 sm:p-8">
+      <section className="grid gap-4 rounded-card control-border bg-card p-inset">
         <PageHeading title="Sign in" />
         <Alert variant="destructive" role="alert">
           <AlertDescription>
@@ -136,13 +136,16 @@ function AccountPage() {
           </Alert>
         )}
         {progress.data?.state === "pending" && (
-          <Button asChild className="justify-self-start">
-            <Link to="/onboarding">Resume setup</Link>
-          </Button>
+          <ButtonLink
+            render={<Link to="/onboarding" />}
+            className="justify-self-start"
+          >
+            Resume setup
+          </ButtonLink>
         )}
         <div className="grid items-start gap-4 @min-[48rem]/account:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
           <section aria-labelledby="account-profile" className="min-w-0">
-            <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+            <Card>
               <CardHeader>
                 <h2 id="account-profile" className="text-xl font-semibold">
                   Profile
@@ -284,7 +287,7 @@ function SignedInDevices({ id }: { id: string }) {
 
   return (
     <section aria-labelledby="account-devices" className="min-w-0">
-      <Card className="[--card-spacing:--spacing(3)] sm:[--card-spacing:--spacing(6)]">
+      <Card>
         <CardHeader className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="account-devices" className="text-xl font-semibold">
             Signed-in devices
@@ -300,12 +303,7 @@ function SignedInDevices({ id }: { id: string }) {
           </Button>
         </CardHeader>
         <CardContent className="@container/device-list grid gap-3">
-          {devices.isPending && (
-            <output className="grid gap-2 text-muted-foreground">
-              Loading devices
-              <Skeleton className="h-12" />
-            </output>
-          )}
+          {devices.isPending && <ContentLoading label="Loading devices" />}
           {devices.isError && (
             <Alert variant="destructive">
               <AlertDescription>Couldn’t load your devices.</AlertDescription>

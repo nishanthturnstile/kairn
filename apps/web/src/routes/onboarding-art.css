@@ -1,6 +1,6 @@
 .onboarding-flow {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--kairn-semantic-space-step24);
   max-inline-size: 63rem;
   margin-inline: auto;
 }
@@ -37,7 +37,7 @@
 }
 
 .onboarding-panel {
-  --onboarding-inset: clamp(1rem, 3.5vw, 2.5rem);
+  --onboarding-inset: var(--kairn-semantic-space-step16);
   display: grid;
   grid-template-areas: "intro" "content" "actions";
   grid-template-columns: minmax(0, 1fr);
@@ -100,7 +100,7 @@
 
 .onboarding-choices {
   display: grid;
-  gap: 0.625rem;
+  gap: var(--kairn-semantic-space-step8);
   min-inline-size: 0;
 }
 
@@ -108,10 +108,10 @@
   display: grid;
   align-items: start;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.625rem;
+  gap: var(--kairn-semantic-space-step8);
   min-inline-size: 0;
   min-block-size: var(--spacing-touch);
-  padding: 0.75rem 0.875rem;
+  padding: var(--kairn-semantic-space-step12);
   background: var(--color-card);
   cursor: pointer;
   transition: background-color var(--default-transition-duration)
@@ -158,27 +158,6 @@
 
 .onboarding-forward {
   margin-inline-start: auto;
-}
-
-.onboarding-arrow {
-  display: block;
-  position: relative;
-  flex: none;
-  inline-size: 0.8em;
-  block-size: 2px;
-  background: currentColor;
-}
-
-.onboarding-arrow::after {
-  position: absolute;
-  inset-inline-end: 0;
-  inset-block-start: 50%;
-  inline-size: 0.45em;
-  block-size: 0.45em;
-  border-block-start: 2px solid currentColor;
-  border-inline-end: 2px solid currentColor;
-  transform: translateY(-50%) rotate(45deg);
-  content: "";
 }
 
 @media (min-width: 54rem) {

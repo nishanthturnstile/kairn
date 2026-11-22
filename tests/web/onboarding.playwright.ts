@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 import { chooseAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
+import { fillSchedule } from "./schedule-fixture";
 import { openAccount } from "./workspace-fixture";
 
 const password = "Synthetic-onboarding-password";
@@ -182,8 +183,8 @@ test("reuses the signup name and resumes setup before creating a first planned j
   );
 
   await page.getByLabel("Title", { exact: true }).fill("Konkan in December");
-  await page.getByLabel("Start date", { exact: true }).fill("2090-12-12");
-  await page.getByLabel("Start time", { exact: true }).fill("09:00");
+  await fillSchedule(page, "Start date", "2090-12-12");
+  await fillSchedule(page, "Start time", "09:00");
   await page.getByLabel("Timezone", { exact: true }).fill("Asia/Kolkata");
   await page.getByRole("button", { name: "Save journey", exact: true }).click();
   await expect(
@@ -234,7 +235,6 @@ test("keeps an explicit journey return and consumes it after two steps", async (
 
 test("reflows both required steps and the past-journey handoff", async ({
   page,
-  browserName,
 }) => {
   test.setTimeout(75_000);
   await page.goto(`${site}/account`);
@@ -248,9 +248,7 @@ test("reflows both required steps and the past-journey handoff", async ({
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBe(320);
-    if (browserName !== "firefox") {
-      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-    }
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   }
   for (const appearance of ["Light", "Dark", "Outdoor"]) {
     await chooseAppearance(page, appearance);
@@ -308,14 +306,13 @@ async function fillJourney(page: Page, title: string) {
     .getByRole("link", { name: "Create a journey", exact: true })
     .click();
   await page.getByLabel("Title", { exact: true }).fill(title);
-  await page.getByLabel("Start date", { exact: true }).fill("2090-12-12");
-  await page.getByLabel("Start time", { exact: true }).fill("09:00");
+  await fillSchedule(page, "Start date", "2090-12-12");
+  await fillSchedule(page, "Start time", "09:00");
   await page.getByLabel("Timezone", { exact: true }).fill("Asia/Kolkata");
 }
 
 test("can skip inviting after creation and open the saved journey", async ({
   page,
-  browserName,
 }) => {
   await page.goto(`${site}/`);
   const email = await newAccount(page);
@@ -337,8 +334,7 @@ test("can skip inviting after creation and open the saved journey", async ({
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBe(320);
-  if (browserName !== "firefox")
-    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
   await page.getByRole("button", { name: "Invite by email" }).click();
   const addressField = page.getByRole("textbox", { name: "Email address" });

@@ -3,6 +3,8 @@ import {
   canReleaseJourneyAttempt,
   type FieldErrors,
   fieldOrder,
+  isCalendarDate,
+  isClockTime,
   type JourneyDraft,
   type JourneyField,
   journeyDraft,
@@ -38,10 +40,12 @@ import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
 import { PageHeading } from "../page-heading";
 import { Alert, AlertDescription } from "../ui/alert";
-import { Button } from "../ui/button";
+import { Button, ButtonLink } from "../ui/button";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Field, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
+import { NativeSelect } from "../ui/native-select";
+import { ScheduleInput } from "../ui/schedule-input";
 import { JourneyLoading, JourneyRetry } from "./states";
 
 const zones = new Set(["UTC", ...(Intl.supportedValuesOf?.("timeZone") ?? [])]);
@@ -61,13 +65,16 @@ export function CreateJourneyPage(props: CreatePageProps) {
     queryFn: () => loadJourneyAttempt(props.accountId),
   });
   return (
-    <section className="@container/journey-create mx-auto grid max-w-5xl gap-5">
-      <Button asChild variant="ghost" size="sm" className="justify-self-start">
-        <Link to="/journeys">
-          <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-          Back to Journeys
-        </Link>
-      </Button>
+    <section className="@container/journey-create mx-auto grid max-w-5xl gap-4">
+      <ButtonLink
+        render={<Link to="/journeys" />}
+        variant="ghost"
+        size="sm"
+        className="justify-self-start"
+      >
+        <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+        Back to Journeys
+      </ButtonLink>
       <PageHeading
         title="Create journey"
         description="Give your journey a name and choose when it starts."
@@ -279,13 +286,13 @@ function JourneyForm({
   }
 
   return (
-    <div className="grid max-w-2xl items-start gap-5 @min-[52rem]/journey-create:max-w-none @min-[52rem]/journey-create:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+    <div className="grid max-w-2xl items-start gap-4 @min-[52rem]/journey-create:max-w-none @min-[52rem]/journey-create:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <form
         noValidate
         onSubmit={(event) => void submit(event)}
         className="@container/journey-form grid min-w-0 rounded-card control-border bg-card"
       >
-        <FieldGroup className="gap-5 p-4 @min-[28rem]/journey-form:p-6">
+        <FieldGroup className="gap-4 p-inset">
           {feedback ? (
             <Alert variant="destructive">
               <AlertDescription>{feedback}</AlertDescription>
@@ -311,14 +318,9 @@ function JourneyForm({
             disabled={locked}
             required
           />
-          <section
-            aria-labelledby="journey-schedule"
-            className="grid gap-4 border-t pt-5"
-          >
+          <section aria-label="Schedule" className="grid gap-4 border-t pt-5">
             <div className="grid gap-1">
-              <h2 id="journey-schedule" className="text-xl font-semibold">
-                Schedule
-              </h2>
+              <h2 className="text-xl font-semibold">Schedule</h2>
               <p className="text-sm text-muted-foreground">
                 {intent
                   ? journeyIntentCopy[intent].guidance
@@ -353,14 +355,16 @@ function JourneyForm({
               </Button>
             )}
             <div id="journey-end-fields" hidden={!hasEnd}>
-              <ScheduleFields
-                part="end"
-                draft={draft}
-                errors={errors}
-                choices={choices.endOffset}
-                update={update}
-                disabled={locked}
-              />
+              {hasEnd && (
+                <ScheduleFields
+                  part="end"
+                  draft={draft}
+                  errors={errors}
+                  choices={choices.endOffset}
+                  update={update}
+                  disabled={locked}
+                />
+              )}
             </div>
             <JourneyInput
               field="timeZone"
@@ -382,7 +386,7 @@ function JourneyForm({
           </section>
         </FieldGroup>
         {saving && <output className="sr-only">Saving…</output>}
-        <div className="grid items-center gap-3 rounded-b-card border-t bg-background p-4 @min-[28rem]/journey-form:px-6">
+        <div className="grid items-center gap-3 rounded-b-card border-t bg-background p-inset">
           <p
             id="journey-visibility"
             className="flex items-start gap-2 text-sm text-muted-foreground"
@@ -397,6 +401,7 @@ function JourneyForm({
             <Button
               type="submit"
               disabled={saving}
+              feedback={saving ? "pending" : "idle"}
               aria-describedby="journey-visibility"
             >
               {saving ? "Saving…" : attempt ? "Retry save" : "Save journey"}
@@ -477,9 +482,8 @@ function JourneyPreview({
 }
 
 function previewMinute(date: string, time: string) {
-  if (!date || !time) return null;
+  if (!isCalendarDate(date) || !isClockTime(time)) return null;
   const local = `${date}T${time}`;
-  if (!Number.isFinite(Date.parse(`${local}Z`))) return null;
   const display = formatJourneyLocalMinute(local);
   return (
     <time dateTime={local}>
@@ -494,13 +498,28 @@ function JourneyInput({
   error,
   onEdit,
   ...props
-}: ComponentProps<typeof Input> & {
+}: Omit<ComponentProps<typeof Input>, "type"> & {
+  type?: "text" | "date" | "time";
   field: JourneyField;
   label: string;
   error?: string;
   onEdit: (field: JourneyField, value: string) => void;
 }) {
   const id = `journey-${field}`;
+  if (props.type === "date" || props.type === "time") {
+    return (
+      <ScheduleInput
+        kind={props.type}
+        id={id}
+        label={label}
+        value={String(props.value ?? "")}
+        disabled={props.disabled}
+        required={props.required}
+        error={error}
+        onValueChange={(next) => onEdit(field, next)}
+      />
+    );
+  }
   return (
     <Field className="min-w-0" data-invalid={error ? true : undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -544,13 +563,11 @@ function ScheduleFields({
       <legend className="sr-only">
         {part === "start" ? "Start" : "End (optional)"}
       </legend>
-      <FieldGroup className="@min-[25rem]/journey-form:grid-cols-2">
+      <FieldGroup className="@min-[32rem]/journey-form:grid-cols-2">
         <JourneyInput
           field={date}
           label={`${label} date`}
           type="date"
-          min="0001-01-01"
-          max="9999-12-31"
           value={draft[date]}
           error={errors[date]}
           onEdit={update}
@@ -570,12 +587,12 @@ function ScheduleFields({
         {(choices || draft[offset]) && (
           <Field
             data-invalid={errors[offset] ? true : undefined}
-            className="@min-[25rem]/journey-form:col-span-2"
+            className="@min-[32rem]/journey-form:col-span-2"
           >
             <FieldLabel htmlFor={`journey-${offset}`}>
               {label} time occurrence
             </FieldLabel>
-            <select
+            <NativeSelect
               id={`journey-${offset}`}
               value={draft[offset]}
               onChange={(event) => update(offset, event.currentTarget.value)}
@@ -584,7 +601,6 @@ function ScheduleFields({
               aria-describedby={
                 errors[offset] ? `journey-${offset}-error` : undefined
               }
-              className="min-h-touch w-full min-w-0 rounded-control control-border bg-card px-3 py-2 aria-invalid:border-destructive"
             >
               <option value="">Choose an occurrence</option>
               {choices ? (
@@ -596,7 +612,7 @@ function ScheduleFields({
               ) : (
                 <option value={draft[offset]}>UTC{draft[offset]}</option>
               )}
-            </select>
+            </NativeSelect>
             {errors[offset] && (
               <p
                 className="text-sm text-destructive"

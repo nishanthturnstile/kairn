@@ -3,7 +3,7 @@ import { cn } from "cn";
 import type * as React from "react";
 
 const alertVariants = cva(
-  "group/alert relative grid w-full min-w-0 gap-2 rounded-card control-border bg-card p-4 text-start text-base has-[>svg]:grid-cols-[auto_minmax(0,1fr)] *:[svg]:row-span-2 *:[svg]:size-6",
+  "group/alert relative grid w-full min-w-0 gap-x-2 gap-y-1 rounded-card control-border bg-card p-3 text-start text-base has-[>svg]:grid-cols-[auto_minmax(0,1fr)] *:[svg]:row-span-2 *:[svg]:size-4",
   {
     variants: {
       variant: {
@@ -27,7 +27,7 @@ function Alert({
   return (
     <div
       data-slot="alert"
-      role="alert"
+      role={variant === "destructive" ? "alert" : "status"}
       className={cn(alertVariants({ variant }), className)}
       {...props}
     />

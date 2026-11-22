@@ -15,7 +15,6 @@ import {
   Plus,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import beach from "../../assets/onboarding-beach.webp";
 import {
   historyKey,
   JourneyRequestError,
@@ -23,8 +22,9 @@ import {
 } from "../../lib/journey-api";
 import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
+import { JourneyMap } from "../illustrations/journey-map";
 import { PageHeading } from "../page-heading";
-import { Button } from "../ui/button";
+import { Button, ButtonLink } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { JourneyDate } from "./dates";
 import { JourneyLoading, JourneyRetry } from "./states";
@@ -85,7 +85,7 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
       (section) => !timeline.timeline[section].items.length,
     );
   return (
-    <section className="@container/journeys mx-auto grid max-w-5xl gap-6 sm:gap-8">
+    <section className="@container/journeys mx-auto grid max-w-5xl gap-section">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeading title="Journeys" />
         {!loading && !empty && <CreateJourneyLink />}
@@ -135,7 +135,7 @@ function HistorySections({
   if (!present.length)
     return (
       <Empty className="grid gap-0 overflow-hidden p-0 @min-[35rem]/journeys:grid-cols-[minmax(0,1fr)_44%]">
-        <div className="grid content-center gap-5 p-5 @min-[35rem]/journeys:p-8 @min-[54rem]/journeys:p-10">
+        <div className="grid content-center gap-3 p-inset">
           <EmptyHeader>
             <EmptyTitle className="text-4xl">No journeys yet</EmptyTitle>
             <EmptyDescription className="max-w-[40ch]">
@@ -147,15 +147,7 @@ function HistorySections({
             <CreateJourneyLink />
           </div>
         </div>
-        <div className="relative min-h-36 bg-muted @min-[35rem]/journeys:min-h-68">
-          <img
-            src={beach}
-            alt=""
-            width={1152}
-            height={864}
-            className="absolute inset-0 size-full object-cover object-[50%_56%]"
-          />
-        </div>
+        <JourneyMap />
       </Empty>
     );
   return present.map((section) => (
@@ -171,12 +163,10 @@ function HistorySections({
 
 function CreateJourneyLink() {
   return (
-    <Button asChild>
-      <Link to="/journeys/new">
-        <Plus aria-hidden="true" data-icon="inline-start" />
-        Create journey
-      </Link>
-    </Button>
+    <ButtonLink render={<Link to="/journeys/new" />}>
+      <Plus aria-hidden="true" data-icon="inline-start" />
+      Create journey
+    </ButtonLink>
   );
 }
 
@@ -254,7 +244,7 @@ function HistorySection({
       className={cn(
         "grid min-w-0 gap-3",
         active &&
-          "rounded-card control-border bg-accent px-4 pt-4 pb-2 sm:px-6 sm:pt-5",
+          "rounded-card control-border bg-accent px-inset pt-inset pb-2",
       )}
       aria-labelledby={`journeys-${section}`}
     >

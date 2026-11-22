@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { wcagAATags } from "./accessibility";
 import { mailLink, site } from "./identity-fixture";
 import { openWorkspaceAccountMenu } from "./workspace-fixture";
 
@@ -51,7 +52,7 @@ test("keeps page state across sidebar sizes and supports the mobile account menu
   await expect(dashboard).toHaveAttribute("aria-current", "page");
   await expect(main).toContainText("Your journeys start here");
   await expect(page.getByText("Devika Rao", { exact: true })).toBeVisible();
-  await expect(dashboard).toHaveAttribute("data-active", "true");
+  await expect(dashboard).toHaveAttribute("data-active", "");
   await expect(collapse).toHaveAttribute("aria-expanded", "true");
   if (process.env.KAIRN_CAPTURE_DASHBOARD === "1")
     await page.screenshot({
@@ -94,7 +95,7 @@ test("keeps page state across sidebar sizes and supports the mobile account menu
   await collapse.click();
   await expect(expand).toHaveAttribute("aria-expanded", "false");
   await expect(dashboard).toHaveAccessibleName("Dashboard");
-  await expect(dashboard).toHaveAttribute("data-active", "true");
+  await expect(dashboard).toHaveAttribute("data-active", "");
   await expand.click();
   expect(dashboardRequests).toHaveLength(initialDashboardRequests);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -120,7 +121,7 @@ test("keeps page state across sidebar sizes and supports the mobile account menu
   await expect(title).toHaveValue("Unsubmitted hill trip");
   await expect(title).toHaveAttribute("data-test-instance", "original");
   await expect(journeys).toHaveAttribute("aria-current", "page");
-  await expect(journeys).toHaveAttribute("data-active", "true");
+  await expect(journeys).toHaveAttribute("data-active", "");
 
   await page.setViewportSize({ width: 1024, height: 800 });
   await expect(expand).toBeVisible();
@@ -158,11 +159,7 @@ test("keeps page state across sidebar sizes and supports the mobile account menu
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBe(320);
   expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-        .analyze()
-    ).violations,
+    (await new AxeBuilder({ page }).withTags(wcagAATags).analyze()).violations,
   ).toEqual([]);
 
   await navTrigger.click();
@@ -191,7 +188,7 @@ test("keeps page state across sidebar sizes and supports the mobile account menu
     page.getByRole("heading", { name: "Sign in", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("status").filter({ hasText: "You’re signed out." }),
+    page.getByRole("dialog", { name: "You’re signed out." }),
   ).toBeVisible();
   await expect(nav).toHaveCount(0);
 });

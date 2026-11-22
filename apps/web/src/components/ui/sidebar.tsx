@@ -1,6 +1,7 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { cn } from "cn";
 import { PanelLeftIcon } from "lucide-react";
-import { Slot } from "radix-ui";
 import {
   type ComponentProps,
   type CSSProperties,
@@ -8,6 +9,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useId,
   useState,
 } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -26,11 +28,10 @@ import {
   TooltipTrigger,
 } from "./tooltip";
 
-// Adapted from the shadcn/ui Radix Sidebar. Desktop uses an icon rail and mobile uses a Sheet.
-const preferenceKey = "kairn.sidebar";
-const navigationId = "workspace-navigation";
+// Adapted from the shadcn/ui Base Sidebar. Desktop uses an icon rail and mobile uses a Sheet.
 
 type SidebarContextProps = {
+  navigationId: string;
   open: boolean;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
@@ -46,7 +47,14 @@ function useSidebar() {
   return context;
 }
 
-function SidebarProvider({ children }: { children: ReactNode }) {
+function SidebarProvider({
+  children,
+  preferenceKey = "kairn.sidebar",
+}: {
+  children: ReactNode;
+  preferenceKey?: string;
+}) {
+  const navigationId = useId();
   const isMobile = useMediaQuery("(width < 48rem)");
   const isWide = useMediaQuery("(width >= 80rem)");
   const [openMobile, setOpenMobile] = useState(false);
@@ -89,15 +97,22 @@ function SidebarProvider({ children }: { children: ReactNode }) {
 
   return (
     <SidebarContext.Provider
-      value={{ open, openMobile, setOpenMobile, isMobile, toggleSidebar }}
+      value={{
+        navigationId,
+        open,
+        openMobile,
+        setOpenMobile,
+        isMobile,
+        toggleSidebar,
+      }}
     >
-      <TooltipProvider delayDuration={250}>
+      <TooltipProvider delay={250}>
         <div
           data-slot="sidebar-wrapper"
           className="flex min-h-svh w-full"
           style={
             {
-              "--sidebar-width": "min(15rem, 34vw)",
+              "--sidebar-width": "min(13rem, 34vw)",
               "--sidebar-width-icon": "calc(var(--spacing-touch) + 1.5rem)",
             } as CSSProperties
           }
@@ -109,8 +124,19 @@ function SidebarProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function Sidebar({ children }: { children: ReactNode }) {
-  const { isMobile, open, openMobile, setOpenMobile } = useSidebar();
+function Sidebar({
+  children,
+  label = "Workspace navigation",
+  description = "Switch pages or manage your account.",
+  onNavigationClose,
+}: {
+  children: ReactNode;
+  label?: string;
+  description?: string;
+  onNavigationClose?: () => boolean;
+}) {
+  const { navigationId, isMobile, open, openMobile, setOpenMobile } =
+    useSidebar();
   if (isMobile) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile}>
@@ -121,24 +147,18 @@ function Sidebar({ children }: { children: ReactNode }) {
           data-slot="sidebar"
           data-mobile="true"
           className="data-[side=left]:w-[min(21rem,calc(100vw-1rem))] gap-0 bg-sidebar p-0 text-base text-sidebar-foreground"
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
+          finalFocus={() => {
             if (
-              !document.getElementById("main")?.contains(document.activeElement)
-            ) {
-              document
-                .querySelector<HTMLButtonElement>(
-                  '[data-slot="sidebar-trigger"]',
-                )
-                ?.focus();
-            }
+              onNavigationClose?.() ||
+              document.getElementById("main")?.contains(document.activeElement)
+            )
+              return false;
+            return document.getElementById(`${navigationId}-trigger`) ?? true;
           }}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Workspace navigation</SheetTitle>
-            <SheetDescription>
-              Switch pages or manage your account.
-            </SheetDescription>
+            <SheetTitle>{label}</SheetTitle>
+            <SheetDescription>{description}</SheetDescription>
           </SheetHeader>
           {children}
         </SheetContent>
@@ -148,7 +168,9 @@ function Sidebar({ children }: { children: ReactNode }) {
 
   return (
     <aside
-      aria-label="Workspace sidebar"
+      aria-label={
+        label === "Workspace navigation" ? "Workspace sidebar" : label
+      }
       data-slot="sidebar"
       data-state={open ? "expanded" : "collapsed"}
       data-collapsible={open ? "" : "icon"}
@@ -173,30 +195,34 @@ function SidebarTrigger({
   className,
   ...props
 }: ComponentProps<typeof Button>) {
-  const { isMobile, open, openMobile, toggleSidebar } = useSidebar();
+  const { navigationId, isMobile, open, openMobile, toggleSidebar } =
+    useSidebar();
   const label = isMobile
     ? "Open navigation"
     : open
       ? "Collapse sidebar"
       : "Expand sidebar";
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          data-slot="sidebar-trigger"
-          aria-label={label}
-          aria-expanded={isMobile ? openMobile : open}
-          aria-controls={!isMobile || openMobile ? navigationId : undefined}
-          aria-haspopup={isMobile ? "dialog" : undefined}
-          className={className}
-          onClick={toggleSidebar}
-          {...props}
-        >
-          <PanelLeftIcon aria-hidden="true" />
-        </Button>
+    <Tooltip disabled={isMobile}>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            id={`${navigationId}-trigger`}
+            data-slot="sidebar-trigger"
+            aria-label={label}
+            aria-expanded={isMobile ? openMobile : open}
+            aria-controls={!isMobile || openMobile ? navigationId : undefined}
+            aria-haspopup={isMobile ? "dialog" : undefined}
+            className={className}
+            onClick={toggleSidebar}
+            {...props}
+          />
+        }
+      >
+        <PanelLeftIcon aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent hidden={isMobile} side="bottom">
         {label}
@@ -219,7 +245,7 @@ function SidebarHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="sidebar-header"
-      className={cn("flex min-h-16 shrink-0 items-center px-3", className)}
+      className={cn("flex min-h-12 shrink-0 items-center px-3", className)}
       {...props}
     />
   );
@@ -243,7 +269,7 @@ function SidebarContent({ className, ...props }: ComponentProps<"div">) {
     <div
       data-slot="sidebar-content"
       className={cn(
-        "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4",
+        "min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-3",
         className,
       )}
       {...props}
@@ -266,33 +292,35 @@ function SidebarMenuItem(props: ComponentProps<"li">) {
 }
 
 function SidebarMenuButton({
-  asChild = false,
+  render,
   isActive = false,
   tooltip,
   className,
   ...props
 }: ComponentProps<"button"> & {
-  asChild?: boolean;
+  render?: useRender.ComponentProps<"button">["render"];
   isActive?: boolean;
   tooltip?: string;
 }) {
-  const Comp = asChild ? Slot.Root : "button";
   const { isMobile, open } = useSidebar();
-  const button = (
-    <Comp
-      data-slot="sidebar-menu-button"
-      data-active={isActive}
-      className={cn(
-        "flex min-h-touch w-full min-w-0 items-center gap-3 rounded-control px-3 py-1 text-start text-base font-semibold transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:-outline-offset-2 aria-expanded:bg-sidebar-accent data-active:bg-sidebar-accent data-active:font-bold data-active:text-sidebar-accent-foreground data-active:inset-ring-1 data-active:inset-ring-current group-data-[collapsible=icon]/sidebar:justify-center group-data-[collapsible=icon]/sidebar:gap-0 group-data-[collapsible=icon]/sidebar:px-0 [&_svg]:size-[1.125rem] [&_svg]:shrink-0",
-        className,
-      )}
-      {...props}
-    />
-  );
+  const button = useRender({
+    defaultTagName: "button",
+    render,
+    props: mergeProps<"button">(
+      {
+        className: cn(
+          "flex min-h-control w-full min-w-0 items-center gap-2 rounded-control px-3 py-1 text-start text-(length:--text-control) font-medium motion-safe:transition-colors not-data-active:hover:bg-sidebar-accent not-data-active:hover:text-sidebar-accent-foreground focus-visible:-outline-offset-2 aria-expanded:bg-sidebar-accent group-data-[collapsible=icon]/sidebar:justify-center group-data-[collapsible=icon]/sidebar:gap-0 group-data-[collapsible=icon]/sidebar:px-0 [&_svg]:size-[1.125rem] [&_svg]:shrink-0",
+          className,
+        ),
+      },
+      props,
+    ),
+    state: { slot: "sidebar-menu-button", active: isActive },
+  });
   if (!tooltip) return button;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
+    <Tooltip disabled={isMobile || open}>
+      <TooltipTrigger render={button} />
       <TooltipContent side="right" sideOffset={6} hidden={isMobile || open}>
         {tooltip}
       </TooltipContent>

@@ -5,6 +5,7 @@ import ferryArt from "../assets/onboarding-ferry.webp";
 import { ProfileName } from "../components/profile-name";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import { Radio } from "../components/ui/selection";
 import { clearInvitationHandoff } from "../lib/invitation-handoff";
 import { JourneyRequestError, journeyResult } from "../lib/journey-api";
 import { journeyIntentCopy } from "../lib/journey-intent-copy";
@@ -149,7 +150,7 @@ function Onboarding() {
 
   const active = steps[step - 1];
   return (
-    <section className="onboarding-flow" aria-labelledby="onboarding-heading">
+    <section className="onboarding-flow" aria-label={active.title}>
       <div className="onboarding-progress">
         <p className="font-semibold text-muted-foreground">
           Step {step} of {steps.length}
@@ -172,7 +173,6 @@ function Onboarding() {
       >
         <header className="onboarding-intro">
           <h1
-            id="onboarding-heading"
             ref={heading}
             tabIndex={-1}
             className="onboarding-title outline-none"
@@ -206,23 +206,22 @@ function Onboarding() {
               {choices.map(({ value, title, description }) => (
                 <label
                   className="onboarding-choice control-border rounded-control"
+                  htmlFor={`intent-${value}`}
                   key={value}
                 >
-                  <input
-                    type="radio"
+                  <Radio
+                    id={`intent-${value}`}
                     name="onboarding-intent"
                     value={value}
                     checked={(intent ?? "look") === value}
                     onChange={() =>
                       setIntent(value === "look" ? undefined : value)
                     }
-                    aria-labelledby={`purpose-${value}`}
+                    aria-label={title}
                     aria-describedby={`purpose-${value}-details`}
                   />
                   <span className="grid min-w-0">
-                    <span id={`purpose-${value}`} className="font-semibold">
-                      {title}
-                    </span>
+                    <span className="font-semibold">{title}</span>
                     <span
                       id={`purpose-${value}-details`}
                       className="text-sm text-muted-foreground"
@@ -270,6 +269,7 @@ function Onboarding() {
               <Button
                 type="button"
                 disabled={busy || editingName}
+                feedback={busy ? "pending" : "idle"}
                 onClick={() => void confirm("continue")}
               >
                 {busy
@@ -277,9 +277,6 @@ function Onboarding() {
                   : step === 2 && target
                     ? targetLabel
                     : "Continue"}
-                {!busy && (
-                  <span aria-hidden="true" className="onboarding-arrow" />
-                )}
               </Button>
               {step === 2 && target && target !== "/dashboard" && (
                 <Button

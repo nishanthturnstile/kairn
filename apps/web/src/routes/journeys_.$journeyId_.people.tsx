@@ -36,7 +36,7 @@ import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { PageHeading } from "../components/page-heading";
 import { ProfileAvatar } from "../components/profile-avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { Button, ButtonLink } from "../components/ui/button";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "../components/ui/empty";
 import {
@@ -181,9 +181,13 @@ function PeopleUnavailable() {
       <Alert>
         <AlertTitle>This journey is unavailable</AlertTitle>
       </Alert>
-      <Button asChild variant="outline" className="justify-self-start">
-        <Link to="/journeys">Go to Journeys</Link>
-      </Button>
+      <ButtonLink
+        render={<Link to="/journeys" />}
+        variant="outline"
+        className="justify-self-start"
+      >
+        Go to Journeys
+      </ButtonLink>
     </section>
   );
 }
@@ -528,7 +532,7 @@ function People({
       className={
         suspended
           ? undefined
-          : "@container/journey-people mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-5"
+          : "@container/journey-people mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-4"
       }
     >
       <div>
@@ -537,18 +541,19 @@ function People({
             Back to journey
           </Button>
         ) : (
-          <Button asChild variant="ghost">
-            <Link to="/journeys/$journeyId" params={{ journeyId }}>
-              <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-              Back to journey
-            </Link>
-          </Button>
+          <ButtonLink
+            render={<Link to="/journeys/$journeyId" params={{ journeyId }} />}
+            variant="ghost"
+          >
+            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
+            Back to journey
+          </ButtonLink>
         )}
       </div>
       <header
         ref={heading}
         tabIndex={-1}
-        className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-card bg-muted p-4 @min-[34rem]/journey-people:p-6"
+        className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-card bg-muted p-inset"
       >
         <div className="min-w-0 max-w-full wrap-anywhere">
           <PageHeading title="People" description={journey.title} />
@@ -943,12 +948,12 @@ function People({
         >
           <SheetContent
             showCloseButton={false}
-            className="overflow-auto p-5 data-[side=right]:w-full"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              if (focusReturn.current?.isConnected) focusReturn.current.focus();
-              else heading.current?.focus();
-            }}
+            className="overflow-auto p-inset data-[side=right]:w-full"
+            finalFocus={() =>
+              focusReturn.current?.isConnected
+                ? focusReturn.current
+                : heading.current
+            }
           >
             <SheetHeader className="p-0">
               <SheetTitle>{actionTitle(action)}</SheetTitle>
@@ -970,6 +975,7 @@ function People({
                     : "destructive"
                 }
                 disabled={busy}
+                feedback={busy ? "pending" : "idle"}
                 onClick={() => void run(action)}
               >
                 {busy ? "Working…" : actionTitle(action)}

@@ -32,8 +32,10 @@ jobs:
       - run: pnpm check:client-bundles
       - run: pnpm --dir apps/mobile exec expo install --check
       - run: bash tests/operations/packaged-links.sh
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium firefox
       - run: pnpm test:web
+      - name: Firefox design system accessibility and interactions
+        run: pnpm test:web tests/web/fold-atlas.playwright.ts --browser=firefox
       - name: Integration services
         run: docker compose -f infra/compose/dev.yml up -d --wait db storage mail
       - run: pnpm db:migrate
@@ -41,6 +43,8 @@ jobs:
       - run: pnpm test:web:identity
       - name: Web onboarding and Dashboard
         run: KAIRN_WEB_ONBOARDING=1 pnpm test:web:identity --workers=1
+      - name: Firefox enlarged-text onboarding and invitation scans
+        run: KAIRN_WEB_ONBOARDING=1 pnpm test:web:identity --browser=firefox --workers=1 -g "reflows both|can skip inviting"
       - name: Web invitation and membership recovery
         run: KAIRN_WEB_INVITATIONS=1 KAIRN_TEST_WEB_PORT=58084 KAIRN_TEST_API_PORT=58085 pnpm test:web:identity --workers=1
       - run: pnpm test:integration

@@ -8,7 +8,7 @@ import ferry from "../assets/konkan-ferry.webp";
 import { InviteComposer } from "../components/journeys/invite-composer";
 import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
 import { Alert, AlertTitle } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { ButtonLink } from "../components/ui/button";
 import { journeyInvitationsKey, useJourneyAccess } from "../lib/journey-access";
 import type { AccountScope } from "../lib/session";
 
@@ -50,16 +50,20 @@ function InviteRoute() {
         <JourneyLoading label="Checking journey access" />
       )}
       {(access.offline || access.isError) && !sending && (
-        <Button asChild variant="outline" className="justify-self-start">
-          <Link to="/journeys/$journeyId" params={{ journeyId }} replace>
-            Open journey
-          </Link>
-        </Button>
+        <ButtonLink
+          render={
+            <Link to="/journeys/$journeyId" params={{ journeyId }} replace />
+          }
+          variant="outline"
+          className="justify-self-start"
+        >
+          Open journey
+        </ButtonLink>
       )}
     </div>
   );
   return (
-    <div className="@container/journey-invite mx-auto grid w-full min-w-0 max-w-5xl gap-5">
+    <div className="@container/journey-invite mx-auto grid w-full min-w-0 max-w-5xl gap-4">
       {journey ? (
         <JourneyInvitations
           key={journey.id}
@@ -93,9 +97,9 @@ function JourneyInvitations({
   const navigate = Route.useNavigate();
   useEffect(() => heading.current?.focus(), []);
   return (
-    <div className="grid min-w-0 gap-5">
+    <div className="grid min-w-0 gap-4">
       <header className="grid min-w-0 overflow-hidden rounded-card bg-primary text-primary-foreground @min-[34rem]/journey-invite:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="grid min-w-0 content-center justify-items-start gap-3 p-5 @min-[34rem]/journey-invite:p-7">
+        <div className="grid min-w-0 content-center justify-items-start gap-3 p-inset">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <Check aria-hidden="true" className="size-4 shrink-0" />
             Journey saved

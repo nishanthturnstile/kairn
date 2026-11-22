@@ -4,7 +4,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
 async function openSpecimen(page: Page, name: string) {
-  await page.goto(pathToFileURL(resolve("docs/design-system", name)).href);
+  await page.goto(
+    pathToFileURL(resolve("tests/fixtures/design-evidence", name)).href,
+  );
   await page.evaluate(() => document.fonts.ready);
 }
 

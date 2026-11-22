@@ -3,8 +3,7 @@ import { openWorkspaceAccountMenu } from "./workspace-fixture";
 
 export async function chooseAppearance(page: Page, label: string) {
   const standalone = page.getByRole("button", {
-    name: "Appearance",
-    exact: true,
+    name: /^Appearance(?:$|: )/,
   });
   if (!(await standalone.isVisible())) {
     const menu = await openWorkspaceAccountMenu(page);
