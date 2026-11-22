@@ -1,11 +1,11 @@
 import { journeyPath } from "@kairn/contracts/journeys";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Action, AppText } from "../../../../components/fold/primitives";
 import { JourneyPeople } from "../../../../components/journeys/people";
 import {
   JourneyGate,
   JourneyScreen,
 } from "../../../../components/journeys/states";
-import { Action, AppText } from "../../../../components/ui";
 
 export default function PeopleRoute() {
   const { journeyId: id } = useLocalSearchParams();

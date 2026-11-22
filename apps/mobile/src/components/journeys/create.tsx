@@ -43,8 +43,14 @@ import type { VerifiedMobileScope } from "../../session";
 import type { JourneyAttempt } from "../../storage/journey-attempt";
 import { openAccountWorkspace } from "../../storage/workspace";
 import { dashboardKey } from "../../workspace-keys";
-import { Action, AppText, Field, Panel, StatusNotice } from "../ui";
-import { SchedulePicker } from "./picker";
+import {
+  Action,
+  AppText,
+  Field,
+  Panel,
+  StatusNotice,
+} from "../fold/primitives";
+import { focusInvalidSchedule, ScheduleField } from "./picker";
 import { JourneyRetry, JourneyScreen, journeyStyles } from "./states";
 
 type AttemptStore = Awaited<
@@ -176,7 +182,18 @@ function JourneyForm({
     const field = pendingFocus.current;
     pendingFocus.current = undefined;
     if (field !== "startOffset" && field !== "endOffset") {
-      editRefs.current[field]?.focus();
+      if (
+        field === "startDate" ||
+        field === "endDate" ||
+        field === "startTime" ||
+        field === "endTime"
+      ) {
+        focusInvalidSchedule(
+          editRefs.current[field],
+          field.endsWith("Date") ? "date" : "time",
+          draft[field],
+        );
+      } else editRefs.current[field]?.focus();
       return;
     }
     const choice = occurrenceRefs.current[field];
@@ -200,7 +217,7 @@ function JourneyForm({
           AccessibilityInfo.sendAccessibilityEvent(choice, "focus");
       });
     });
-  }, [canSubmit, errors, saving, scope, scroll]);
+  }, [draft, canSubmit, errors, saving, scope, scroll]);
 
   function editRef(field: JourneyField) {
     return (input: ComponentRef<typeof TextInput> | null) => {
@@ -449,30 +466,16 @@ function JourneyForm({
                 {(part === "start" || hasEnd) &&
                   (["Date", "Time"] as const).map((kind) => {
                     const field = `${part}${kind}` as const;
-                    const format = kind === "Date" ? "YYYY-MM-DD" : "HH:mm";
                     return (
-                      <SchedulePicker
+                      <ScheduleField
                         key={field}
                         mode={kind === "Date" ? "date" : "time"}
-                        label={`Pick ${label.toLowerCase()} ${kind.toLowerCase()}`}
+                        label={`${label} ${kind.toLowerCase()}`}
+                        ref={editRef(field)}
                         value={draft[field]}
                         disabled={locked}
                         compact={compactPickers}
-                        renderField={(trigger) => (
-                          <Field
-                            label={`${label} ${kind.toLowerCase()}`}
-                            ref={editRef(field)}
-                            error={errors[field]}
-                            accessibilityHint={`Enter ${format}`}
-                            placeholder={format}
-                            value={draft[field]}
-                            onChangeText={(value) => update(field, value)}
-                            autoCorrect={false}
-                            autoCapitalize="none"
-                            editable={!locked}
-                            suffix={trigger}
-                          />
-                        )}
+                        error={errors[field]}
                         onChange={(value) => update(field, value)}
                       />
                     );
@@ -583,7 +586,7 @@ function JourneyForm({
                     : "Save journey"
             }
             variant="primary"
-            accessibilityState={{ busy: saving }}
+            feedback={saving ? "pending" : confirmed ? "success" : "idle"}
             disabled={saving}
             onPress={() =>
               confirmed ? openJourney(confirmed) : void submit(false)

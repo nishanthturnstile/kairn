@@ -9,23 +9,23 @@ public enum KairnTokens: Sendable {
 
     public var componentCaptureButtonBackground: Color {
         switch self {
-        case .light: return Self.srgb(0x174940)
-        case .dark: return Self.srgb(0x9CD5BD)
+        case .light: return Self.srgb(0x24271F)
+        case .dark: return Self.srgb(0xD3F477)
         case .outdoor: return Self.srgb(0x0D382D)
         }
     }
 
     public var componentCaptureButtonForeground: Color {
         switch self {
-        case .light: return Self.srgb(0xFFFFFF)
-        case .dark: return Self.srgb(0x112B24)
+        case .light: return Self.srgb(0xFFFEF8)
+        case .dark: return Self.srgb(0x1C2315)
         case .outdoor: return Self.srgb(0xFFFFFF)
         }
     }
 
     public var componentCaptureButtonMinHeight: CGFloat { 56 }
 
-    public var componentCaptureButtonRadius: CGFloat { 8 }
+    public var componentCaptureButtonRadius: CGFloat { 6 }
 
     public var componentChapterHeadingFamily: [String] { ["Georgia", "serif"] }
 
@@ -35,8 +35,8 @@ public enum KairnTokens: Sendable {
 
     public var componentMomentCardBackground: Color {
         switch self {
-        case .light: return Self.srgb(0xFFFFFF)
-        case .dark: return Self.srgb(0x1C2B29)
+        case .light: return Self.srgb(0xFFFEFA)
+        case .dark: return Self.srgb(0x252823)
         case .outdoor: return Self.srgb(0xFFFFFF)
         }
     }
@@ -51,7 +51,7 @@ public enum KairnTokens: Sendable {
 
     public var componentMomentCardPadding: CGFloat { 16 }
 
-    public var componentMomentCardRadius: CGFloat { 12 }
+    public var componentMomentCardRadius: CGFloat { 10 }
 
     public var componentRouteLineCasing: CGFloat { 2 }
 
@@ -71,8 +71,8 @@ public enum KairnTokens: Sendable {
 
     public var componentRouteLineRecorded: Color {
         switch self {
-        case .light: return Self.srgb(0x174940)
-        case .dark: return Self.srgb(0x9CD5BD)
+        case .light: return Self.srgb(0x24271F)
+        case .dark: return Self.srgb(0xD3F477)
         case .outdoor: return Self.srgb(0x0D382D)
         }
     }
@@ -81,16 +81,16 @@ public enum KairnTokens: Sendable {
 
     public var componentSyncStatusFailed: Color {
         switch self {
-        case .light: return Self.srgb(0x9D2C2D)
-        case .dark: return Self.srgb(0xFFABAC)
+        case .light: return Self.srgb(0xA53126)
+        case .dark: return Self.srgb(0xFFA49C)
         case .outdoor: return Self.srgb(0x761D23)
         }
     }
 
     public var componentSyncStatusUploaded: Color {
         switch self {
-        case .light: return Self.srgb(0x21633F)
-        case .dark: return Self.srgb(0x93D8AC)
+        case .light: return Self.srgb(0x3B602C)
+        case .dark: return Self.srgb(0xB5DF9D)
         case .outdoor: return Self.srgb(0x134729)
         }
     }
@@ -113,8 +113,8 @@ public enum KairnTokens: Sendable {
 
     public var semanticActivityOther: Color {
         switch self {
-        case .light: return Self.srgb(0x49635F)
-        case .dark: return Self.srgb(0xB5C8BF)
+        case .light: return Self.srgb(0x61645A)
+        case .dark: return Self.srgb(0xBDC0B3)
         case .outdoor: return Self.srgb(0x293B34)
         }
     }
@@ -129,8 +129,8 @@ public enum KairnTokens: Sendable {
 
     public var semanticActivityTrek: Color {
         switch self {
-        case .light: return Self.srgb(0x174940)
-        case .dark: return Self.srgb(0x9CD5BD)
+        case .light: return Self.srgb(0x24271F)
+        case .dark: return Self.srgb(0xD3F477)
         case .outdoor: return Self.srgb(0x0D382D)
         }
     }
@@ -145,41 +145,65 @@ public enum KairnTokens: Sendable {
 
     public var semanticColorAction: Color {
         switch self {
-        case .light: return Self.srgb(0x174940)
-        case .dark: return Self.srgb(0x9CD5BD)
+        case .light: return Self.srgb(0x24271F)
+        case .dark: return Self.srgb(0xD3F477)
         case .outdoor: return Self.srgb(0x0D382D)
         }
     }
 
     public var semanticColorActionWash: Color {
         switch self {
-        case .light: return Self.srgb(0xE1EFEA)
-        case .dark: return Self.srgb(0x28453C)
+        case .light: return Self.srgb(0xEEEFE7)
+        case .dark: return Self.srgb(0x34392F)
         case .outdoor: return Self.srgb(0xE9F2EB)
         }
     }
 
     public var semanticColorBoundary: Color {
         switch self {
-        case .light: return Self.srgb(0x78857E)
-        case .dark: return Self.srgb(0x8A9E95)
+        case .light: return Self.srgb(0x787C6F)
+        case .dark: return Self.srgb(0x919786)
         case .outdoor: return Self.srgb(0x31463D)
         }
     }
 
     public var semanticColorCanvas: Color {
         switch self {
-        case .light: return Self.srgb(0xF6F3EB)
-        case .dark: return Self.srgb(0x111C1B)
+        case .light: return Self.srgb(0xFBFAF6)
+        case .dark: return Self.srgb(0x1B1D1A)
         case .outdoor: return Self.srgb(0xFFFFFF)
         }
     }
 
+    public var semanticColorCitron: Color { Self.srgb(0xD3F477) }
+
+    public var semanticColorClay: Color { Self.srgb(0xE8A483) }
+
+    public var semanticColorDivider: Color {
+        switch self {
+        case .light: return Self.srgb(0xD9DBD0)
+        case .dark: return Self.srgb(0x42473D)
+        case .outdoor: return Self.srgb(0x31463D)
+        }
+    }
+
+    public var semanticColorDock: Color { Self.srgb(0x262922) }
+
+    public var semanticColorDockInk: Color { Self.srgb(0xE5E7DA) }
+
     public var semanticColorError: Color {
         switch self {
-        case .light: return Self.srgb(0x9D2C2D)
-        case .dark: return Self.srgb(0xFFABAC)
+        case .light: return Self.srgb(0xA53126)
+        case .dark: return Self.srgb(0xFFA49C)
         case .outdoor: return Self.srgb(0x761D23)
+        }
+    }
+
+    public var semanticColorFocus: Color {
+        switch self {
+        case .light: return Self.srgb(0x4F6334)
+        case .dark: return Self.srgb(0xD3F477)
+        case .outdoor: return Self.srgb(0x123E81)
         }
     }
 
@@ -193,24 +217,42 @@ public enum KairnTokens: Sendable {
 
     public var semanticColorInk: Color {
         switch self {
-        case .light: return Self.srgb(0x172C2B)
-        case .dark: return Self.srgb(0xF1F4EE)
+        case .light: return Self.srgb(0x20221D)
+        case .dark: return Self.srgb(0xF1F2E7)
         case .outdoor: return Self.srgb(0x101815)
         }
     }
 
+    public var semanticColorKey: Color {
+        switch self {
+        case .light: return Self.srgb(0xD3F477)
+        case .dark: return Self.srgb(0x28331E)
+        case .outdoor: return Self.srgb(0xD3F477)
+        }
+    }
+
+    public var semanticColorKeyInk: Color {
+        switch self {
+        case .light: return Self.srgb(0x22271B)
+        case .dark: return Self.srgb(0xD3F477)
+        case .outdoor: return Self.srgb(0x22271B)
+        }
+    }
+
+    public var semanticColorLilac: Color { Self.srgb(0xDCD4F1) }
+
     public var semanticColorOnAction: Color {
         switch self {
-        case .light: return Self.srgb(0xFFFFFF)
-        case .dark: return Self.srgb(0x112B24)
+        case .light: return Self.srgb(0xFFFEF8)
+        case .dark: return Self.srgb(0x1C2315)
         case .outdoor: return Self.srgb(0xFFFFFF)
         }
     }
 
     public var semanticColorSecondaryText: Color {
         switch self {
-        case .light: return Self.srgb(0x49635F)
-        case .dark: return Self.srgb(0xB5C8BF)
+        case .light: return Self.srgb(0x61645A)
+        case .dark: return Self.srgb(0xBDC0B3)
         case .outdoor: return Self.srgb(0x293B34)
         }
     }
@@ -225,16 +267,16 @@ public enum KairnTokens: Sendable {
 
     public var semanticColorSuccess: Color {
         switch self {
-        case .light: return Self.srgb(0x21633F)
-        case .dark: return Self.srgb(0x93D8AC)
+        case .light: return Self.srgb(0x3B602C)
+        case .dark: return Self.srgb(0xB5DF9D)
         case .outdoor: return Self.srgb(0x134729)
         }
     }
 
     public var semanticColorSurface: Color {
         switch self {
-        case .light: return Self.srgb(0xFFFFFF)
-        case .dark: return Self.srgb(0x1C2B29)
+        case .light: return Self.srgb(0xFFFEFA)
+        case .dark: return Self.srgb(0x252823)
         case .outdoor: return Self.srgb(0xFFFFFF)
         }
     }
@@ -309,8 +351,8 @@ public enum KairnTokens: Sendable {
 
     public var semanticPhaseActivity: Color {
         switch self {
-        case .light: return Self.srgb(0x174940)
-        case .dark: return Self.srgb(0x9CD5BD)
+        case .light: return Self.srgb(0x24271F)
+        case .dark: return Self.srgb(0xD3F477)
         case .outdoor: return Self.srgb(0x0D382D)
         }
     }
@@ -325,8 +367,8 @@ public enum KairnTokens: Sendable {
 
     public var semanticPhaseRestDay: Color {
         switch self {
-        case .light: return Self.srgb(0x49635F)
-        case .dark: return Self.srgb(0xB5C8BF)
+        case .light: return Self.srgb(0x61645A)
+        case .dark: return Self.srgb(0xBDC0B3)
         case .outdoor: return Self.srgb(0x293B34)
         }
     }
@@ -341,8 +383,8 @@ public enum KairnTokens: Sendable {
 
     public var semanticPhaseStay: Color {
         switch self {
-        case .light: return Self.srgb(0x49635F)
-        case .dark: return Self.srgb(0xB5C8BF)
+        case .light: return Self.srgb(0x61645A)
+        case .dark: return Self.srgb(0xBDC0B3)
         case .outdoor: return Self.srgb(0x293B34)
         }
     }
@@ -363,9 +405,9 @@ public enum KairnTokens: Sendable {
         }
     }
 
-    public var semanticRadiusCard: CGFloat { 12 }
+    public var semanticRadiusCard: CGFloat { 10 }
 
-    public var semanticRadiusControl: CGFloat { 8 }
+    public var semanticRadiusControl: CGFloat { 6 }
 
     public var semanticRadiusTag: CGFloat { 4 }
 

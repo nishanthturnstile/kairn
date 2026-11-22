@@ -8,9 +8,9 @@ import {
   View,
 } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
-import { AppText, focusOutline, touchTarget } from "./ui";
+import { AppText, focusOutline, touchTarget } from "./fold/primitives";
 
-const icons: Record<string, ImageSourcePropType> = {
+export const destinationIcons: Record<string, ImageSourcePropType> = {
   dashboard: require("../../assets/icons/dashboard.png"),
   journeys: require("../../assets/icons/book-open.png"),
   discover: require("../../assets/icons/compass.png"),
@@ -49,7 +49,7 @@ export function DestinationTabs({
                 <DestinationTab
                   key={route.key}
                   label={options.title ?? route.name}
-                  icon={icons[route.name]}
+                  icon={destinationIcons[route.name]}
                   selected={selected}
                   stacked={stacked}
                   onPress={() => {
@@ -73,27 +73,30 @@ export function DestinationTabs({
   );
 }
 
-function DestinationTab({
+export function DestinationTab({
   label,
   icon,
   selected,
   stacked,
+  disabled = false,
   onPress,
   onLongPress,
 }: {
   label: string;
-  icon: ImageSourcePropType;
+  icon?: ImageSourcePropType;
+  disabled?: boolean;
   selected: boolean;
   stacked: boolean;
-  onPress: () => void;
-  onLongPress: () => void;
+  onPress?: () => void;
+  onLongPress?: () => void;
 }) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
       accessibilityRole="tab"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
       onPress={onPress}
       onLongPress={onLongPress}
       onFocus={() => setFocused(true)}
@@ -101,11 +104,12 @@ function DestinationTab({
       style={({ pressed }) => [
         styles.tab,
         selected && styles.selected,
+        disabled && styles.disabled,
         pressed && styles.pressed,
         focused && styles.focused,
       ]}
     >
-      {!stacked && (
+      {!stacked && icon && (
         <Image
           accessible={false}
           source={icon}
@@ -155,8 +159,13 @@ const styles = StyleSheet.create(
       backgroundColor: color.actionWash,
       borderColor: color.information,
     },
+    disabled: {
+      borderStyle: "dashed",
+      borderColor: color.divider,
+      backgroundColor: color.canvas,
+    },
     selected: { backgroundColor: color.actionWash, borderColor: color.action },
-    focused: { ...focusOutline(color.information) },
+    focused: { ...focusOutline(color.focus) },
     label: { color: color.secondaryText, textAlign: "center" },
     stackedLabel: { flexShrink: 1 },
     selectedLabel: { color: color.action },

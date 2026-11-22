@@ -34,7 +34,10 @@ describe("journey design tokens", () => {
       expect(contrast(colors.accent, colors.accentWash)).toBeGreaterThanOrEqual(
         4.5,
       );
+      expect(contrast(color.keyInk, color.key)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(color.dockInk, color.dock)).toBeGreaterThanOrEqual(4.5);
       for (const surface of [color.canvas, color.surface]) {
+        expect(contrast(color.focus, surface)).toBeGreaterThanOrEqual(3);
         expect(contrast(color.boundary, surface)).toBeGreaterThanOrEqual(3);
         for (const label of [
           color.ink,

@@ -12,8 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { ensureActive } from "../api";
+import {
+  Action,
+  AppText,
+  focusOutline,
+  StatusNotice,
+} from "../components/fold/primitives";
+import { ReceiptProvider } from "../components/fold/receipt";
 import { ProfileName } from "../components/profile-name";
-import { Action, AppText, focusOutline, StatusNotice } from "../components/ui";
 import { clearInvitationHandoff } from "../invitation-handoff";
 import { invitationPath } from "../invitation-link";
 import { journeyResult } from "../journey-api";
@@ -49,7 +55,9 @@ export default function OnboardingRoute() {
           accessibilityElementsHidden={!show}
           importantForAccessibility={show ? "auto" : "no-hide-descendants"}
         >
-          <Onboarding scope={scope} checkpoint={pending.step} />
+          <ReceiptProvider>
+            <Onboarding scope={scope} checkpoint={pending.step} />
+          </ReceiptProvider>
         </View>
       )}
       {(!show || isRevalidating) && <WorkspaceWaiting />}
@@ -331,7 +339,7 @@ const styles = StyleSheet.create(
     },
     selected: { borderColor: color.action, backgroundColor: color.actionWash },
     pressed: { backgroundColor: color.actionWash },
-    focused: { ...focusOutline(color.information) },
+    focused: { ...focusOutline(color.focus) },
     choiceCopy: { flex: 1, minWidth: 0, gap: space.step4 },
     radio: {
       marginTop: 2,

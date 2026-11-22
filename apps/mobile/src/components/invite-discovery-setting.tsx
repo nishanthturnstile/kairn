@@ -5,7 +5,8 @@ import { useMobileSession } from "../mobile-session";
 import type { VerifiedMobileScope } from "../session";
 import { profileKey } from "../workspace-keys";
 import { useNativeProfile } from "../workspace-queries";
-import { Action, AppText, Panel, StatusNotice } from "./ui";
+import { Choice } from "./fold/controls";
+import { AppText, Panel, StatusNotice } from "./fold/primitives";
 
 export function InviteDiscoverySetting({
   scope,
@@ -15,14 +16,14 @@ export function InviteDiscoverySetting({
   const { refresh, canSubmit } = useMobileSession();
   const profile = useNativeProfile(scope);
   const saving = useRef(false);
-  const [pending, setPending] = useState(false);
+  const [pendingValue, setPendingValue] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
   const current = profile.data?.inviteDiscoverable;
 
   async function toggle() {
     if (current === undefined || saving.current || !canSubmit(scope)) return;
     saving.current = true;
-    setPending(true);
+    setPendingValue(!current);
     setFailed(false);
     try {
       const updated = journeyResult(
@@ -46,7 +47,7 @@ export function InviteDiscoverySetting({
       }
     } finally {
       saving.current = false;
-      setPending(false);
+      setPendingValue(null);
     }
   }
 
@@ -72,17 +73,13 @@ export function InviteDiscoverySetting({
         }
       />
       {current !== undefined && !profile.isError && (
-        <Action
-          label={
-            pending
-              ? "Saving…"
-              : current
-                ? "Turn off invitation search"
-                : "Allow invitation search"
-          }
-          accessibilityState={{ selected: current }}
-          disabled={pending}
-          onPress={() => void toggle()}
+        <Choice
+          kind="switch"
+          label="Allow invitation search"
+          checked={pendingValue ?? current}
+          disabled={pendingValue !== null}
+          busy={pendingValue !== null}
+          onChange={() => void toggle()}
         />
       )}
     </Panel>

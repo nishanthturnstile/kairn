@@ -11,7 +11,7 @@ Start with [implementation progress](progress.md) for the current milestone, nex
 | [Architecture](core/architecture.md) | Follow domain boundaries, contracts, storage rules, and integration decisions. |
 | [Application design](core/application-design.md) | Plan navigation, interaction, recovery states, and experience checks. |
 | [Development and validation](core/development-and-validation.md) | Choose test environments and record verification evidence. |
-| [Fold design system](../DESIGN.md) | Build web UI with the owned primitives, inspect /design-system, and plan native adoption. See [journey interactions](core/journey-interactions.md) for product-specific behavior. |
+| [Fold design system](../DESIGN.md) | Build with the owned web and mobile primitives. Inspect /design-system on web or Account → Design system on mobile. See [journey interactions](core/journey-interactions.md) for product-specific behavior. |
 
 ## Implementation plans
 
@@ -26,5 +26,4 @@ Start with [implementation progress](progress.md) for the current milestone, nex
 
 - [Deployment and recovery](deployment-and-recovery.md)
 - [Bootstrap dependency qualification](bootstrap/dependency-qualification.md)
-- [Web component accessibility review](design-system/web-component-review.md)
-- [Research behind the Fold design decisions](design-system/fold-research.md)
+- [Fold accessibility checks for web and native](design-system/accessibility.md)

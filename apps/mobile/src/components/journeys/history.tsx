@@ -8,7 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
-  Image,
   Pressable,
   SectionList,
   useWindowDimensions,
@@ -25,13 +24,14 @@ import { departureKey } from "../../membership-attempt";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import { DestinationTopBar } from "../destination";
+import { ContentLoading, JourneyMap } from "../fold/expression";
 import {
   Action,
   AppText,
   focusOutline,
   StatusNotice,
   touchTarget,
-} from "../ui";
+} from "../fold/primitives";
 import { JourneyRetry, journeyStyles, useJourneyReentry } from "./states";
 
 const sectionInfo = {
@@ -52,7 +52,7 @@ const sectionInfo = {
     more: "Load more journeys with incomplete dates",
   },
 } satisfies Record<JourneyTimelineSection, { title: string; more: string }>;
-const beach = require("../../../assets/onboarding/beach.jpg");
+
 type Section = JourneyTimelineSection;
 type Page = { items: PrivateJourney[]; nextCursor: string | null };
 type Continuations = { asOf: string; pages: Partial<Record<Section, Page>> };
@@ -232,14 +232,12 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                 retry={() => void history.refetch()}
               />
             ) : !current ? (
-              <StatusNotice
-                notice={{ text: "Loading your journeys", tone: "info" }}
-              />
+              <ContentLoading label="Loading your journeys" />
             ) : (
               sections.length === 0 && (
                 <View style={styles.empty}>
-                  <Image source={beach} accessible={false} style={styles.art} />
                   <View style={styles.emptyCopy}>
+                    <JourneyMap />
                     <AppText
                       text="No journeys yet"
                       variant="section"
@@ -377,7 +375,6 @@ const styles = StyleSheet.create(
       borderWidth: border.control,
       backgroundColor: color.surface,
     },
-    art: { width: "100%", height: 156 },
     emptyCopy: { gap: space.step12, padding: space.step16 },
     sectionHeading: { paddingBottom: space.step8 },
     row: {
@@ -413,7 +410,7 @@ const styles = StyleSheet.create(
       transform: [{ rotate: "45deg" }],
     },
     pressed: { backgroundColor: color.actionWash },
-    focused: focusOutline(color.information),
+    focused: focusOutline(color.focus),
     footer: { gap: space.step8, marginTop: space.step8 },
   }),
 );

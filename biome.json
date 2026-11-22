@@ -10,6 +10,8 @@
     "includes": [
       "**",
       "!docs",
+      "!**/.agents",
+      "!**/.impeccable",
       "!pnpm-lock.yaml",
       "!apps/web/src/routeTree.gen.ts",
       "!packages/contracts/openapi.json",

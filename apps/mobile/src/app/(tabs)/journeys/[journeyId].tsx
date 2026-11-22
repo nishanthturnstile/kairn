@@ -14,12 +14,17 @@ import { View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { ensureActive } from "../../../api";
 import {
+  Action,
+  AppText,
+  Panel,
+  StatusNotice,
+} from "../../../components/fold/primitives";
+import {
   JourneyGate,
   JourneyRetry,
   JourneyScreen,
   useJourneyReentry,
 } from "../../../components/journeys/states";
-import { Action, AppText, Panel, StatusNotice } from "../../../components/ui";
 import { detailKey, historyKey, journeyResult } from "../../../journey-api";
 import { useMobileSession } from "../../../mobile-session";
 import type { VerifiedMobileScope } from "../../../session";

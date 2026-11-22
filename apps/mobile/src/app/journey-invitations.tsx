@@ -11,8 +11,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo } from "react-native";
 import { createInvitationExchangeClient, ensureActive } from "../api";
 import { authOrigin } from "../auth";
+import {
+  Action,
+  AppText,
+  Panel,
+  StatusNotice,
+} from "../components/fold/primitives";
 import { JourneyScreen } from "../components/journeys/states";
-import { Action, AppText, Panel, StatusNotice } from "../components/ui";
 import {
   clearInvitationHandoff,
   discardInvitationToken,
@@ -378,6 +383,7 @@ export default function InvitationReview() {
           <Action
             label={switching ? "Signing out…" : "Switch account"}
             variant="primary"
+            accessibilityState={{ busy: switching }}
             disabled={switching}
             onPress={() => void switchAccount()}
           />
@@ -403,6 +409,7 @@ export default function InvitationReview() {
           <Action
             label={joining ? "Joining…" : "Join journey"}
             variant="primary"
+            accessibilityState={{ busy: joining }}
             disabled={joining}
             onPress={() => void join()}
           />

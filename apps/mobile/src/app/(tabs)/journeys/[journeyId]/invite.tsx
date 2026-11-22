@@ -11,6 +11,11 @@ import {
 import { useState } from "react";
 import { Image, useWindowDimensions, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
+import {
+  Action,
+  AppText,
+  StatusNotice,
+} from "../../../../components/fold/primitives";
 import { InviteComposer } from "../../../../components/journeys/invite-composer";
 import {
   JourneyGate,
@@ -18,7 +23,6 @@ import {
   JourneyScreen,
   journeyStyles,
 } from "../../../../components/journeys/states";
-import { Action, AppText, StatusNotice } from "../../../../components/ui";
 import { journeyInvitationsKey, journeyResult } from "../../../../journey-api";
 import { useMobileSession } from "../../../../mobile-session";
 import type { VerifiedMobileScope } from "../../../../session";

@@ -17,7 +17,7 @@ Use the existing journey form for both planning and recording. Put the private v
 
 ### Illustration provenance
 
-The built-in ImageGen tool created the fictional [ferry crossing](../../apps/web/src/assets/onboarding-ferry.webp) used on the welcome screen. The [beach walk](../../apps/web/src/assets/onboarding-beach.webp) appeared in the earlier illustrated walkthrough and now illustrates the empty web Dashboard. Both are 1152 × 864 WebP images.
+The fictional [ferry crossing](../../apps/web/src/assets/onboarding-ferry.webp) appears on the welcome screen. The empty web Dashboard uses the shared [JourneyMap](../../apps/web/src/components/illustrations/journey-map.tsx).
 
 <details>
 <summary>Generation prompts</summary>
@@ -90,7 +90,7 @@ GPT-6.2 Astra reviewed the draft. The revision specifies handoff capture and con
 
 The web slice delivers the [walkthrough](../../apps/web/src/routes/onboarding.lazy.tsx), [Dashboard](../../apps/web/src/routes/dashboard.tsx), [workspace routing](../../apps/web/src/routes/__root.tsx) and [protected API](../../apps/server/src/http/workspace.ts). The sign-in transaction classifies new accounts against `ONBOARDING_STARTS_AT`. When the setting is absent, enrollment is off. Set a cutoff in `apps/server/.env.local` and restart the server to test onboarding on the interactive development stack. Apply the [checkpoint migration](../../packages/backend/drizzle/0005_first_run_onboarding.sql) and [intent migration](../../packages/backend/drizzle/0006_onboarding_intent.sql) before starting the new server. Use a single UTC cutoff across the server instances when activating enrollment.
 
-The two-step setup reuses the signup name, resumes a saved checkpoint after reauthentication and returns the user to the intended destination. The service-backed browser suite covers signup and verification, dropped replies, cross-context resume, journey creation, invitation drafts and the 320 CSS px layout at 200% text. Enlarged-text axe scans exercise the setup, Dashboard, create form and invitation composer. [Onboarding checks](../../tests/web/onboarding.playwright.ts) · [Fold accessibility review](../design-system/web-component-review.md)
+The two-step setup reuses the signup name, resumes a saved checkpoint after reauthentication and returns the user to the intended destination. The service-backed browser suite covers signup and verification, dropped replies, cross-context resume, journey creation, invitation drafts and the 320 CSS px layout at 200% text. Enlarged-text axe scans exercise the setup, Dashboard, create form and invitation composer. [Onboarding checks](../../tests/web/onboarding.playwright.ts) · [Fold accessibility checks](../design-system/accessibility.md)
 
 Database checks cover verified profile access, concurrent completion and older checkpoints. Separate runs cover device sign-in and handoff. Production enrollment and timed usability sessions remain release decisions. [Database checks](../../tests/integration/journeys.test.ts) · [Native verification](#native-verification)
 

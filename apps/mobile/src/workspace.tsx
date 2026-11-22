@@ -18,7 +18,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
 import { authOrigin } from "./auth";
 import { sessionStoragePrefix } from "./auth-origin";
-import { Action, AppText, StatusNotice } from "./components/ui";
+import { ContentLoading } from "./components/fold/expression";
+import { Action, AppText, StatusNotice } from "./components/fold/primitives";
 import {
   clearInvitationHandoff,
   readInvitationHandoff,
@@ -132,6 +133,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
+    // The public component catalog reads only local sample data.
+    if (pathname === "/design-system" || pathname.startsWith("/design-system/"))
+      return;
     const lastPath = previousPath.current;
     previousPath.current = pathname;
     const invitationRoutes = [invitationPath, "/account", "/onboarding"];
@@ -274,27 +278,33 @@ export function WorkspaceWaiting() {
   const { progress } = useWorkspace();
   const sessionFailed = state === "unavailable";
   const failed = sessionFailed || (state === "verified" && progress.isError);
+  const [showActivity, setShowActivity] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowActivity(true), 200);
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <SafeAreaView style={styles.waiting}>
       <AppText text="Kairn" variant="section" accessibilityRole="header" />
-      <StatusNotice
-        notice={
-          failed
-            ? {
-                text: sessionFailed
-                  ? "Couldn’t check your session."
-                  : "Couldn’t check your setup.",
-                tone: "error",
-              }
-            : {
-                text:
-                  state === "verified"
-                    ? "Opening your workspace"
-                    : "Checking your session",
-                tone: "info",
-              }
-        }
-      />
+      {failed ? (
+        <StatusNotice
+          notice={{
+            text: sessionFailed
+              ? "Couldn’t check your session."
+              : "Couldn’t check your setup.",
+            tone: "error",
+          }}
+        />
+      ) : showActivity ? (
+        <ContentLoading
+          skeleton={false}
+          label={
+            state === "verified"
+              ? "Opening your workspace"
+              : "Checking your session"
+          }
+        />
+      ) : null}
       {failed && (
         <Action
           label="Try again"

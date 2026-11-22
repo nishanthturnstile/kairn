@@ -19,8 +19,15 @@ import { ensureActive } from "../../api";
 import { JourneyRequestError, journeyResult } from "../../journey-api";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
-import { Action, AppText, Field, Panel, StatusNotice } from "../ui";
-import { JourneyPersonMark, peopleStyles } from "./people-presentation";
+import { Avatar } from "../fold/identity";
+import {
+  Action,
+  AppText,
+  Field,
+  Panel,
+  StatusNotice,
+} from "../fold/primitives";
+import { peopleStyles } from "./people-presentation";
 
 type Recipient = ReturnType<typeof invitationRecipient.parse>;
 type Match = ReturnType<typeof journeyInviteeMatches.parse>["items"][number];
@@ -417,7 +424,7 @@ export function useInviteComposer({
         {drafts.length === 0 && <AppText text="No recipients yet" subdued />}
         {drafts.map((draft) => (
           <View key={draft.id} style={[peopleStyles.row, styles.recipient]}>
-            <JourneyPersonMark
+            <Avatar
               name={"selection" in draft.recipient ? draft.label : undefined}
             />
             <View style={peopleStyles.rowCopy}>
@@ -488,6 +495,7 @@ export function useInviteComposer({
                   : "Send invitations"
             }
             variant="primary"
+            accessibilityState={{ busy: sending }}
             disabled={!enabled || sending || (!unconfirmed && !unsent.length)}
             onPress={() => void send()}
           />

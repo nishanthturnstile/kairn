@@ -1,17 +1,15 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import {
-  type ComponentRef,
-  type ReactNode,
-  type Ref,
-  useCallback,
-} from "react";
-import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { type ReactNode, useCallback } from "react";
+import { View } from "react-native";
+import { FoldScreen as JourneyScreen } from "../fold/screen";
+
+export { JourneyScreen };
+
 import { StyleSheet } from "react-native-unistyles";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import { DestinationTopBar } from "../destination";
-import { Action, AppText, Panel, StatusNotice } from "../ui";
+import { Action, AppText, Panel, StatusNotice } from "../fold/primitives";
 
 export const journeyStyles = StyleSheet.create(
   ({ semantic: { color, space } }) => ({
@@ -22,41 +20,6 @@ export const journeyStyles = StyleSheet.create(
     group: { gap: space.step8 },
   }),
 );
-
-export function JourneyScreen({
-  children,
-  top = false,
-  safeBottom = false,
-  scrollRef,
-}: {
-  children: ReactNode;
-  top?: boolean;
-  safeBottom?: boolean;
-  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
-}) {
-  return (
-    <SafeAreaView
-      edges={[
-        "left",
-        "right",
-        ...(top ? (["top"] as const) : []),
-        ...(safeBottom ? (["bottom"] as const) : []),
-      ]}
-      style={journeyStyles.screen}
-    >
-      <ScrollView
-        ref={scrollRef}
-        contentInsetAdjustmentBehavior={top ? "never" : "automatic"}
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={journeyStyles.content}
-      >
-        {children}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
 
 export function JourneyGate({
   title,

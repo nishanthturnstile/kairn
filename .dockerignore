@@ -1,6 +1,9 @@
 .git
 .vscode
 docs
+.agents
+.codex
+.impeccable
 test-results
 playwright-report
 **/node_modules

@@ -2,6 +2,198 @@
   "primitive": {
     "color": {
       "$type": "color",
+      "foldCanvasLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.98431373, 0.98039216, 0.96470588]
+        }
+      },
+      "foldCanvasDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.10588235, 0.11372549, 0.10196078]
+        }
+      },
+      "foldSurfaceLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.99607843, 0.98039216]
+        }
+      },
+      "foldSurfaceDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.14509804, 0.15686275, 0.1372549]
+        }
+      },
+      "foldInkLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1254902, 0.13333333, 0.11372549]
+        }
+      },
+      "foldInkDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.94509804, 0.94901961, 0.90588235]
+        }
+      },
+      "foldSecondaryTextLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.38039216, 0.39215686, 0.35294118]
+        }
+      },
+      "foldSecondaryTextDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.74117647, 0.75294118, 0.70196078]
+        }
+      },
+      "foldBoundaryLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.47058824, 0.48627451, 0.43529412]
+        }
+      },
+      "foldBoundaryDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.56862745, 0.59215686, 0.5254902]
+        }
+      },
+      "foldActionLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.14117647, 0.15294118, 0.12156863]
+        }
+      },
+      "foldActionDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.82745098, 0.95686275, 0.46666667]
+        }
+      },
+      "foldOnActionLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.99607843, 0.97254902]
+        }
+      },
+      "foldOnActionDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.10980392, 0.1372549, 0.08235294]
+        }
+      },
+      "foldActionWashLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.93333333, 0.9372549, 0.90588235]
+        }
+      },
+      "foldActionWashDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.20392157, 0.22352941, 0.18431373]
+        }
+      },
+      "foldErrorLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.64705882, 0.19215686, 0.14901961]
+        }
+      },
+      "foldErrorDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.64313725, 0.61176471]
+        }
+      },
+      "foldSuccessLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.23137255, 0.37647059, 0.17254902]
+        }
+      },
+      "foldSuccessDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.70980392, 0.8745098, 0.61568627]
+        }
+      },
+      "foldFocusLight": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.30980392, 0.38823529, 0.20392157]
+        }
+      },
+      "foldKey": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.82745098, 0.95686275, 0.46666667]
+        }
+      },
+      "foldKeyDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.15686275, 0.2, 0.11764706]
+        }
+      },
+      "foldKeyInk": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.13333333, 0.15294118, 0.10588235]
+        }
+      },
+      "foldKeyInkDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.82745098, 0.95686275, 0.46666667]
+        }
+      },
+      "foldDivider": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.85098039, 0.85882353, 0.81568627]
+        }
+      },
+      "foldDividerDark": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.25882353, 0.27843137, 0.23921569]
+        }
+      },
+      "foldCitron": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.82745098, 0.95686275, 0.46666667]
+        }
+      },
+      "foldDock": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.14901961, 0.16078431, 0.13333333]
+        }
+      },
+      "foldDockInk": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.89803922, 0.90588235, 0.85490196]
+        }
+      },
+      "foldLilac": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8627451, 0.83137255, 0.94509804]
+        }
+      },
+      "foldClay": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.90980392, 0.64313725, 0.51372549]
+        }
+      },
       "sand50": {
         "$value": {
           "colorSpace": "srgb",
@@ -251,6 +443,7 @@
           "unit": "px"
         }
       },
+      "s10": { "$value": { "value": 10, "unit": "px" } },
       "s8": {
         "$value": {
           "value": 8,
@@ -399,44 +592,53 @@
   },
   "semantic": {
     "color": {
+      "focus": { "$value": "{primitive.color.foldFocusLight}" },
+      "key": { "$value": "{primitive.color.foldKey}" },
+      "keyInk": { "$value": "{primitive.color.foldKeyInk}" },
+      "divider": { "$value": "{primitive.color.foldDivider}" },
+      "citron": { "$value": "{primitive.color.foldCitron}" },
+      "dock": { "$value": "{primitive.color.foldDock}" },
+      "dockInk": { "$value": "{primitive.color.foldDockInk}" },
+      "lilac": { "$value": "{primitive.color.foldLilac}" },
+      "clay": { "$value": "{primitive.color.foldClay}" },
       "canvas": {
-        "$value": "{primitive.color.sand50}"
+        "$value": "{primitive.color.foldCanvasLight}"
       },
       "surface": {
-        "$value": "{primitive.color.white}"
+        "$value": "{primitive.color.foldSurfaceLight}"
       },
       "ink": {
-        "$value": "{primitive.color.pine950}"
+        "$value": "{primitive.color.foldInkLight}"
       },
       "secondaryText": {
-        "$value": "{primitive.color.sage700}"
+        "$value": "{primitive.color.foldSecondaryTextLight}"
       },
       "boundary": {
-        "$value": "{primitive.color.sage500}"
+        "$value": "{primitive.color.foldBoundaryLight}"
       },
       "action": {
-        "$value": "{primitive.color.pine800}"
+        "$value": "{primitive.color.foldActionLight}"
       },
       "onAction": {
-        "$value": "{primitive.color.white}"
+        "$value": "{primitive.color.foldOnActionLight}"
       },
       "information": {
         "$value": "{primitive.color.blue700}"
       },
       "success": {
-        "$value": "{primitive.color.fern800}"
+        "$value": "{primitive.color.foldSuccessLight}"
       },
       "warning": {
         "$value": "{primitive.color.ochre800}"
       },
       "error": {
-        "$value": "{primitive.color.red800}"
+        "$value": "{primitive.color.foldErrorLight}"
       },
       "storyAccent": {
         "$value": "{primitive.color.clay800}"
       },
       "actionWash": {
-        "$value": "{primitive.color.mint100}"
+        "$value": "{primitive.color.foldActionWashLight}"
       }
     },
     "space": {
@@ -470,10 +672,10 @@
         "$value": "{primitive.size.s4}"
       },
       "control": {
-        "$value": "{primitive.size.s8}"
+        "$value": "{primitive.size.s6}"
       },
       "card": {
-        "$value": "{primitive.size.s12}"
+        "$value": "{primitive.size.s10}"
       }
     },
     "border": {

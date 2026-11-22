@@ -11,11 +11,16 @@ import { Image, useWindowDimensions, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { DestinationTopBar } from "../../components/destination";
 import {
+  Action,
+  AppText,
+  Panel,
+  StatusNotice,
+} from "../../components/fold/primitives";
+import {
   JourneyRetry,
   JourneyScreen,
   useJourneyReentry,
 } from "../../components/journeys/states";
-import { Action, AppText, Panel, StatusNotice } from "../../components/ui";
 import { journeyResult } from "../../journey-api";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";

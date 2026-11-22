@@ -3,19 +3,28 @@
 const light = {
   semantic: {
     color: {
-      "canvas": "#f6f3eb",
-      "surface": "#ffffff",
-      "ink": "#172c2b",
-      "secondaryText": "#49635f",
-      "boundary": "#78857e",
-      "action": "#174940",
-      "onAction": "#ffffff",
+      "focus": "#4f6334",
+      "key": "#d3f477",
+      "keyInk": "#22271b",
+      "divider": "#d9dbd0",
+      "citron": "#d3f477",
+      "dock": "#262922",
+      "dockInk": "#e5e7da",
+      "lilac": "#dcd4f1",
+      "clay": "#e8a483",
+      "canvas": "#fbfaf6",
+      "surface": "#fffefa",
+      "ink": "#20221d",
+      "secondaryText": "#61645a",
+      "boundary": "#787c6f",
+      "action": "#24271f",
+      "onAction": "#fffef8",
       "information": "#285aa4",
-      "success": "#21633f",
+      "success": "#3b602c",
       "warning": "#80530b",
-      "error": "#9d2c2d",
+      "error": "#a53126",
       "storyAccent": "#824820",
-      "actionWash": "#e1efea"
+      "actionWash": "#eeefe7"
     },
     space: {
       "step4": 4,
@@ -29,8 +38,8 @@ const light = {
     },
     radius: {
       "tag": 4,
-      "control": 8,
-      "card": 12
+      "control": 6,
+      "card": 10
     },
     border: {
       "control": 1
@@ -100,31 +109,31 @@ const light = {
     },
     phase: {
       "travelBefore": "#824820",
-      "activity": "#174940",
-      "stay": "#49635f",
-      "restDay": "#49635f",
+      "activity": "#24271f",
+      "stay": "#61645a",
+      "restDay": "#61645a",
       "transfer": "#285aa4",
       "challenge": "#824820",
       "returnTravel": "#824820"
     },
     activity: {
-      "trek": "#174940",
+      "trek": "#24271f",
       "roadTrip": "#285aa4",
       "cycling": "#824820",
-      "other": "#49635f"
+      "other": "#61645a"
     },
   },
   component: {
     captureButton: {
-      "background": "#174940",
-      "foreground": "#ffffff",
+      "background": "#24271f",
+      "foreground": "#fffef8",
       "minHeight": 56,
-      "radius": 8
+      "radius": 6
     },
     momentCard: {
-      "background": "#ffffff",
+      "background": "#fffefa",
       "padding": 16,
-      "radius": 12,
+      "radius": 10,
       "borderWidth": 1
     },
     chapterHeading: {
@@ -136,7 +145,7 @@ const light = {
       "lineHeight": 42
     },
     routeLine: {
-      "recorded": "#174940",
+      "recorded": "#24271f",
       "estimated": "#285aa4",
       "recordedWidth": 4,
       "estimatedWidth": 3,
@@ -146,8 +155,8 @@ const light = {
     },
     syncStatus: {
       "waiting": "#80530b",
-      "uploaded": "#21633f",
-      "failed": "#9d2c2d"
+      "uploaded": "#3b602c",
+      "failed": "#a53126"
     },
   },
 } as const;
@@ -155,19 +164,28 @@ const light = {
 const dark = {
   semantic: {
     color: {
-      "canvas": "#111c1b",
-      "surface": "#1c2b29",
-      "ink": "#f1f4ee",
-      "secondaryText": "#b5c8bf",
-      "boundary": "#8a9e95",
-      "action": "#9cd5bd",
-      "onAction": "#112b24",
+      "focus": "#d3f477",
+      "key": "#28331e",
+      "keyInk": "#d3f477",
+      "divider": "#42473d",
+      "citron": "#d3f477",
+      "dock": "#262922",
+      "dockInk": "#e5e7da",
+      "lilac": "#dcd4f1",
+      "clay": "#e8a483",
+      "canvas": "#1b1d1a",
+      "surface": "#252823",
+      "ink": "#f1f2e7",
+      "secondaryText": "#bdc0b3",
+      "boundary": "#919786",
+      "action": "#d3f477",
+      "onAction": "#1c2315",
       "information": "#a9c8ff",
-      "success": "#93d8ac",
+      "success": "#b5df9d",
       "warning": "#f2c36f",
-      "error": "#ffabac",
+      "error": "#ffa49c",
       "storyAccent": "#f3ba88",
-      "actionWash": "#28453c"
+      "actionWash": "#34392f"
     },
     space: light.semantic.space,
     radius: light.semantic.radius,
@@ -184,36 +202,36 @@ const dark = {
     icon: light.semantic.icon,
     phase: {
       "travelBefore": "#f3ba88",
-      "activity": "#9cd5bd",
-      "stay": "#b5c8bf",
-      "restDay": "#b5c8bf",
+      "activity": "#d3f477",
+      "stay": "#bdc0b3",
+      "restDay": "#bdc0b3",
       "transfer": "#a9c8ff",
       "challenge": "#f3ba88",
       "returnTravel": "#f3ba88"
     },
     activity: {
-      "trek": "#9cd5bd",
+      "trek": "#d3f477",
       "roadTrip": "#a9c8ff",
       "cycling": "#f3ba88",
-      "other": "#b5c8bf"
+      "other": "#bdc0b3"
     },
   },
   component: {
     captureButton: {
-      "background": "#9cd5bd",
-      "foreground": "#112b24",
+      "background": "#d3f477",
+      "foreground": "#1c2315",
       "minHeight": 56,
-      "radius": 8
+      "radius": 6
     },
     momentCard: {
-      "background": "#1c2b29",
+      "background": "#252823",
       "padding": 16,
-      "radius": 12,
+      "radius": 10,
       "borderWidth": 1
     },
     chapterHeading: light.component.chapterHeading,
     routeLine: {
-      "recorded": "#9cd5bd",
+      "recorded": "#d3f477",
       "estimated": "#a9c8ff",
       "recordedWidth": 4,
       "estimatedWidth": 3,
@@ -223,8 +241,8 @@ const dark = {
     },
     syncStatus: {
       "waiting": "#f2c36f",
-      "uploaded": "#93d8ac",
-      "failed": "#ffabac"
+      "uploaded": "#b5df9d",
+      "failed": "#ffa49c"
     },
   },
 } as const;
@@ -232,6 +250,15 @@ const dark = {
 const outdoor = {
   semantic: {
     color: {
+      "focus": "#123e81",
+      "key": "#d3f477",
+      "keyInk": "#22271b",
+      "divider": "#31463d",
+      "citron": "#d3f477",
+      "dock": "#262922",
+      "dockInk": "#e5e7da",
+      "lilac": "#dcd4f1",
+      "clay": "#e8a483",
       "canvas": "#ffffff",
       "surface": "#ffffff",
       "ink": "#101815",
@@ -282,12 +309,12 @@ const outdoor = {
       "background": "#0d382d",
       "foreground": "#ffffff",
       "minHeight": 56,
-      "radius": 8
+      "radius": 6
     },
     momentCard: {
       "background": "#ffffff",
       "padding": 16,
-      "radius": 12,
+      "radius": 10,
       "borderWidth": 2
     },
     chapterHeading: light.component.chapterHeading,

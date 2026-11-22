@@ -2,8 +2,10 @@ import { themes } from "@kairn/design-tokens";
 import { getLoadedFonts } from "expo-font";
 import {
   type ComponentRef,
+  createContext,
   type ReactNode,
   type Ref,
+  useContext,
   useEffect,
   useState,
 } from "react";
@@ -20,6 +22,9 @@ import {
   View,
 } from "react-native";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
+
+import { FoldGlyph } from "./glyph";
+import { useReduceMotionPreference } from "./motion";
 
 const { fontWeight, fontSize, lineHeight } = themes.light.semantic;
 const loadedFonts = getLoadedFonts();
@@ -42,37 +47,13 @@ export const fonts = {
 
 export const touchTarget = Platform.OS === "android" ? 48 : 44;
 
-export function useReduceMotionPreference() {
-  const [reduced, setReduced] = useState(true);
-  useEffect(() => {
-    let active = true;
-    let changed = false;
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      (enabled) => {
-        changed = true;
-        setReduced(enabled);
-      },
-    );
-    void AccessibilityInfo.isReduceMotionEnabled().then(
-      (enabled) => {
-        if (active && !changed) setReduced(enabled);
-      },
-      () => {},
-    );
-    return () => {
-      active = false;
-      subscription.remove();
-    };
-  }, []);
-  return reduced;
-}
-
 export const focusOutline = (color: string) => ({
   outlineColor: color,
   outlineOffset: 2,
   outlineWidth: 2,
 });
+
+export const HeadingFontReady = createContext(false);
 
 const typeRamps = {
   title: "largeTitle",
@@ -90,23 +71,44 @@ export function AppText({
   style,
   ...props
 }: Omit<TextProps, "children"> & {
+  ref?: Ref<ComponentRef<typeof Text>>;
   text: string;
   variant?: TextVariant;
   subdued?: boolean;
 }) {
+  const headingFont = useContext(HeadingFontReady);
   return (
     <Text
       {...props}
       dynamicTypeRamp={typeRamps[variant]}
-      style={[styles[variant], subdued && styles.subdued, style]}
+      style={[
+        styles[variant],
+        headingFont &&
+          (variant === "section" || variant === "title") && {
+            fontFamily: "FoldHeading",
+            fontWeight: "normal",
+          },
+        subdued && styles.subdued,
+        style,
+      ]}
     >
       {text}
     </Text>
   );
 }
 
-export function Panel({ children }: { children: ReactNode }) {
-  return <View style={styles.panel}>{children}</View>;
+export function Panel({
+  children,
+  compact = false,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <View style={[styles.panel, compact && styles.compactPanel]}>
+      {children}
+    </View>
+  );
 }
 
 export function Action({
@@ -114,25 +116,43 @@ export function Action({
   variant = "secondary",
   disabled = false,
   accessibilityState,
+  feedback = accessibilityState?.busy ? "pending" : "idle",
+  size = "standard",
   ...props
 }: Omit<PressableProps, "style" | "children"> & {
   label: string;
+  size?: "compact" | "standard" | "capture";
+  feedback?: "idle" | "pending" | "success";
   variant?: "primary" | "secondary" | "danger" | "text";
   ref?: Ref<ComponentRef<typeof Pressable>>;
 }) {
   const [focused, setFocused] = useState(false);
+  const { theme } = useUnistyles();
+  const reduced = useReduceMotionPreference();
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       {...props}
-      accessibilityState={{ ...accessibilityState, disabled }}
+      accessibilityState={{
+        ...accessibilityState,
+        busy: feedback === "pending" || accessibilityState?.busy,
+        disabled,
+      }}
       disabled={disabled}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onFocus={(event) => {
+        setFocused(true);
+        props.onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        props.onBlur?.(event);
+      }}
       style={({ pressed }) => [
         styles.action,
+        size === "capture" && { minHeight: theme.semantic.target.field },
+        size === "compact" && { paddingHorizontal: theme.semantic.space.step8 },
         styles[variant],
         pressed && styles.pressed,
         disabled && variant !== "text" && styles.disabled,
@@ -140,16 +160,41 @@ export function Action({
       ]}
     >
       {({ pressed }) => (
-        <AppText
-          text={label}
-          variant="label"
-          style={[
-            styles.actionLabel,
-            styles[`${variant}Label`],
-            pressed && variant === "primary" && styles.secondaryLabel,
-            disabled && styles.subdued,
-          ]}
-        />
+        <View style={styles.actionContent}>
+          <AppText
+            text={label}
+            variant="label"
+            style={[
+              styles.actionLabel,
+              styles[`${variant}Label`],
+              pressed && variant === "primary" && styles.secondaryLabel,
+              disabled && styles.subdued,
+            ]}
+          />
+          {variant === "primary" && (
+            <View
+              accessible={false}
+              style={[
+                styles.key,
+                pressed &&
+                  !disabled &&
+                  !reduced && { transform: [{ scale: 0.9 }] },
+              ]}
+            >
+              <FoldGlyph
+                kind={
+                  feedback === "pending"
+                    ? "pleats"
+                    : feedback === "success"
+                      ? "check"
+                      : "arrow"
+                }
+                moving={feedback === "pending"}
+                color={theme.semantic.color.keyInk}
+              />
+            </View>
+          )}
+        </View>
       )}
     </Pressable>
   );
@@ -174,6 +219,8 @@ export function Field({
 
   const inputSurface = [
     styles.inputSurface,
+    props.readOnly && styles.readOnlySurface,
+    props.editable === false && styles.unavailableSurface,
     error && styles.invalid,
     focused && styles.focused,
   ];
@@ -188,9 +235,20 @@ export function Field({
       cursorColor={color.action}
       selectionHandleColor={color.action}
       underlineColorAndroid="transparent"
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={[styles.input, suffix ? styles.inlineInput : inputSurface]}
+      onFocus={(event) => {
+        setFocused(true);
+        props.onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        props.onBlur?.(event);
+      }}
+      style={[
+        styles.input,
+        suffix ? styles.inlineInput : inputSurface,
+        props.editable === false && styles.subdued,
+        props.style,
+      ]}
     />
   );
 
@@ -277,9 +335,10 @@ const styles = StyleSheet.create(
       lineHeight: lineHeight.caption,
     },
     subdued: { color: color.secondaryText },
+    compactPanel: { padding: space.step8, gap: space.step4 },
     panel: {
       gap: space.step8,
-      padding: space.step16,
+      padding: space.step12,
       borderWidth: border.control,
       borderColor: color.boundary,
       borderRadius: radius.card,
@@ -295,7 +354,21 @@ const styles = StyleSheet.create(
       paddingVertical: space.step8,
       paddingHorizontal: space.step16,
     },
-    actionLabel: { textAlign: "center" },
+    actionContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: space.step8,
+    },
+    key: {
+      width: 24,
+      height: 24,
+      borderRadius: 4,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: color.key,
+    },
+    actionLabel: { flexShrink: 1, textAlign: "center" },
     primary: { backgroundColor: color.action, borderColor: color.action },
     primaryLabel: { color: color.onAction },
     secondary: { backgroundColor: color.surface, borderColor: color.boundary },
@@ -313,9 +386,9 @@ const styles = StyleSheet.create(
       backgroundColor: color.canvas,
       borderColor: color.boundary,
     },
-    focused: { ...focusOutline(color.information) },
+    focused: { ...focusOutline(color.focus) },
     invalid: { borderColor: color.error },
-    field: { gap: space.step8 },
+    field: { gap: space.step4 },
     fieldLabelRow: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -334,6 +407,11 @@ const styles = StyleSheet.create(
       borderColor: color.boundary,
       borderWidth: border.control,
       borderRadius: radius.control,
+    },
+    readOnlySurface: { backgroundColor: color.canvas, borderStyle: "dashed" },
+    unavailableSurface: {
+      backgroundColor: color.canvas,
+      borderColor: color.divider,
     },
     input: {
       ...fonts.body,

@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { useReduceMotionPreference } from "../../../components/ui";
+import { useReduceMotionPreference } from "../../../components/fold/motion";
 
 export const unstable_settings = { anchor: "index" };
 

@@ -1,5 +1,4 @@
-/* Web semantic roles. The shared token package supplies outdoor contrast,
-   editorial type and route evidence until the native migration. */
+/* Fold layouts use the same semantic palette as the native app. */
 @font-face {
   font-family: "Bricolage Grotesque";
   src: url("./assets/fonts/bricolage-latin.woff2") format("woff2");
@@ -9,42 +8,29 @@
 :root {
   --fold-control: 2.125rem;
   --fold-target-floor: 0px;
-  --fold-key: light-dark(#d3f477, #28331e);
-  --fold-key-ink: light-dark(#22271b, #d3f477);
-  --fold-citron: #d3f477;
+  --fold-key: var(--kairn-semantic-color-key);
+  --fold-key-ink: var(--kairn-semantic-color-key-ink);
+  --fold-citron: var(--kairn-semantic-color-citron);
   --fold-citron-ink: #20261a;
   --fold-citron-hover: #e3ffa0;
   --fold-citron-pressed: #c5e56c;
   --fold-citron-focus: #263114;
-  --fold-dock: #262922;
-  --fold-dock-ink: #e5e7da;
+  --fold-dock: var(--kairn-semantic-color-dock);
+  --fold-dock-ink: var(--kairn-semantic-color-dock-ink);
   --fold-dock-disabled: #bec1b4;
   --fold-lilac-ink: #352a41;
   --fold-clay-ink: #5d3d2d;
-  --fold-lilac: #dcd4f1;
-  --fold-clay: #e8a483;
+  --fold-lilac: var(--kairn-semantic-color-lilac);
+  --fold-clay: var(--kairn-semantic-color-clay);
   --fold-rail: light-dark(#f3f2ec, #171916);
-  --fold-divider: light-dark(#d9dbd0, #42473d);
-  --fold-focus: light-dark(#4f6334, #d3f477);
+  --fold-divider: var(--kairn-semantic-color-divider);
+  --fold-focus: var(--kairn-semantic-color-focus);
   --fold-accent: light-dark(#e1e6d4, #37412e);
-  --fold-radius: 6px;
-  --fold-panel-radius: 10px;
-}
-:root:not([data-appearance="outdoor"]) {
-  --kairn-semantic-color-canvas: light-dark(#fbfaf6, #1b1d1a);
-  --kairn-semantic-color-surface: light-dark(#fffefa, #252823);
-  --kairn-semantic-color-ink: light-dark(#20221d, #f1f2e7);
-  --kairn-semantic-color-secondary-text: light-dark(#61645a, #bdc0b3);
-  --kairn-semantic-color-boundary: light-dark(#787c6f, #919786);
-  --kairn-semantic-color-action: light-dark(#24271f, #d3f477);
-  --kairn-semantic-color-on-action: light-dark(#fffef8, #1c2315);
-  --kairn-semantic-color-action-wash: light-dark(#eeefe7, #34392f);
-  --kairn-semantic-color-error: light-dark(#a53126, #ffa49c);
-  --kairn-semantic-color-success: light-dark(#3b602c, #b5df9d);
+  --fold-radius: var(--kairn-semantic-radius-control);
+  --fold-panel-radius: var(--kairn-semantic-radius-card);
 }
 :root[data-appearance="outdoor"] {
   --fold-divider: var(--kairn-semantic-color-boundary);
-  --fold-focus: var(--kairn-semantic-color-information);
   --fold-accent: var(--kairn-semantic-color-action-wash);
   --fold-rail: var(--kairn-semantic-color-surface);
   --fold-target-floor: 44px;

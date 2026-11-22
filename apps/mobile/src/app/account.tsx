@@ -5,26 +5,24 @@ import type {
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native-unistyles";
-import { useAppearancePreference } from "../appearance";
 import { mobileAuth } from "../auth";
 import { AccountAccess } from "../components/account-access";
-import { InviteDiscoverySetting } from "../components/invite-discovery-setting";
-import { ProfileName } from "../components/profile-name";
+import { AppearancePicker } from "../components/fold/appearance";
 import {
   Action,
   AppText,
-  focusOutline,
   type Notice,
   Panel,
   StatusNotice,
-  touchTarget,
-} from "../components/ui";
+} from "../components/fold/primitives";
+import { ReceiptProvider } from "../components/fold/receipt";
+import { InviteDiscoverySetting } from "../components/invite-discovery-setting";
+import { ProfileName } from "../components/profile-name";
 import { clearInvitationHandoff } from "../invitation-handoff";
 import { useMobileSession } from "../mobile-session";
-import type { AppearancePreference } from "../theme";
 import { useWorkspace } from "../workspace";
 
 type Client = NonNullable<typeof mobileAuth>;
@@ -34,7 +32,11 @@ const sessionDate = new Intl.DateTimeFormat("en-IN", {
 });
 
 export default function AccountRoute() {
-  return mobileAuth ? <Account client={mobileAuth} /> : <AccountAccess />;
+  return (
+    <ReceiptProvider>
+      {mobileAuth ? <Account client={mobileAuth} /> : <AccountAccess />}
+    </ReceiptProvider>
+  );
 }
 
 function Account({ client }: { client: Client }) {
@@ -129,7 +131,18 @@ function Account({ client }: { client: Client }) {
               </View>
             </View>
             <InviteDiscoverySetting scope={scope} />
-            <AppearanceSettings stacked={stacked} />
+            <Panel>
+              <AppearancePicker />
+              <AppText
+                text="Outdoor increases contrast in bright light."
+                variant="caption"
+                subdued
+              />
+            </Panel>
+            <Action
+              label="Design system"
+              onPress={() => router.push("/design-system")}
+            />
           </View>
         )}
         {state === "checking" && (
@@ -305,145 +318,46 @@ function Devices({
   );
 }
 
-const appearances: readonly [AppearancePreference, string][] = [
-  ["system", "System"],
-  ["light", "Light"],
-  ["dark", "Dark"],
-  ["outdoor", "Outdoor"],
-];
-
-function AppearanceSettings({ stacked }: { stacked: boolean }) {
-  const { preference, selectAppearance } = useAppearancePreference();
-  const [focused, setFocused] = useState<AppearancePreference>();
-  return (
-    <View style={styles.appearance}>
-      <Panel>
-        <AppText
-          text="Appearance"
-          accessibilityRole="header"
-          variant="section"
-        />
-        <View
-          accessibilityRole="radiogroup"
-          style={[styles.optionList, !stacked && styles.optionGrid]}
-        >
-          {appearances.map(([value, label]) => (
-            <Pressable
-              key={value}
-              accessibilityRole="radio"
-              accessibilityLabel={label}
-              accessibilityState={{ checked: value === preference }}
-              onPress={() => selectAppearance(value)}
-              onFocus={() => setFocused(value)}
-              onBlur={() => setFocused(undefined)}
-              style={({ pressed }) => [
-                styles.option,
-                !stacked && styles.optionColumn,
-                value === preference && styles.selected,
-                pressed && styles.pressed,
-                focused === value && styles.focused,
-              ]}
-            >
-              <View
-                style={[
-                  styles.radio,
-                  value === preference && styles.checkedRadio,
-                ]}
-                accessible={false}
-              >
-                {value === preference && <View style={styles.radioDot} />}
-              </View>
-              <AppText text={label} variant="label" style={styles.optionText} />
-            </Pressable>
-          ))}
-        </View>
-        <AppText
-          text="Outdoor increases contrast in bright light."
-          variant="caption"
-          subdued
-        />
-      </Panel>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create(
-  ({ semantic: { border, color, radius, space } }) => ({
-    screen: { flex: 1, backgroundColor: color.canvas },
-    container: {
-      width: "100%",
-      maxWidth: 1040,
-      alignSelf: "center",
-      padding: space.step16,
-      paddingBottom: space.step24,
-      gap: space.step16,
-    },
-    group: { gap: space.step16 },
-    columns: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: space.step16,
-    },
-    column: { flex: 1 },
-    hidden: { display: "none" },
-    deviceList: { gap: space.step8 },
-    deviceRow: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      alignItems: "center",
-      gap: space.step12,
-      padding: space.step12,
-      borderRadius: radius.control,
-      backgroundColor: color.canvas,
-    },
-    deviceStack: { flexDirection: "column", alignItems: "stretch" },
-    deviceCopy: { gap: space.step4 },
-    deviceInline: {
-      flexGrow: 1,
-      flexShrink: 1,
-      flexBasis: 164,
-      minWidth: 164,
-    },
-    currentDevice: { backgroundColor: color.actionWash },
-    start: { alignItems: "flex-start" },
-    signOut: {
-      alignItems: "flex-start",
-      paddingTop: space.step8,
-    },
-    appearance: { width: "100%", maxWidth: 505 },
-    optionList: { gap: space.step8 },
-    optionGrid: { flexDirection: "row", flexWrap: "wrap" },
-    option: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: space.step8,
-      minHeight: touchTarget,
-      paddingHorizontal: space.step12,
-      paddingVertical: space.step8,
-      borderWidth: border.control,
-      borderColor: color.boundary,
-      borderRadius: radius.control,
-    },
-    optionColumn: { flexBasis: "46%", flexGrow: 1 },
-    optionText: { flexShrink: 1 },
-    selected: { borderColor: color.action, backgroundColor: color.actionWash },
-    pressed: { backgroundColor: color.canvas },
-    focused: { ...focusOutline(color.information) },
-    radio: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      borderWidth: border.control,
-      borderColor: color.boundary,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    checkedRadio: { borderColor: color.action },
-    radioDot: {
-      width: space.step8,
-      height: space.step8,
-      borderRadius: space.step4,
-      backgroundColor: color.action,
-    },
-  }),
-);
+const styles = StyleSheet.create(({ semantic: { color, radius, space } }) => ({
+  screen: { flex: 1, backgroundColor: color.canvas },
+  container: {
+    width: "100%",
+    maxWidth: 1040,
+    alignSelf: "center",
+    padding: space.step16,
+    paddingBottom: space.step24,
+    gap: space.step16,
+  },
+  group: { gap: space.step16 },
+  columns: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.step16,
+  },
+  column: { flex: 1 },
+  hidden: { display: "none" },
+  deviceList: { gap: space.step8 },
+  deviceRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: space.step12,
+    padding: space.step12,
+    borderRadius: radius.control,
+    backgroundColor: color.canvas,
+  },
+  deviceStack: { flexDirection: "column", alignItems: "stretch" },
+  deviceCopy: { gap: space.step4 },
+  deviceInline: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 164,
+    minWidth: 164,
+  },
+  currentDevice: { backgroundColor: color.actionWash },
+  start: { alignItems: "flex-start" },
+  signOut: {
+    alignItems: "flex-start",
+    paddingTop: space.step8,
+  },
+}));

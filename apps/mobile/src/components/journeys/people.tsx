@@ -41,9 +41,10 @@ import {
 } from "../../membership-attempt";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
-import { Action, AppText, Panel, StatusNotice } from "../ui";
+import { Avatar, Badge } from "../fold/identity";
+import { Action, AppText, Panel, StatusNotice } from "../fold/primitives";
 import { useInviteComposer } from "./invite-composer";
-import { JourneyPersonMark, peopleStyles } from "./people-presentation";
+import { peopleStyles } from "./people-presentation";
 import { JourneyRetry, JourneyScreen, journeyStyles } from "./states";
 
 type Person = components["schemas"]["JourneyPersonV1"];
@@ -557,7 +558,7 @@ export function JourneyPeople({
                       style={[journeyStyles.group, peopleStyles.rowDivider]}
                     >
                       <View style={peopleStyles.row}>
-                        <JourneyPersonMark name={person.displayName} />
+                        <Avatar name={person.displayName} />
                         <View style={peopleStyles.rowCopy}>
                           <AppText
                             text={`${person.displayName}${you ? " (You)" : ""}`}
@@ -810,15 +811,11 @@ function InvitationRow({
   return (
     <View style={peopleStyles.invitation}>
       <View style={peopleStyles.row}>
-        <JourneyPersonMark name={invitation.displayName ?? undefined} />
+        <Avatar name={invitation.displayName ?? undefined} />
         <View style={peopleStyles.rowCopy}>
           <AppText text={label} variant="label" />
           <View style={peopleStyles.actions}>
-            <AppText
-              text={deliveryLabels[delivery]}
-              variant="caption"
-              style={[peopleStyles.tag, failed && peopleStyles.error]}
-            />
+            <Badge text={deliveryLabels[delivery]} error={failed} />
             <AppText
               text={`${expired ? "Expired on" : "Expires"} ${expiryFormat.format(new Date(invitation.expiresAt))}`}
               variant="caption"

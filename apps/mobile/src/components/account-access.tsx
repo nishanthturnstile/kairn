@@ -1,11 +1,10 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { type ComponentRef, useCallback, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   BackHandler,
   Image,
   Keyboard,
-  Pressable,
   ScrollView,
   type TextInput,
   useWindowDimensions,
@@ -16,19 +15,16 @@ import { StyleSheet } from "react-native-unistyles";
 import type { mobileAuth } from "../auth";
 import { publicEnvironment } from "../env";
 import { useMobileSession } from "../mobile-session";
+import { PasswordField } from "./fold/password-field";
 import {
   Action,
   AppText,
   Field,
-  focusOutline,
   type Notice,
   StatusNotice,
-  touchTarget,
-} from "./ui";
+} from "./fold/primitives";
 
 const artwork = require("../../assets/auth/ferry.jpg");
-const eye = require("../../assets/auth/eye.png");
-const eyeOff = require("../../assets/auth/eye-off.png");
 
 type Client = NonNullable<typeof mobileAuth>;
 const copy = {
@@ -70,6 +66,7 @@ export function AccountAccess({
   onSignIn?: (accountId: string) => void;
   signOutUnconfirmed?: boolean;
 }) {
+  const router = useRouter();
   const { state, refresh } = useMobileSession();
   const { fontScale, height, width } = useWindowDimensions();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -80,7 +77,6 @@ export function AccountAccess({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [visible, setVisible] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasShownForm, setHasShownForm] = useState(state === "signed-out");
@@ -104,7 +100,6 @@ export function AccountAccess({
     setMode(next);
     setNotice(null);
     setPassword("");
-    setVisible(false);
     scroll.current?.scrollTo({ y: 0, animated: false });
     AccessibilityInfo.announceForAccessibility(copy[next].title);
   }, []);
@@ -333,23 +328,14 @@ export function AccountAccess({
                 />
                 {onAuthForm && (
                   <>
-                    <Field
+                    <PasswordField
+                      key={mode}
                       label="Password"
                       ref={passwordField}
                       returnKeyType="go"
                       labelAction={fontScale < 1.5 && resetPassword}
-                      suffix={
-                        <PasswordVisibility
-                          visible={visible}
-                          disabled={!editing}
-                          toggle={() => setVisible((value) => !value)}
-                        />
-                      }
                       value={password}
                       onChangeText={setPassword}
-                      secureTextEntry={!visible}
-                      autoCapitalize="none"
-                      autoCorrect={false}
                       editable={editing}
                       autoComplete={
                         mode === "signUp" ? "new-password" : "current-password"
@@ -411,42 +397,14 @@ export function AccountAccess({
               </View>
             </>
           )}
+          <Action
+            label="Design system"
+            variant="text"
+            onPress={() => router.push("/design-system")}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function PasswordVisibility({
-  visible,
-  disabled,
-  toggle,
-}: {
-  visible: boolean;
-  disabled: boolean;
-  toggle: () => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={visible ? "Hide password" : "Show password"}
-      disabled={disabled}
-      onPress={toggle}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={({ pressed }) => [
-        styles.eyeButton,
-        pressed && styles.pressed,
-        focused && styles.focused,
-      ]}
-    >
-      <Image
-        source={visible ? eyeOff : eye}
-        accessible={false}
-        style={styles.eye}
-      />
-    </Pressable>
   );
 }
 
@@ -481,15 +439,5 @@ const styles = StyleSheet.create(
       columnGap: space.step12,
       paddingTop: space.step4,
     },
-    eyeButton: {
-      minHeight: touchTarget,
-      minWidth: touchTarget,
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: radius.control,
-    },
-    eye: { width: 21, height: 21, tintColor: color.secondaryText },
-    pressed: { backgroundColor: color.actionWash },
-    focused: { ...focusOutline(color.information) },
   }),
 );

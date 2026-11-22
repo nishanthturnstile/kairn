@@ -3,7 +3,7 @@ import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { publicEnvironment } from "../env";
-import { Action, AppText, Panel } from "./ui";
+import { Action, AppText, Panel } from "./fold/primitives";
 
 export function Destination({
   title,

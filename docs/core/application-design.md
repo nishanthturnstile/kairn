@@ -86,7 +86,7 @@ Discover uses approved destination aliases, category, visit dates, and status. P
 
 Use owned shadcn/Tailwind components on web and native controls with Unistyles on phones. Share semantic tokens, terminology, evidence labels, and pure rules; preserve platform navigation, keyboard, focus, and accessibility expectations. Do not add a second UI framework for visual uniformity.
 
-[Fold](../../DESIGN.md) defines the web palette, typography, spacing, component imports and interaction states. [Journey interactions](journey-interactions.md) covers product-specific content, accessibility and recovery.
+[Fold](../../DESIGN.md) defines the shared palette, typography and spacing, along with web and native component interactions. [Journey interactions](journey-interactions.md) covers product-specific content, accessibility and recovery.
 
 Controls need focus, pressed, disabled, loading, error, and success states where applicable. Labels accompany unfamiliar icons. Use at least 44 logical-point iPhone and 48 dp Android touch areas as product targets; primary web touch controls target 48 CSS px and must meet WCAG 2.2 AA including spacing exceptions. Provide visible focus, scalable text, contrast, screen-reader names, and non-colour evidence distinctions. [WCAG target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 

@@ -1,5 +1,10 @@
-import { useRef, useState } from "react";
-import { Keyboard, View } from "react-native";
+import { type ComponentRef, useRef, useState } from "react";
+import {
+  AccessibilityInfo,
+  Keyboard,
+  type Pressable,
+  View,
+} from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { ensureActive } from "../api";
 import { journeyResult } from "../journey-api";
@@ -7,7 +12,9 @@ import { useMobileSession } from "../mobile-session";
 import type { VerifiedMobileScope } from "../session";
 import { profileKey } from "../workspace-keys";
 import { useNativeProfile } from "../workspace-queries";
-import { Action, AppText, Field, Panel, StatusNotice } from "./ui";
+import { Avatar } from "./fold/identity";
+import { Action, AppText, Field, Panel, StatusNotice } from "./fold/primitives";
+import { useReceipt } from "./fold/receipt";
 
 export function ProfileName({
   scope,
@@ -26,19 +33,22 @@ export function ProfileName({
   const [draft, setDraft] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [saved, setSaved] = useState(false);
+  const showReceipt = useReceipt();
+  const editButton = useRef<ComponentRef<typeof Pressable>>(null);
+  function confirmSave() {
+    endEdit();
+    showReceipt({
+      message: "Display name saved.",
+      returnFocus: () => {
+        if (editButton.current)
+          AccessibilityInfo.sendAccessibilityEvent(editButton.current, "focus");
+      },
+    });
+  }
   const editable = !busy && !disabled && !isRevalidating;
   const name = profile.data?.displayName;
-  const initials = name
-    ?.trim()
-    .split(/\s+/u)
-    .slice(0, 2)
-    .map((part) => Array.from(part)[0]?.toLocaleUpperCase())
-    .join("");
-
   function edit() {
     if (name === undefined) return;
-    setSaved(false);
     setError(undefined);
     setDraft(name);
     onEditingChange?.(true);
@@ -77,15 +87,13 @@ export function ProfileName({
       await scope.queryClient.cancelQueries({ queryKey: profileKey });
       ensureActive(scope.signal);
       scope.queryClient.setQueryData(profileKey, updated);
-      endEdit();
-      setSaved(true);
+      confirmSave();
     } catch {
       if (scope.signal.aborted) return;
       const checked = await profile.refetch();
       if (scope.signal.aborted) return;
       if (!checked.isError && checked.data?.displayName === displayName) {
-        endEdit();
-        setSaved(true);
+        confirmSave();
       } else {
         setError("Couldn’t save your name. Try again.");
       }
@@ -119,6 +127,7 @@ export function ProfileName({
             <Action
               label={busy ? "Saving…" : "Save name"}
               variant="primary"
+              accessibilityState={{ busy: busy }}
               disabled={!editable}
               onPress={() => void save()}
             />
@@ -135,26 +144,18 @@ export function ProfileName({
           <View
             style={[styles.identity, !account.stacked && styles.identityInline]}
           >
-            {!!initials && (
-              <View
-                style={styles.avatar}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                <AppText
-                  text={initials}
-                  variant="label"
-                  allowFontScaling={false}
-                  style={styles.avatarText}
-                />
-              </View>
-            )}
+            {!!name?.trim() && <Avatar name={name} large />}
             <View style={styles.nameCopy}>
               <AppText text="Display name" variant="caption" subdued />
               <AppText text={name || "Enter a display name"} variant="label" />
             </View>
           </View>
-          <Action label="Edit name" disabled={!editable} onPress={edit} />
+          <Action
+            ref={editButton}
+            label="Edit name"
+            disabled={!editable}
+            onPress={edit}
+          />
         </View>
       ) : (
         <>
@@ -165,7 +166,12 @@ export function ProfileName({
                 text={profile.data.displayName || "Enter a display name"}
                 variant="label"
               />
-              <Action label="Edit name" disabled={!editable} onPress={edit} />
+              <Action
+                ref={editButton}
+                label="Edit name"
+                disabled={!editable}
+                onPress={edit}
+              />
             </>
           ) : (
             <>
@@ -186,11 +192,6 @@ export function ProfileName({
             </>
           )}
         </>
-      )}
-      {saved && draft === undefined && (
-        <StatusNotice
-          notice={{ text: "Display name saved.", tone: "success" }}
-        />
       )}
       {account && (
         <View style={styles.email}>
@@ -222,15 +223,6 @@ const styles = StyleSheet.create(({ semantic: { border, color, space } }) => ({
     flexBasis: 176,
     minWidth: 176,
   },
-  avatar: {
-    width: space.step40,
-    height: space.step40,
-    borderRadius: space.step24,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: color.actionWash,
-  },
-  avatarText: { color: color.action },
   nameCopy: { flex: 1, minWidth: 0 },
   email: {
     paddingTop: space.step12,

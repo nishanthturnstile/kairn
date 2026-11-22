@@ -1,6 +1,8 @@
 {
   "semantic": {
     "color": {
+      "focus": { "$value": "{semantic.color.information}" },
+      "divider": { "$value": "{semantic.color.boundary}" },
       "canvas": {
         "$value": "{primitive.color.white}"
       },

@@ -18,21 +18,21 @@ public enum class KairnTokens {
 
     public val componentCaptureButtonBackground: Color
         get() = when (this) {
-            Light -> Color(0xFF174940)
-            Dark -> Color(0xFF9CD5BD)
+            Light -> Color(0xFF24271F)
+            Dark -> Color(0xFFD3F477)
             Outdoor -> Color(0xFF0D382D)
         }
 
     public val componentCaptureButtonForeground: Color
         get() = when (this) {
-            Light -> Color(0xFFFFFFFF)
-            Dark -> Color(0xFF112B24)
+            Light -> Color(0xFFFFFEF8)
+            Dark -> Color(0xFF1C2315)
             Outdoor -> Color(0xFFFFFFFF)
         }
 
     public val componentCaptureButtonMinHeight: Dp get() = 56f.dp
 
-    public val componentCaptureButtonRadius: Dp get() = 8f.dp
+    public val componentCaptureButtonRadius: Dp get() = 6f.dp
 
     public val componentChapterHeadingFamily: List<String> get() = listOf("Georgia", "serif")
 
@@ -42,8 +42,8 @@ public enum class KairnTokens {
 
     public val componentMomentCardBackground: Color
         get() = when (this) {
-            Light -> Color(0xFFFFFFFF)
-            Dark -> Color(0xFF1C2B29)
+            Light -> Color(0xFFFFFEFA)
+            Dark -> Color(0xFF252823)
             Outdoor -> Color(0xFFFFFFFF)
         }
 
@@ -56,7 +56,7 @@ public enum class KairnTokens {
 
     public val componentMomentCardPadding: Dp get() = 16f.dp
 
-    public val componentMomentCardRadius: Dp get() = 12f.dp
+    public val componentMomentCardRadius: Dp get() = 10f.dp
 
     public val componentRouteLineCasing: Dp get() = 2f.dp
 
@@ -75,8 +75,8 @@ public enum class KairnTokens {
 
     public val componentRouteLineRecorded: Color
         get() = when (this) {
-            Light -> Color(0xFF174940)
-            Dark -> Color(0xFF9CD5BD)
+            Light -> Color(0xFF24271F)
+            Dark -> Color(0xFFD3F477)
             Outdoor -> Color(0xFF0D382D)
         }
 
@@ -84,15 +84,15 @@ public enum class KairnTokens {
 
     public val componentSyncStatusFailed: Color
         get() = when (this) {
-            Light -> Color(0xFF9D2C2D)
-            Dark -> Color(0xFFFFABAC)
+            Light -> Color(0xFFA53126)
+            Dark -> Color(0xFFFFA49C)
             Outdoor -> Color(0xFF761D23)
         }
 
     public val componentSyncStatusUploaded: Color
         get() = when (this) {
-            Light -> Color(0xFF21633F)
-            Dark -> Color(0xFF93D8AC)
+            Light -> Color(0xFF3B602C)
+            Dark -> Color(0xFFB5DF9D)
             Outdoor -> Color(0xFF134729)
         }
 
@@ -112,8 +112,8 @@ public enum class KairnTokens {
 
     public val semanticActivityOther: Color
         get() = when (this) {
-            Light -> Color(0xFF49635F)
-            Dark -> Color(0xFFB5C8BF)
+            Light -> Color(0xFF61645A)
+            Dark -> Color(0xFFBDC0B3)
             Outdoor -> Color(0xFF293B34)
         }
 
@@ -126,8 +126,8 @@ public enum class KairnTokens {
 
     public val semanticActivityTrek: Color
         get() = when (this) {
-            Light -> Color(0xFF174940)
-            Dark -> Color(0xFF9CD5BD)
+            Light -> Color(0xFF24271F)
+            Dark -> Color(0xFFD3F477)
             Outdoor -> Color(0xFF0D382D)
         }
 
@@ -140,37 +140,59 @@ public enum class KairnTokens {
 
     public val semanticColorAction: Color
         get() = when (this) {
-            Light -> Color(0xFF174940)
-            Dark -> Color(0xFF9CD5BD)
+            Light -> Color(0xFF24271F)
+            Dark -> Color(0xFFD3F477)
             Outdoor -> Color(0xFF0D382D)
         }
 
     public val semanticColorActionWash: Color
         get() = when (this) {
-            Light -> Color(0xFFE1EFEA)
-            Dark -> Color(0xFF28453C)
+            Light -> Color(0xFFEEEFE7)
+            Dark -> Color(0xFF34392F)
             Outdoor -> Color(0xFFE9F2EB)
         }
 
     public val semanticColorBoundary: Color
         get() = when (this) {
-            Light -> Color(0xFF78857E)
-            Dark -> Color(0xFF8A9E95)
+            Light -> Color(0xFF787C6F)
+            Dark -> Color(0xFF919786)
             Outdoor -> Color(0xFF31463D)
         }
 
     public val semanticColorCanvas: Color
         get() = when (this) {
-            Light -> Color(0xFFF6F3EB)
-            Dark -> Color(0xFF111C1B)
+            Light -> Color(0xFFFBFAF6)
+            Dark -> Color(0xFF1B1D1A)
             Outdoor -> Color(0xFFFFFFFF)
         }
 
+    public val semanticColorCitron: Color get() = Color(0xFFD3F477)
+
+    public val semanticColorClay: Color get() = Color(0xFFE8A483)
+
+    public val semanticColorDivider: Color
+        get() = when (this) {
+            Light -> Color(0xFFD9DBD0)
+            Dark -> Color(0xFF42473D)
+            Outdoor -> Color(0xFF31463D)
+        }
+
+    public val semanticColorDock: Color get() = Color(0xFF262922)
+
+    public val semanticColorDockInk: Color get() = Color(0xFFE5E7DA)
+
     public val semanticColorError: Color
         get() = when (this) {
-            Light -> Color(0xFF9D2C2D)
-            Dark -> Color(0xFFFFABAC)
+            Light -> Color(0xFFA53126)
+            Dark -> Color(0xFFFFA49C)
             Outdoor -> Color(0xFF761D23)
+        }
+
+    public val semanticColorFocus: Color
+        get() = when (this) {
+            Light -> Color(0xFF4F6334)
+            Dark -> Color(0xFFD3F477)
+            Outdoor -> Color(0xFF123E81)
         }
 
     public val semanticColorInformation: Color
@@ -182,22 +204,38 @@ public enum class KairnTokens {
 
     public val semanticColorInk: Color
         get() = when (this) {
-            Light -> Color(0xFF172C2B)
-            Dark -> Color(0xFFF1F4EE)
+            Light -> Color(0xFF20221D)
+            Dark -> Color(0xFFF1F2E7)
             Outdoor -> Color(0xFF101815)
         }
 
+    public val semanticColorKey: Color
+        get() = when (this) {
+            Light -> Color(0xFFD3F477)
+            Dark -> Color(0xFF28331E)
+            Outdoor -> Color(0xFFD3F477)
+        }
+
+    public val semanticColorKeyInk: Color
+        get() = when (this) {
+            Light -> Color(0xFF22271B)
+            Dark -> Color(0xFFD3F477)
+            Outdoor -> Color(0xFF22271B)
+        }
+
+    public val semanticColorLilac: Color get() = Color(0xFFDCD4F1)
+
     public val semanticColorOnAction: Color
         get() = when (this) {
-            Light -> Color(0xFFFFFFFF)
-            Dark -> Color(0xFF112B24)
+            Light -> Color(0xFFFFFEF8)
+            Dark -> Color(0xFF1C2315)
             Outdoor -> Color(0xFFFFFFFF)
         }
 
     public val semanticColorSecondaryText: Color
         get() = when (this) {
-            Light -> Color(0xFF49635F)
-            Dark -> Color(0xFFB5C8BF)
+            Light -> Color(0xFF61645A)
+            Dark -> Color(0xFFBDC0B3)
             Outdoor -> Color(0xFF293B34)
         }
 
@@ -210,15 +248,15 @@ public enum class KairnTokens {
 
     public val semanticColorSuccess: Color
         get() = when (this) {
-            Light -> Color(0xFF21633F)
-            Dark -> Color(0xFF93D8AC)
+            Light -> Color(0xFF3B602C)
+            Dark -> Color(0xFFB5DF9D)
             Outdoor -> Color(0xFF134729)
         }
 
     public val semanticColorSurface: Color
         get() = when (this) {
-            Light -> Color(0xFFFFFFFF)
-            Dark -> Color(0xFF1C2B29)
+            Light -> Color(0xFFFFFEFA)
+            Dark -> Color(0xFF252823)
             Outdoor -> Color(0xFFFFFFFF)
         }
 
@@ -291,8 +329,8 @@ public enum class KairnTokens {
 
     public val semanticPhaseActivity: Color
         get() = when (this) {
-            Light -> Color(0xFF174940)
-            Dark -> Color(0xFF9CD5BD)
+            Light -> Color(0xFF24271F)
+            Dark -> Color(0xFFD3F477)
             Outdoor -> Color(0xFF0D382D)
         }
 
@@ -305,8 +343,8 @@ public enum class KairnTokens {
 
     public val semanticPhaseRestDay: Color
         get() = when (this) {
-            Light -> Color(0xFF49635F)
-            Dark -> Color(0xFFB5C8BF)
+            Light -> Color(0xFF61645A)
+            Dark -> Color(0xFFBDC0B3)
             Outdoor -> Color(0xFF293B34)
         }
 
@@ -319,8 +357,8 @@ public enum class KairnTokens {
 
     public val semanticPhaseStay: Color
         get() = when (this) {
-            Light -> Color(0xFF49635F)
-            Dark -> Color(0xFFB5C8BF)
+            Light -> Color(0xFF61645A)
+            Dark -> Color(0xFFBDC0B3)
             Outdoor -> Color(0xFF293B34)
         }
 
@@ -338,9 +376,9 @@ public enum class KairnTokens {
             Outdoor -> Color(0xFF603916)
         }
 
-    public val semanticRadiusCard: Dp get() = 12f.dp
+    public val semanticRadiusCard: Dp get() = 10f.dp
 
-    public val semanticRadiusControl: Dp get() = 8f.dp
+    public val semanticRadiusControl: Dp get() = 6f.dp
 
     public val semanticRadiusTag: Dp get() = 4f.dp
 
