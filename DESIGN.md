@@ -97,6 +97,10 @@ Use the shared [authentication shell](apps/web/src/components/auth/layout.tsx) a
 
 Keep top-level destinations in a labelled bottom bar below 48rem. Use the leading rail from 48rem, with the expanded sidebar as the default at 80rem. The header shows location and opens the signed-in profile menu with Account, the current Appearance and Sign out. Open the shared appearance choices on demand and restore focus to the profile when they close. Dashboard uses one illustrated first action for an empty account, then real schedule and history when journeys exist. Use aligned schedule groups and explicit start and end labels in Journeys. [Workspace layout](apps/web/src/components/workspace-layout.tsx) · [Journeys timeline](docs/plans/private-journey-creation-and-history.md#journeys-timeline-redesign)
 
+### Discover and Saved
+
+Use decorative landscape art for Discover and a compact bookmark panel for Saved. Shorten the art at larger native text sizes to keep the first action reachable. Describe the empty collection plainly and offer one working next action. Discover opens the user’s Journeys and Saved opens Discover. Share the collection copy across web and native. Keep availability feedback beside the collection and carry the current workspace appearance and navigation into both screens. [Web collections](apps/web/src/components/collections-page.tsx) · [Native collections](apps/mobile/src/components/collections.tsx)
+
 ### Web creation and invitations
 
 Use the [journey form layout](apps/web/src/components/journeys/flow.tsx) for creation and the invitation handoff. Keep editing and search on the main surface and put the live preview or recipients alongside it when space allows. Stack them at narrow widths and keep the form’s save actions close to its fields. Confirm a saved journey before offering the invitation controls. Keep pending and retry messages near their actions. [Journey creation](docs/plans/private-journey-creation-and-history.md#create-journey-redesign) · [Invitations](docs/plans/journey-invitations-and-membership.md)

@@ -1,12 +1,5 @@
-import { Destination } from "../../components/destination";
+import { CollectionsScreen } from "../../components/collections";
 
 export default function Saved() {
-  return (
-    <Destination
-      title="Saved"
-      description="Stories and research you want to return to."
-      stateTitle="Saved references"
-      stateDescription="This is where your private collection will be available."
-    />
-  );
+  return <CollectionsScreen destination="saved" />;
 }

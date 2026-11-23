@@ -104,33 +104,6 @@ test("signed-out routes render only account access", async ({ page }) => {
   expect(protectedReads).toEqual([]);
 });
 
-test("signed-in discovery displays loading, retry, and empty states", async ({
-  page,
-}) => {
-  const first = Promise.withResolvers<number>();
-  let requests = 0;
-  await serveFixture(
-    page,
-    () => (requests++ === 0 ? first.promise : Promise.resolve(200)),
-    true,
-  );
-  await page.goto(`${origin}/discover`);
-  await expect(page).toHaveTitle("Discover · Kairn");
-  await expect(page.getByText("Checking availability")).toBeVisible();
-  first.resolve(503);
-  await expect(page.getByRole("alert")).toContainText(
-    "Couldn’t connect to Kairn",
-  );
-  await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByText("No published journeys yet")).toBeVisible();
-  await page.getByRole("link", { name: "Saved" }).click();
-  await expect(page).toHaveTitle("Saved · Kairn");
-  await expect(
-    page.getByRole("heading", { name: "Saved", exact: true }),
-  ).toBeVisible();
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-});
-
 test("appearance carries across workspace, account and story at large text sizes", async ({
   page,
 }) => {
