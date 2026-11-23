@@ -20,6 +20,7 @@ Start with [implementation progress](progress.md) for the current milestone, nex
 - [Create a private journey and show it in history](plans/private-journey-creation-and-history.md)
 - [Journey invitations and membership](plans/journey-invitations-and-membership.md)
 - [Source and export permissions](plans/source-and-export-permissions.md)
+- [Import a past journey from GPX](plans/gpx-journey-import.md)
 - [Application bootstrap](plans/bootstrap-plan.md)
 
 ## Runbooks and review material
