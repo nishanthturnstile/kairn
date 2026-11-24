@@ -34,6 +34,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Build and smoke-test native Linux images
+        env:
+          VITE_GPX_JOURNEY_CREATE: ${{ vars.VITE_GPX_JOURNEY_CREATE }}
+          VITE_MAPBOX_PUBLIC_TOKEN: ${{ vars.VITE_MAPBOX_PUBLIC_TOKEN }}
         run: |
           export KAIRN_RELEASE_REVISION="$GITHUB_SHA"
           bash infra/operations/build-images.sh "linux/$ARCHITECTURE" kairn-release "${RUNNER_TEMP}/kairn-local.env"

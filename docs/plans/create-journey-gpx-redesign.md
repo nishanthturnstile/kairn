@@ -66,6 +66,7 @@ Use the existing fixtures and account-scoped suites. Add regressions for the bat
 - Enable test-scoped Mapbox tokens and verify interactive paths, selection and attribution on all three clients. Qualify the native fallback with provider failures.
 - Run the physical iPhone, Android and mobile Safari walkthroughs. Cover cloud-backed selection, VoiceOver, TalkBack, large text, Wi-Fi-only transfer, transfer interruption, and appearance variants. The local Firefox runner stopped at launch with `Could not find profile folder`.
 - Measure upload-to-preview latency and peak memory for multiple representative exports under throttled networking. Complete the release retention and worker checks. [GPX release qualification](gpx-journey-import.md#pending-work)
-- Add optional in-creation corrections for whole-trip dates and named timezones. The first implementation supports renaming and saving with the derived UTC schedule or an undated schedule when the recorded window is unresolved.
 
 The web flag is `VITE_GPX_JOURNEY_CREATE=1`. The native flag is `EXPO_PUBLIC_GPX_JOURNEY_CREATE=1`.
+
+Optional in-creation corrections for whole-trip dates and named timezones follow the web rollout. The current flow supports renaming and saving with the derived UTC schedule or an undated schedule when the recorded window is unresolved.

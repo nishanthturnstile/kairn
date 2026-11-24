@@ -19,6 +19,8 @@ RUN pnpm exec vp run --filter '@kairn/worker...' build \
     && pnpm --filter @kairn/worker deploy --prod /deploy
 
 FROM build AS web-build
+ARG VITE_GPX_JOURNEY_CREATE=0
+ARG VITE_MAPBOX_PUBLIC_TOKEN
 RUN pnpm exec vp run --filter '@kairn/web...' build
 
 FROM base AS server
