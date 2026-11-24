@@ -567,6 +567,7 @@ test("keeps People and the focused invitation form usable at 320 CSS pixels", as
   await page.getByRole("button", { name: "Invite people" }).press("Enter");
   const sheet = page.getByRole("dialog", { name: "Invite people" });
   await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel("Name or exact email")).toBeFocused();
   await sheet.getByRole("button", { name: "Invite by email" }).press("Enter");
   await expect(sheet.getByLabel("Email address")).toBeFocused();
   await sheet.getByLabel("Email address").fill("invalid");

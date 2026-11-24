@@ -102,11 +102,12 @@ export function InviteComposer({
   const list = useRef<HTMLUListElement>(null);
   const field = useId();
   const wide = useMediaQuery("(min-width: 768px)");
+  const inline = wide || dialogDraft !== undefined;
   const { refresh } = useSessionAccess();
 
   useEffect(() => {
-    if (open && !afterCreation) input.current?.focus();
-  }, [open, afterCreation]);
+    if (open && !afterCreation && inline) input.current?.focus();
+  }, [open, afterCreation, inline]);
 
   useLayoutEffect(() => {
     if (!open || suspended) setSearching(false);
@@ -742,6 +743,7 @@ export function InviteComposer({
     >
       <SheetContent
         showCloseButton={false}
+        initialFocus={input}
         finalFocus={false}
         className="data-[side=right]:w-full overflow-auto p-4"
       >
