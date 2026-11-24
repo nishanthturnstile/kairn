@@ -22,11 +22,9 @@ export async function settleAppearance(page: Page) {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    await Promise.allSettled(
-      document
-        .getAnimations()
-        .filter((animation) => animation instanceof CSSTransition)
-        .map((transition) => transition.finished),
-    );
+    // Headless Firefox can leave CSS transitions pending indefinitely.
+    for (const animation of document.getAnimations()) {
+      if (animation instanceof CSSTransition) animation.finish();
+    }
   });
 }
