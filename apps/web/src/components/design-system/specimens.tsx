@@ -9,6 +9,7 @@ import {
 import { type ReactNode, useId, useRef, useState } from "react";
 import { JourneyMap } from "@/components/illustrations/journey-map";
 import { PasswordField } from "@/components/password-field";
+import { RecordingRouteOverview } from "@/components/recordings/route-preview";
 import {
   Alert,
   AlertAction,
@@ -38,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dropzone } from "@/components/ui/dropzone";
 import {
   Empty,
   EmptyContent,
@@ -373,6 +375,43 @@ export function FieldsSpecimen() {
     </Specimen>
   );
 }
+export function DropzoneSpecimen() {
+  const [summary, setSummary] = useState("No files selected.");
+  const [compact, setCompact] = useState(false);
+  return (
+    <Specimen id="file-dropzone" title="File dropzone" source="ui/dropzone">
+      <ChoiceLabel>
+        <Switch
+          checked={compact}
+          onChange={(event) => setCompact(event.target.checked)}
+        />
+        Compact dropzone
+      </ChoiceLabel>
+      <Dropzone
+        compact={compact}
+        accept=".gpx"
+        label="Sample GPX files"
+        heading={
+          !compact && <h3 className="text-lg font-semibold">Add GPX files</h3>
+        }
+        leading={
+          compact ? (
+            <span className="font-semibold">Recordings</span>
+          ) : undefined
+        }
+        description="Drop recordings from the same trip here."
+        touchDescription="Choose recordings from the same trip."
+        hint={compact ? undefined : ".gpx only"}
+        onFiles={(files) => setSummary(`${files.length} files selected.`)}
+        onError={() => setSummary("Couldn’t open those files.")}
+      />
+      <p role="status" className="text-sm text-muted-foreground">
+        {summary}
+      </p>
+    </Specimen>
+  );
+}
+
 export function SelectionSpecimen() {
   return (
     <Specimen id="selection" title="Selection" source="ui/selection">
@@ -676,7 +715,7 @@ export function OverlaySpecimen() {
           <DialogTrigger render={<Button variant="outline" />}>
             Open dialog
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent keepMounted>
             <DialogTitle>Visibility preview</DialogTitle>
             <DialogDescription>
               Only the owner can see this sample moment.
@@ -698,7 +737,7 @@ export function ExpressionSpecimen() {
     <Specimen
       id="expression"
       title="Icons, illustration & loading"
-      source="ui/cairn-logo · ui/loading · illustrations/journey-map"
+      source="ui/cairn-logo · ui/loading · illustrations/journey-map · recordings/route-preview"
     >
       <Field>
         <FieldLabel htmlFor="expression-example">Preview pattern</FieldLabel>
@@ -709,6 +748,7 @@ export function ExpressionSpecimen() {
         >
           {[
             "Empty journey illustration",
+            "Recorded route overview",
             "Opening the workspace",
             "Loading journeys",
           ].map((option) => (
@@ -719,6 +759,29 @@ export function ExpressionSpecimen() {
       <div className="grid min-h-32 content-center overflow-hidden rounded-control border bg-card">
         {example === "Empty journey illustration" ? (
           <JourneyMap />
+        ) : example === "Recorded route overview" ? (
+          <div className="p-3">
+            <RecordingRouteOverview
+              overlay={{
+                version: 1,
+                bounds: [0, 0, 4, 2],
+                paths: [
+                  {
+                    section: 0,
+                    firstPointIndex: 0,
+                    coordinates: [
+                      [0, 0],
+                      [1, 0.5],
+                      [1.5, 1.4],
+                      [2.5, 1.2],
+                      [3, 2],
+                      [4, 1.8],
+                    ],
+                  },
+                ],
+              }}
+            />
+          </div>
         ) : example === "Loading journeys" ? (
           <ContentLoading label="Loading your journeys" />
         ) : (

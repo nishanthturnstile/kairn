@@ -22,7 +22,10 @@ function createAccountScope(accountId: string | null, origin: string) {
         accountId &&
         (url.pathname === "/api/v1/journeys" ||
           url.pathname.startsWith("/api/v1/journeys/") ||
-          url.pathname.startsWith("/api/v1/journey-invitations/"))
+          url.pathname.startsWith("/api/v1/journey-invitations/") ||
+          /^\/api\/v1\/(?:uploads|imports|recording-batches|recording-attachment-destinations|account\/recordings)(?:\/|$)/.test(
+            url.pathname,
+          ))
       ) {
         headers.set("X-Expected-Account", accountId);
       }

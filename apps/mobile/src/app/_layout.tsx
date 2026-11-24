@@ -72,6 +72,10 @@ function Navigation() {
             name="design-system/[section]"
             options={{ title: "Component" }}
           />
+          <Stack.Screen
+            name="your-recordings"
+            options={{ title: "Your recordings" }}
+          />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="account"

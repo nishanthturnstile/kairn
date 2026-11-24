@@ -1,9 +1,14 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import type {
+  createJourneyDeletionService,
   createJourneyEditorialService,
   createJourneyInvitationService,
   createJourneyMembershipService,
   createOriginalExportService,
+  createOwnerRecordingService,
+  createRecordingAttachmentService,
+  createRecordingImportService,
+  createRecordingUploadService,
   createSourceReviewService,
   VerifiedSession,
 } from "@kairn/backend";
@@ -21,6 +26,7 @@ import {
   createJourney,
   createJourneyHeaders,
   invitableJourneysPage,
+  journeyDeletionResult,
   journeyHeaders,
   journeyHistory,
   journeyHistoryQuery,
@@ -39,7 +45,13 @@ import { registerJourneyInvitationRoutes } from "./journey-invitations.js";
 import { registerJourneyMembershipRoutes } from "./journey-membership.js";
 import { allowsWriteOrigin, errorResponse, privateHeaders } from "./openapi.js";
 import { registerOriginalExportRoutes } from "./original-export.js";
+import { registerOwnerRecordingRoutes } from "./owner-recordings.js";
 import { problem, type RequestEnvironment } from "./problem.js";
+import { registerRecordingAttachmentRoutes } from "./recording-attachments.js";
+import {
+  registerRecordingImportRoutes,
+  registerRecordingUploadRoutes,
+} from "./recordings.js";
 import { registerSourceReviewRoutes } from "./source-review.js";
 
 interface Unavailable {
@@ -48,11 +60,16 @@ interface Unavailable {
 
 export interface JourneyOperations {
   writeOrigins: readonly string[];
+  deleteJourney?: ReturnType<typeof createJourneyDeletionService>;
   invitations?: ReturnType<typeof createJourneyInvitationService>;
   restrictMembership?: ReturnType<typeof createJourneyMembershipService>;
   updateEditorialCapability?: ReturnType<typeof createJourneyEditorialService>;
   sourceReview?: ReturnType<typeof createSourceReviewService>;
   originalExport?: ReturnType<typeof createOriginalExportService>;
+  ownerRecordings?: ReturnType<typeof createOwnerRecordingService>;
+  recordingAttachments?: ReturnType<typeof createRecordingAttachmentService>;
+  recordingImports?: ReturnType<typeof createRecordingImportService>;
+  recordingUploads?: ReturnType<typeof createRecordingUploadService>;
   verifySession(
     headers: Headers,
   ): Promise<
@@ -397,6 +414,48 @@ export function createJourneysApi(operations?: JourneyOperations) {
     },
   );
 
+  const deletedResponse = {
+    headers: privateHeaders,
+    content: { "application/json": { schema: journeyDeletionResult } },
+  };
+  api.openapi(
+    createRoute({
+      method: "delete",
+      path: "/api/v1/journeys/{journeyId}",
+      operationId: "deleteJourney",
+      middleware: [protect, authenticate, enforceWriteOrigin] as const,
+      request: { headers: journeyHeaders, params: journeyPath },
+      responses: {
+        ...errors,
+        200: {
+          ...deletedResponse,
+          description: "Deletion confirmed by the recovery journal.",
+        },
+        202: {
+          ...deletedResponse,
+          description: "Journey deleted. Recovery confirmation is pending.",
+        },
+        403: errorResponse("The write origin is forbidden.", privateHeaders),
+        409: errorResponse(
+          "A fresh session is required or the verified account changed.",
+          privateHeaders,
+        ),
+      },
+    }),
+    async (context) => {
+      const { operations, session } = context.var.journeys;
+      if (!operations.deleteJourney) return problem(context, 503);
+      const result = await operations.deleteJourney(
+        session,
+        context.req.valid("param").journeyId,
+      );
+      if (result.status === 409)
+        return problem(context, 409, { code: "fresh_session_required" });
+      if (!("confirmation" in result)) return problem(context, result.status);
+      return context.json(journeyDeletionResult.parse(result), result.status);
+    },
+  );
+
   const guards = {
     operations,
     protect,
@@ -408,5 +467,9 @@ export function createJourneysApi(operations?: JourneyOperations) {
   registerJourneyEditorialRoute(api, guards);
   registerSourceReviewRoutes(api, guards);
   registerOriginalExportRoutes(api, guards);
+  registerRecordingUploadRoutes(api, guards);
+  registerRecordingImportRoutes(api, guards);
+  registerRecordingAttachmentRoutes(api, guards);
+  registerOwnerRecordingRoutes(api, guards);
   return api;
 }

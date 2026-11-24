@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vite-plus/test";
-import { journeyReturnTo } from "../apps/web/src/lib/journey-return";
+import { describe, expect, it, vi } from "vite-plus/test";
+import {
+  boundJourneyReturn,
+  clearJourneyReturn,
+  journeyReturnTo,
+} from "../apps/web/src/lib/journey-return";
 import { createWebSession } from "../apps/web/src/lib/session";
 
 const baseUrl = "http://kairn.test";
@@ -72,6 +76,7 @@ it("accepts allowlisted workspace destinations after sign-in", () => {
   expect(journeyReturnTo("/journeys/new")).toBe("/journeys/new");
   expect(journeyReturnTo("/saved")).toBe("/saved");
   expect(journeyReturnTo(detail)).toBe(detail);
+  expect(journeyReturnTo(`${detail}/people`)).toBe(detail);
   for (const unavailable of [
     "//other.test/journeys",
     "https://other.test/journeys",
@@ -79,5 +84,28 @@ it("accepts allowlisted workspace destinations after sign-in", () => {
     `${detail}?extra=1`,
   ]) {
     expect(journeyReturnTo(unavailable)).toBeUndefined();
+  }
+});
+
+it("consumes an old People handoff at the journey detail destination", () => {
+  const accountId = "250dbeb0-da94-4de9-a164-cadaa8d2d6bd";
+  const detail = `/journeys/${accountId}`;
+  let raw: string | null = JSON.stringify({
+    accountId,
+    target: `${detail}/people`,
+    expiresAt: Date.now() + 60_000,
+  });
+  vi.stubGlobal("sessionStorage", {
+    getItem: () => raw,
+    removeItem: () => {
+      raw = null;
+    },
+  });
+  try {
+    expect(boundJourneyReturn(accountId)).toBe(detail);
+    clearJourneyReturn(accountId);
+    expect(boundJourneyReturn(accountId)).toBeUndefined();
+  } finally {
+    vi.unstubAllGlobals();
   }
 });

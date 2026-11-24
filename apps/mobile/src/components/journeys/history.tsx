@@ -26,13 +26,20 @@ import {
   JourneyRequestError,
   journeyResult,
 } from "../../journey-api";
+import { gpxJourneyCreation } from "../../journey-creation";
 import { departureKey } from "../../membership-attempt";
 import { useMobileSession } from "../../mobile-session";
+import {
+  mobileRecordingDraftKey,
+  useRecordingImports,
+} from "../../recording-api";
 import type { VerifiedMobileScope } from "../../session";
+import { readRecordingDraft } from "../../storage/recording-import";
 import { DestinationTopBar } from "../destination";
 import { ContentLoading, JourneyMap } from "../fold/expression";
 import { Action, AppText, StatusNotice } from "../fold/primitives";
 import { FoldSafeAreaView } from "../fold/screen";
+import { CreateJourneyLink } from "./create-link";
 import { JourneyRow } from "./journey-row";
 import { JourneyRetry, journeyStyles, useJourneyReentry } from "./states";
 
@@ -78,6 +85,56 @@ function rowDates(journey: PrivateJourney) {
 
 export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
   const router = useRouter();
+  const imports = useRecordingImports(scope, !gpxJourneyCreation);
+  const localRecording = useQuery({
+    queryKey: mobileRecordingDraftKey,
+    refetchOnMount: "always",
+    enabled: !gpxJourneyCreation && Boolean(imports.data),
+    queryFn: async () => readRecordingDraft(scope),
+  });
+  const resumable = Boolean(
+    imports.data?.imports.length || imports.data?.nextCursor,
+  );
+  const canResumeLocal = Boolean(
+    localRecording.data?.fileId || localRecording.data?.importId,
+  );
+  function historyActions() {
+    if (gpxJourneyCreation) return <CreateJourneyLink />;
+    return (
+      <View style={journeyStyles.group}>
+        {imports.data && (
+          <Action
+            label="Import GPX"
+            variant="primary"
+            onPress={() =>
+              router.push({
+                pathname: "/journeys/import",
+                params: { fresh: "1" },
+              })
+            }
+          />
+        )}
+        <Action
+          label={imports.data ? "Create journey manually" : "Create journey"}
+          variant={imports.data ? "secondary" : "primary"}
+          onPress={create}
+        />
+        {imports.data && (canResumeLocal || resumable) && (
+          <Action
+            label="Resume import"
+            variant="text"
+            onPress={() =>
+              router.push({
+                pathname: "/journeys/import",
+                params: { resume: "1" },
+              })
+            }
+          />
+        )}
+      </View>
+    );
+  }
+
   const { width, fontScale } = useWindowDimensions();
   const stackHeader = width < 365 || fontScale > 1.35;
   const { refresh, recheck } = useMobileSession();
@@ -276,13 +333,7 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                 variant="title"
                 accessibilityRole="header"
               />
-              {(sections.length > 0 || history.isError) && (
-                <Action
-                  label="Create journey"
-                  variant="primary"
-                  onPress={create}
-                />
-              )}
+              {(sections.length > 0 || history.isError) && historyActions()}
             </View>
             {departure.data && (
               <View style={journeyStyles.group}>
@@ -326,11 +377,7 @@ export function JourneyHistory({ scope }: { scope: VerifiedMobileScope }) {
                       text="Plan somewhere you’re going or keep a private record of somewhere you’ve been."
                       subdued
                     />
-                    <Action
-                      label="Create journey"
-                      variant="primary"
-                      onPress={create}
-                    />
+                    {historyActions()}
                   </View>
                 </View>
               )

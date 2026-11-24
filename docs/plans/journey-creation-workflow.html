@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Create a journey · Kairn screen prototype</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    color: var(--foreground, CanvasText);
+    font: 1rem/1.5 var(--font-sans, system-ui), sans-serif;
+    --frame-line: var(--border, GrayText);
+    --frame-text: var(--muted-foreground, CanvasText);
+    --frame-radius: var(--radius, 10px);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  main { max-width: 43rem; margin-inline: auto; }
+  section[hidden], [hidden] { display: none !important; }
+  h1, h2, p, figure, dl, dd { margin: 0; }
+  h1 { font-size: 1.875rem; font-weight: 750; letter-spacing: -.035em; line-height: 1.16; }
+  h2 { font-size: 1.125rem; line-height: 1.3; }
+  section > header { display: grid; gap: .375rem; margin-bottom: 1rem; }
+  .hint { color: var(--frame-text); }
+  .list { border: 1px solid var(--frame-line); border-radius: var(--frame-radius); overflow: clip; }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ring, Highlight);
+    outline-offset: 3px;
+  }
+  .choice {
+    width: 100%; text-align: left; color: inherit; border: 0; background: var(--card, Canvas);
+    display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 1rem;
+    padding: .75rem 1rem; min-block-size: 3.5rem;
+  }
+  .choice + .choice { border-top: 1px solid var(--frame-line); }
+  .choice:hover, .quiet:hover { background: var(--muted, ButtonFace); }
+  .choice:focus-visible { position: relative; z-index: 1; outline-offset: -4px; }
+  .choice::after, .primary::after {
+    content: ""; display: block; width: .48rem; height: .48rem; box-sizing: border-box;
+    border-top: 2px solid; border-right: 2px solid; transform: rotate(45deg);
+  }
+  .choice strong, .choice small { display: block; }
+  .choice strong { font-size: 1.0625rem; font-weight: 700; }
+  .choice small { color: var(--frame-text); font-size: .9375rem; overflow-wrap: anywhere; }
+  .panel {
+    display: grid; gap: .75rem; border: 1px solid var(--frame-line);
+    border-radius: var(--frame-radius); background: var(--card, Canvas); padding: 1rem;
+  }
+  .stack { display: grid; gap: .875rem; }
+  form label:not(.check) { display: grid; gap: .25rem; font-weight: 650; }
+  input:not([type=checkbox]) { min-width: 0; width: 100%; min-height: 2.75rem; padding: .375rem .625rem; color: inherit; font-weight: 400; border: 1px solid var(--frame-line); border-radius: .375rem; background: var(--background, Canvas); }
+  .check { display: flex; align-items: center; gap: .5rem; min-height: 2.75rem; }
+  .check input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--primary, Highlight); }
+  .dates, dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+  dt { font-weight: 650; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .primary, .outline, .quiet {
+    display: inline-flex; justify-content: center; align-items: center; gap: .625rem;
+    border: 1px solid transparent; border-radius: .375rem; min-block-size: 2.75rem;
+    padding: .375rem .75rem; font-weight: 650; line-height: 1.3; text-align: left;
+  }
+  .primary { background: var(--primary, ButtonText); color: var(--primary-foreground, Canvas); }
+  .outline { color: inherit; background: var(--card, Canvas); border-color: var(--frame-line); }
+  .quiet { color: inherit; background: transparent; text-decoration: underline; text-underline-offset: .17em; }
+  .back { justify-self: start; margin-left: -.5rem; }
+  .summary { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .status { background: var(--muted, ButtonFace); border-radius: .375rem; padding: .25rem .625rem; font-weight: 650; }
+  canvas { width: 100%; max-height: 11rem; display: block; border-radius: .375rem; background: var(--muted, ButtonFace); }
+  .privacy, .demo { font-size: .875rem; color: var(--frame-text); }
+  .demo { margin-top: .625rem; }
+  summary { cursor: pointer; width: fit-content; padding-block: .25rem; font-weight: 650; }
+  details[open] summary { margin-bottom: .5rem; }
+  @media (max-width: 390px) { .dates, dl { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<main aria-label="Journey creation screen prototype">
+  <section id="choose">
+    <header>
+      <h1 tabindex="-1">Create a journey</h1>
+      <p class="hint">When is this journey?</p>
+    </header>
+    <div class="list">
+      <button type="button" class="choice" data-go="upcoming"><span><strong>Upcoming journey</strong><small>Set dates for a trip you’re planning.</small></span></button>
+      <button type="button" class="choice" data-go="underway"><span><strong>Journey in progress</strong><small>Pick up a trip you’re already on.</small></span></button>
+      <button type="button" class="choice" data-go="past"><span><strong>Past journey</strong><small>Add a trip you’ve finished, with or without a recording.</small></span></button>
+    </div>
+    <button type="button" class="quiet back" id="resume-past" data-go="past" hidden>Resume GPX review</button>
+  </section>
+
+  <section id="upcoming" hidden>
+    <header>
+      <button type="button" class="quiet back" data-go="choose">Back to choices</button>
+      <h1 tabindex="-1">Plan an upcoming journey</h1>
+      <p class="hint">Set a start so you can find your trip later and invite people.</p>
+    </header>
+    <form class="stack" data-save="Upcoming">
+      <div class="panel">
+        <label>Journey title <input name="title" placeholder="e.g. Weekend in Yercaud" maxlength="120" required></label>
+        <div class="dates">
+          <label>Start date <input type="date" name="startDate" required></label>
+          <label>Start time <input type="time" name="startTime" required></label>
+        </div>
+        <label>Time zone <input name="zone" value="Asia/Kolkata" required></label>
+        <details>
+          <summary>Add an end</summary>
+          <div class="dates">
+            <label>End date <input type="date" name="endDate"></label>
+            <label>End time <input type="time" name="endTime"></label>
+          </div>
+        </details>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit">Save journey</button>
+        <button class="outline" type="submit" value="invite">Create &amp; invite people</button>
+      </div>
+      <p class="privacy">Private journey. You choose who to invite.</p>
+    </form>
+  </section>
+
+  <section id="underway" hidden>
+    <header>
+      <button type="button" class="quiet back" data-go="choose">Back to choices</button>
+      <h1 tabindex="-1">Add a journey in progress</h1>
+      <button type="button" class="outline back" id="open-existing">Open existing journey</button>
+    </header>
+    <form class="stack" data-save="In progress">
+      <div class="panel">
+        <label>Journey title <input name="title" placeholder="e.g. Yercaud hills" maxlength="120" required></label>
+        <h2>When did you leave?</h2>
+        <div class="dates" id="departure">
+          <label>Start date <input type="date" name="startDate"></label>
+          <label>Start time <input type="time" name="startTime"></label>
+        </div>
+        <div class="actions">
+          <button type="button" class="outline" id="now">Use current time</button>
+          <label class="check"><input type="checkbox" id="unknown"> Start time unknown</label>
+        </div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Save journey</button></div>
+      <p class="privacy">Add a recording later if you have one.</p>
+    </form>
+  </section>
+
+  <section id="past" hidden>
+    <header>
+      <button type="button" class="quiet back" data-go="choose" id="back-from-past">Back to choices</button>
+      <h1 tabindex="-1" id="past-heading">Add a past journey</h1>
+      <p class="hint" id="past-hint">A recording can suggest a title, dates, and a route.</p>
+    </header>
+    <div class="stack">
+      <div class="actions" id="past-methods">
+        <button type="button" class="outline" id="choose-sample">Try with sample GPX</button>
+        <button type="button" class="quiet" id="no-gpx" data-go="details">Continue without GPX</button>
+      </div>
+      <div id="staged" class="panel" hidden>
+        <h2>Selected GPX files</h2>
+        <p>Hill_Loop.gpx <small class="hint">· On this device</small></p>
+        <div class="actions">
+          <button type="button" class="primary" id="review-sample">Upload for review</button>
+          <button type="button" class="outline" id="remove-sample">Remove sample</button>
+        </div>
+      </div>
+      <div id="reviewed" class="panel" hidden>
+        <h2>Route preview</h2>
+        <canvas width="560" height="174" role="img" aria-label="Illustrative recorded loop route"></canvas>
+        <dl>
+          <div><dt>Recorded start</dt><dd>6 Nov 2022, 12:30 am</dd></div>
+          <div><dt>Recorded end</dt><dd>6 Nov 2022, 1:50 am</dd></div>
+        </dl>
+        <p class="hint">Recorded window shown in UTC.</p>
+        <label>Journey title <input type="text" id="gpx-title" value="Hill loop" maxlength="120"></label>
+        <details id="correct-dates">
+          <summary>Set whole-trip dates</summary>
+          <div class="dates">
+            <label>Trip start date <input type="date" id="gpx-start"></label>
+            <label>Trip end date <input type="date" id="gpx-end"></label>
+          </div>
+        </details>
+        <div class="actions">
+          <button type="button" class="primary" id="save-gpx">Save journey</button>
+          <button type="button" class="quiet" id="existing">Add to an existing journey</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="details" hidden>
+    <header>
+      <button type="button" class="quiet back" data-go="past">Back to past journey</button>
+      <h1 tabindex="-1">Enter past journey details</h1>
+      <p class="hint">Add the dates you remember, or leave them blank.</p>
+    </header>
+    <form class="stack" data-save="Past">
+      <div class="panel">
+        <label>Journey title <input name="title" placeholder="e.g. Weekend in Yercaud" maxlength="120" required></label>
+        <div class="dates">
+          <label>Start date <input type="date" name="startDate"></label>
+          <label>End date <input type="date" name="endDate"></label>
+        </div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Save journey</button></div>
+    </form>
+  </section>
+
+  <section id="journey" hidden>
+    <header>
+      <button type="button" class="quiet back" data-go="choose">Back to choices</button>
+      <h1 tabindex="-1" id="journey-title">Journey</h1>
+      <div class="summary"><span class="status" id="phase"></span><span class="status">Private</span></div>
+    </header>
+    <div class="panel">
+      <h2 id="dates-heading">Journey dates</h2>
+      <p id="journey-dates" class="hint"></p>
+      <h2>Recordings</h2>
+      <p id="recordings" class="hint"></p>
+      <div class="actions">
+        <button type="button" class="outline" id="attach">Add recording</button>
+        <button type="button" class="outline" id="advance"></button>
+      </div>
+      <p id="invites-note" class="hint" hidden>Journey saved. The next screen lets you invite people.</p>
+    </div>
+  </section>
+  <p class="demo">Design prototype. The sample GPX and saves stay in this preview.</p>
+</main>
+<script>
+  const byId = (id) => document.getElementById(id)
+  const screens = [...document.querySelectorAll('main > section')]
+  let current = 'choose'
+  let returning
+  let attaching = false
+  const sampleStages = { past: 'empty', attachment: 'empty' }
+  const activeSample = () => attaching ? 'attachment' : 'past'
+  let trip
+
+  function show(id, focus) {
+    if (current === 'choose' && id !== 'choose') returning = document.activeElement
+    for (const screen of screens) screen.hidden = screen.id !== id
+    current = id
+    const target = focus || (id === 'choose' ? returning : null) || byId(id).querySelector('h1')
+    target.focus()
+    if (id === 'past' && sampleStages[activeSample()] === 'review') drawRoute()
+  }
+
+  function setPastMode(attach) {
+    attaching = attach
+    byId('past-heading').textContent = attach ? 'Add recording' : 'Add a past journey'
+    byId('past-hint').textContent = attach ? 'Add a GPX recording to ' + trip.title + '.' : 'A recording can suggest a title, dates, and a route.'
+    byId('back-from-past').textContent = attach ? 'Back to journey' : 'Back to choices'
+    byId('no-gpx').hidden = attach
+    byId('existing').hidden = attach
+    byId('correct-dates').hidden = attach
+    byId('save-gpx').textContent = attach ? 'Add recording' : 'Save journey'
+    paintSample()
+  }
+
+  function setSample(stage) {
+    sampleStages[activeSample()] = stage
+    paintSample()
+  }
+
+  function paintSample() {
+    const stage = sampleStages[activeSample()]
+    byId('staged').hidden = stage !== 'staged'
+    byId('reviewed').hidden = stage !== 'review'
+    byId('choose-sample').hidden = stage !== 'empty'
+    byId('resume-past').hidden = sampleStages.past === 'empty'
+    if (stage === 'review') drawRoute()
+  }
+
+  function drawRoute() {
+    const canvas = document.querySelector('canvas')
+    const context = canvas.getContext('2d')
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    const points = [[211,137],[192,128],[178,134],[162,110],[169,91],[151,78],[162,58],[190,63],[213,43],[238,46],[253,25],[286,34],[313,22],[333,38],[352,34],[369,50],[391,56],[404,81],[389,104],[361,113],[349,137],[315,132],[292,148],[275,131],[247,142],[229,127],[211,137]]
+    context.beginPath()
+    context.moveTo(...points[0])
+    for (const point of points.slice(1)) context.lineTo(...point)
+    context.lineWidth = 4
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
+    context.strokeStyle = getComputedStyle(canvas).color
+    context.stroke()
+  }
+
+  function openJourney(next) {
+    trip = next
+    byId('journey-title').textContent = trip.title
+    byId('phase').textContent = trip.phase
+    byId('dates-heading').textContent = trip.datesLabel || 'Journey dates'
+    byId('journey-dates').textContent = trip.dates
+    byId('recordings').textContent = trip.recording ? 'Hill_Loop.gpx · Recorded route' : 'Add GPX if you have a recording.'
+    byId('invites-note').hidden = !trip.invite
+    byId('advance').hidden = trip.phase === 'Past'
+    byId('advance').textContent = trip.phase === 'Upcoming' ? 'Mark as underway' : 'Mark as completed'
+    show('journey')
+  }
+
+  document.querySelectorAll('[data-go]').forEach((button) => button.addEventListener('click', () => {
+    if (button.id === 'back-from-past' && attaching) return openJourney(trip)
+    if (button.dataset.go === 'past') setPastMode(false)
+    show(button.dataset.go, button.id === 'no-gpx' ? byId('details').querySelector('h1') : undefined)
+  }))
+
+  document.querySelectorAll('[data-save]').forEach((form) => form.addEventListener('submit', (event) => {
+    event.preventDefault()
+    const values = new FormData(form)
+    const label = (date, time) => [date, time].filter(Boolean).join(' ')
+    const start = label(values.get('startDate'), values.get('startTime'))
+    const end = label(values.get('endDate'), values.get('endTime'))
+    const dates = [start, end].filter(Boolean).join(' to ') || 'Dates unknown'
+    const phase = form.dataset.save
+    openJourney({ title: String(values.get('title')).trim() || 'Untitled journey', phase, dates, datesLabel: phase === 'Upcoming' ? 'Planned schedule' : 'Journey dates', invite: event.submitter?.value === 'invite' })
+  }))
+
+  byId('now').addEventListener('click', () => {
+    const date = new Date()
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString()
+    const [day, time] = local.split('T')
+    byId('unknown').checked = false
+    byId('unknown').dispatchEvent(new Event('change'))
+    byId('departure').querySelector('[type=date]').value = day
+    byId('departure').querySelector('[type=time]').value = time.slice(0, 5)
+  })
+  byId('unknown').addEventListener('change', (event) => {
+    byId('departure').querySelector('[type=time]').disabled = event.target.checked
+  })
+  byId('choose-sample').addEventListener('click', () => {
+    setSample('staged')
+    byId('review-sample').focus()
+  })
+  byId('remove-sample').addEventListener('click', () => {
+    setSample('empty')
+    byId('choose-sample').focus()
+  })
+  byId('review-sample').addEventListener('click', () => {
+    setSample('review')
+    byId('gpx-title').focus()
+  })
+  byId('save-gpx').addEventListener('click', () => {
+    setSample('empty')
+    if (attaching) return openJourney({ ...trip, recording: true })
+    const dates = [byId('gpx-start').value, byId('gpx-end').value].filter(Boolean).join(' to ') || '6 Nov 2022, from the recorded window'
+    openJourney({ title: byId('gpx-title').value.trim() || 'Hill loop', phase: 'Past', dates, recording: true })
+  })
+  const openExisting = (recording) => openJourney({ title: 'Weekend in Yercaud', phase: 'In progress', dates: 'Started 6 Nov 2022 · No end date', recording })
+  byId('open-existing').addEventListener('click', () => openExisting(false))
+  byId('existing').addEventListener('click', () => {
+    openExisting(false)
+    setPastMode(true)
+    sampleStages.past = 'empty'
+    setSample('review')
+    show('past', byId('save-gpx'))
+  })
+  byId('attach').addEventListener('click', () => {
+    setPastMode(true)
+    show('past')
+  })
+  byId('advance').addEventListener('click', () => {
+    openJourney({ ...trip, phase: trip.phase === 'Upcoming' ? 'In progress' : 'Past' })
+  })
+</script>
+</html>

@@ -21,6 +21,8 @@ Start with [implementation progress](progress.md) for the current milestone, nex
 - [Journey invitations and membership](plans/journey-invitations-and-membership.md)
 - [Source and export permissions](plans/source-and-export-permissions.md)
 - [Import a past journey from GPX](plans/gpx-journey-import.md)
+- [Create a journey from GPX recordings](plans/create-journey-gpx-redesign.md)
+- [Create a journey from GPX or details](plans/journey-creation-workflow.md)
 - [Application bootstrap](plans/bootstrap-plan.md)
 
 ## Runbooks and review material

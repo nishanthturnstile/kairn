@@ -113,6 +113,90 @@
       "when": 1795266952444,
       "tag": "0015_original_export_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795424883030,
+      "tag": "0016_recording_imports",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795425041195,
+      "tag": "0017_recording_processing_job",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795425133284,
+      "tag": "0018_recording_reviews_and_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795426028103,
+      "tag": "0019_recording_placement_grant_epoch",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795427224417,
+      "tag": "0020_recording_detach",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795427735010,
+      "tag": "0021_recording_source_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795431551952,
+      "tag": "0022_recording_review_acceptance",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795431945092,
+      "tag": "0023_recording_review_pins",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795443342849,
+      "tag": "0024_recording_batches",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795444349959,
+      "tag": "0025_recording_batch_journey",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795498075623,
+      "tag": "0026_recording_batch_invitees",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795510856027,
+      "tag": "0027_journey_deletion",
+      "breakpoints": true
     }
   ]
 }

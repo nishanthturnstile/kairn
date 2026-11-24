@@ -10,7 +10,6 @@ type ReturnTarget =
   | "/discover"
   | "/journey-invitations"
   | `/journeys/${string}/invite`
-  | `/journeys/${string}/people`
   | `/journeys/${string}`;
 
 interface Handoff {
@@ -38,9 +37,7 @@ export function journeyReturnTo(value: unknown): ReturnTarget | undefined {
   if (result.success)
     return match?.[2] === "/invite"
       ? `/journeys/${result.data.journeyId}/invite`
-      : match?.[2] === "/people"
-        ? `/journeys/${result.data.journeyId}/people`
-        : `/journeys/${result.data.journeyId}`;
+      : `/journeys/${result.data.journeyId}`;
 }
 
 function storeHandoff(value?: Handoff) {
@@ -61,13 +58,14 @@ function readHandoff(): Handoff | undefined {
   } catch {
     // Retain the current document's handoff if storage is unavailable.
   }
+  const target = journeyReturnTo(value?.target);
   if (
     value &&
-    journeyReturnTo(value.target) &&
+    target &&
     Number.isFinite(value.expiresAt) &&
     value.expiresAt > Date.now()
   )
-    return value;
+    return { ...value, target };
   if (value) storeHandoff();
 }
 
@@ -133,15 +131,8 @@ export function workspaceDestination(target?: ReturnTarget) {
       to: "/journeys/$journeyId/invite",
       params: { journeyId: target.split("/")[2] },
     } as const;
-  if (target.endsWith("/people"))
-    return {
-      to: "/journeys/$journeyId/people",
-      params: {
-        journeyId: target.slice("/journeys/".length, -"/people".length),
-      },
-    } as const;
   return {
     to: "/journeys/$journeyId",
-    params: { journeyId: target.slice("/journeys/".length) },
+    params: { journeyId: target.split("/")[2] },
   } as const;
 }

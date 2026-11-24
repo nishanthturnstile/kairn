@@ -24,14 +24,23 @@ type StorageOptions = {
   region: string;
   endpoint?: string;
   forcePathStyle?: boolean;
+  requestTimeout?: number;
   credentials?: { accessKeyId: string; secretAccessKey: string };
 };
 
-export function openObjectStore({ bucket, ...options }: StorageOptions) {
+export function openObjectStore({
+  bucket,
+  requestTimeout,
+  ...options
+}: StorageOptions) {
   const client = new S3Client({
     ...options,
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
+    requestHandler:
+      requestTimeout === undefined
+        ? undefined
+        : { requestTimeout, throwOnRequestTimeout: true },
   });
 
   const object = (key: string) => ({ Bucket: bucket, Key: key });
@@ -45,6 +54,14 @@ export function openObjectStore({ bucket, ...options }: StorageOptions) {
     );
     if (!(response.Body instanceof Readable)) {
       throw new Error("Object store did not return a Node stream.");
+    }
+    if (requestTimeout !== undefined) {
+      const body = response.Body;
+      const deadline = AbortSignal.timeout(requestTimeout);
+      const expire = () =>
+        body.destroy(new Error("Object download timed out."));
+      deadline.addEventListener("abort", expire, { once: true });
+      body.once("close", () => deadline.removeEventListener("abort", expire));
     }
     return {
       body: response.Body,

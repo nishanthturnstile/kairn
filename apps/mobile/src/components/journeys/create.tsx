@@ -38,11 +38,13 @@ import {
   JourneyRequestError,
   journeyResult,
 } from "../../journey-api";
+import { gpxJourneyCreation } from "../../journey-creation";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import type { JourneyAttempt } from "../../storage/journey-attempt";
 import { openAccountWorkspace } from "../../storage/workspace";
 import { dashboardKey } from "../../workspace-keys";
+import { DestinationTab } from "../destination-tabs";
 import {
   Action,
   AppText,
@@ -50,6 +52,10 @@ import {
   Panel,
   StatusNotice,
 } from "../fold/primitives";
+import {
+  CreateJourneyRecordings,
+  useNativeRecordingBatch,
+} from "./create-recordings";
 import { JourneyFlowHeading, journeyFlowStyles } from "./flow";
 import { focusInvalidSchedule, ScheduleField } from "./picker";
 import { JourneyRetry, JourneyScreen, journeyStyles } from "./states";
@@ -80,7 +86,128 @@ export function CreateJourney({
   intent?: OnboardingIntent;
 }) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  const pending = useQuery({
+  const router = useRouter();
+  const { fontScale } = useWindowDimensions();
+  const pending = usePendingDetails(scope);
+  const batch = useNativeRecordingBatch(scope, gpxJourneyCreation);
+  const [details, setDetails] = useState(intent === "plan");
+  const [openedDetails, setOpenedDetails] = useState(details);
+  const [saving, setSaving] = useState(false);
+  const [working, setWorking] = useState(false);
+  const batchSavePending = Boolean(batch.data?.attempt);
+  const recoveringDetails = Boolean(pending.data && !batchSavePending);
+  const planning =
+    !gpxJourneyCreation ||
+    ((details || recoveringDetails) && !batchSavePending);
+  const detailsChecked = pending.isFetchedAfterMount && pending.isSuccess;
+  const showMethods =
+    gpxJourneyCreation &&
+    detailsChecked &&
+    batch.isFetchedAfterMount &&
+    batch.isSuccess;
+  useEffect(() => {
+    if (!recoveringDetails) return;
+    setDetails(true);
+    setOpenedDetails(true);
+  }, [recoveringDetails]);
+  const scheduleForm = (
+    <JourneyPlanning
+      scope={scope}
+      intent={intent}
+      scroll={scroll}
+      onBusyChange={setSaving}
+      pending={pending}
+    />
+  );
+  return (
+    <JourneyScreen density="compact" scrollRef={scroll}>
+      <JourneyFlowHeading
+        title={gpxJourneyCreation ? "Create a journey" : "Create journey"}
+        description={
+          gpxJourneyCreation
+            ? "Plan a trip or save one you’ve taken."
+            : "Give your journey a name and choose when it starts."
+        }
+      />
+      {gpxJourneyCreation &&
+        detailsChecked &&
+        !showMethods &&
+        (batch.isError ? (
+          <JourneyRetry
+            text="Couldn’t recover the GPX draft."
+            busy={batch.isFetching}
+            retry={() => void batch.refetch()}
+          />
+        ) : (
+          <StatusNotice
+            notice={{ text: "Checking for staged recordings", tone: "info" }}
+          />
+        ))}
+      {showMethods && (
+        <View
+          role="tablist"
+          accessibilityLabel="Creation method"
+          style={[styles.methodTabs, fontScale >= 2.4 && styles.stackedMethods]}
+        >
+          <DestinationTab
+            label="Upload GPX"
+            selected={!planning}
+            stacked
+            disabled={planning && (saving || recoveringDetails)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setDetails(false);
+            }}
+          />
+          <DestinationTab
+            label="Enter details"
+            selected={planning}
+            stacked
+            disabled={working || batchSavePending}
+            onPress={() => {
+              setOpenedDetails(true);
+              setDetails(true);
+            }}
+          />
+        </View>
+      )}
+      {showMethods && (
+        <View style={planning ? journeyStyles.hidden : journeyStyles.group}>
+          <CreateJourneyRecordings
+            scope={scope}
+            visible={!planning}
+            onBusyChange={setWorking}
+            local={batch}
+          />
+        </View>
+      )}
+      {!gpxJourneyCreation || !detailsChecked
+        ? scheduleForm
+        : showMethods &&
+          (openedDetails || recoveringDetails) && (
+            <View style={planning ? journeyStyles.group : journeyStyles.hidden}>
+              {scheduleForm}
+            </View>
+          )}
+      {showMethods && !planning && !batchSavePending && (
+        <Action
+          label="Resume an import"
+          variant="text"
+          disabled={saving || working}
+          onPress={() =>
+            router.push({
+              pathname: "/journeys/import",
+              params: { resume: "1" },
+            })
+          }
+        />
+      )}
+    </JourneyScreen>
+  );
+}
+
+function usePendingDetails(scope: VerifiedMobileScope) {
+  return useQuery({
     queryKey: ["pending-journey"],
     refetchOnMount: "always",
     async queryFn({ signal }) {
@@ -90,12 +217,23 @@ export function CreateJourney({
       return attempt;
     },
   });
+}
+
+function JourneyPlanning({
+  scope,
+  intent,
+  scroll,
+  onBusyChange,
+  pending,
+}: {
+  scope: VerifiedMobileScope;
+  intent?: OnboardingIntent;
+  scroll: RefObject<ComponentRef<typeof ScrollView> | null>;
+  onBusyChange: (busy: boolean) => void;
+  pending: ReturnType<typeof usePendingDetails>;
+}) {
   return (
-    <JourneyScreen density="compact" scrollRef={scroll}>
-      <JourneyFlowHeading
-        title="Create journey"
-        description="Give your journey a name and choose when it starts."
-      />
+    <>
       {pending.isError ? (
         <JourneyRetry
           text="Couldn’t recover your saved attempt."
@@ -112,9 +250,10 @@ export function CreateJourney({
           intent={intent}
           initialAttempt={pending.data}
           scroll={scroll}
+          onBusyChange={onBusyChange}
         />
       )}
-    </JourneyScreen>
+    </>
   );
 }
 
@@ -123,11 +262,13 @@ function JourneyForm({
   intent,
   initialAttempt,
   scroll,
+  onBusyChange,
 }: {
   scope: VerifiedMobileScope;
   intent?: OnboardingIntent;
   initialAttempt: JourneyAttempt | null;
   scroll: RefObject<ComponentRef<typeof ScrollView> | null>;
+  onBusyChange: (busy: boolean) => void;
 }) {
   const router = useRouter();
   const { width, fontScale } = useWindowDimensions();
@@ -303,6 +444,7 @@ function JourneyForm({
 
     Keyboard.dismiss();
     submitting.current = true;
+    onBusyChange(true);
     setSavingAction({ invitePeople, retry: attempt !== null });
     setFeedback("");
     setErrors({});
@@ -361,6 +503,7 @@ function JourneyForm({
         }
         if (!visible()) return;
         setAttempt(null);
+        scope.queryClient.setQueryData(["pending-journey"], null);
         const fields = journeyFormIssues(error.issues);
         setChoices((previous) => ({ ...previous, ...fields.choices }));
         showErrors(fields.errors);
@@ -384,6 +527,7 @@ function JourneyForm({
   }
 
   const locked = attempt !== null || saving || confirmed !== undefined;
+  useEffect(() => onBusyChange(locked), [locked, onBusyChange]);
   const hasEnd = Boolean(
     addingEnd ||
       draft.endDate ||
@@ -654,6 +798,14 @@ function previewMinute(date: string, time: string) {
 }
 
 const styles = StyleSheet.create(({ semantic: { color, radius, space } }) => ({
+  methodTabs: {
+    flexDirection: "row",
+    gap: space.step4,
+    borderRadius: radius.card,
+    backgroundColor: color.surface,
+    padding: space.step4,
+  },
+  stackedMethods: { flexDirection: "column" },
   editor: { gap: space.step16 },
   scheduleFields: { gap: space.step12 },
   optionalAction: { alignItems: "flex-start" },

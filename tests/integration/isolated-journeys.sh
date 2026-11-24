@@ -30,6 +30,7 @@ done
 
 export KAIRN_TEST_MIGRATION_DATABASE_URL="postgresql://kairn_migrator:temporary-bootstrap-migrator@127.0.0.1:$port/kairn"
 export KAIRN_TEST_DATABASE_URL="postgresql://kairn_runtime:temporary-bootstrap-runtime@127.0.0.1:$port/kairn"
+export KAIRN_TEST_POSTGRES_CONTAINER="$database"
 
 cp -R packages/backend/drizzle "$scratch/drizzle"
 pnpm --dir packages/backend exec node --input-type=module - "$scratch/drizzle" <<'NODE'

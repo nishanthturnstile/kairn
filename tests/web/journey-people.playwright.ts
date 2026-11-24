@@ -132,10 +132,12 @@ test("invites four people by member search or email, resumes verification and re
       existingAccount(existingByEmail, `Anu ${unique}`),
     ]);
     const journeyId = await createJourney(page, title);
-    const people = `${site}/journeys/${journeyId}/people`;
     await page.goto(`${site}/journeys/${journeyId}`);
-    await page.getByRole("link", { name: "View people" }).click();
-    await expect(page).toHaveURL(people);
+    await page.getByRole("button", { name: "View people" }).click();
+    await expect(page).toHaveURL(`${site}/journeys/${journeyId}`);
+    await expect(
+      page.getByRole("dialog", { name: "People", exact: true }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Invite people" }).click();
     await search(page, name);
     await expect(
@@ -173,7 +175,17 @@ test("invites four people by member search or email, resumes verification and re
     await expect(
       page.getByRole("button", { name: "Retry batch" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page
+      .getByRole("region", { name: "Invite people" })
+      .getByRole("button", { name: "Close", exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("dialog", { name: "People", exact: true }),
+    ).toBeHidden();
+    await page
+      .getByRole("button", { name: "View people", exact: true })
+      .click();
     await page.getByRole("button", { name: "Review pending send" }).click();
     await expect(
       page.getByRole("button", { name: "Retry batch" }),
@@ -301,16 +313,20 @@ test("invites four people by member search or email, resumes verification and re
           await mailLink(String(email), "Verify your Kairn email"),
         );
         await signIn(target, String(email));
-        await expect(
-          target.getByRole("heading", { name: "Welcome to Kairn" }),
-        ).toBeVisible();
-        await target
-          .getByRole("button", { name: "Continue", exact: true })
-          .click();
-        await target.getByRole("radio", { name: "Look around" }).check();
-        await target
-          .getByRole("button", { name: "Continue to invitation" })
-          .click();
+        const welcome = target.getByRole("heading", {
+          name: "Welcome to Kairn",
+        });
+        const join = target.getByRole("button", { name: "Join journey" });
+        await expect(welcome.or(join)).toBeVisible();
+        if (await welcome.isVisible()) {
+          await target
+            .getByRole("button", { name: "Continue", exact: true })
+            .click();
+          await target.getByRole("radio", { name: "Look around" }).check();
+          await target
+            .getByRole("button", { name: "Continue to invitation" })
+            .click();
+        }
         await expect(
           target.getByRole("heading", { name: title }),
         ).toBeVisible();
@@ -340,7 +356,7 @@ test("invites four people by member search or email, resumes verification and re
     await sessions[0].setOffline(false);
     await existing.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(existing.getByRole("heading", { name: title })).toBeVisible();
-    await existing.getByRole("link", { name: "View people" }).click();
+    await existing.getByRole("button", { name: "View people" }).click();
     await expect(
       existing.getByRole("heading", { name: "Members" }),
     ).toBeVisible();
@@ -348,6 +364,9 @@ test("invites four people by member search or email, resumes verification and re
       existing.getByRole("heading", { name: "Invitations", exact: true }),
     ).toHaveCount(0);
     await page.reload();
+    await page
+      .getByRole("button", { name: "View people", exact: true })
+      .click();
     await expect(
       existing.getByRole("button", { name: /Manage roles/ }),
     ).toHaveCount(0);
@@ -379,6 +398,9 @@ test("invites four people by member search or email, resumes verification and re
     ).toBeVisible();
     await assignCoauthor.getByRole("button", { name: "Go back" }).click();
     await page.reload();
+    await page
+      .getByRole("button", { name: "View people", exact: true })
+      .click();
     const retryCoauthor = page.getByRole("button", {
       name: `Retry coauthor change for ${name}`,
     });
@@ -428,10 +450,13 @@ test("invites four people by member search or email, resumes verification and re
     );
     for (const check of checks) await expect(check).toBeVisible();
     await page.reload();
+    await page
+      .getByRole("button", { name: "View people", exact: true })
+      .click();
     for (const check of checks) await expect(check).toBeVisible();
     await page.getByRole("button", { name: `Remove ${name}` }).click();
     await page
-      .getByRole("dialog")
+      .getByRole("dialog", { name: "Remove member", exact: true })
       .getByRole("button", { name: "Remove member" })
       .click();
     await expect(
@@ -447,7 +472,7 @@ test("invites four people by member search or email, resumes verification and re
       headers: { "X-Expected-Account": first.id },
     });
     expect((await dashboard.json()).journeyCount).toBe(0);
-    await existingByEmail.getByRole("link", { name: "View people" }).click();
+    await existingByEmail.getByRole("button", { name: "View people" }).click();
     await existingByEmail
       .getByRole("button", { name: "Leave journey", exact: true })
       .click();
@@ -463,7 +488,7 @@ test("invites four people by member search or email, resumes verification and re
       { times: 1 },
     );
     await existingByEmail
-      .getByRole("dialog")
+      .getByRole("dialog", { name: "Leave journey", exact: true })
       .getByRole("button", { name: "Leave journey", exact: true })
       .click();
     await expect(
@@ -511,7 +536,8 @@ test("keeps People and the focused invitation form usable at 320 CSS pixels", as
       { times: 1 },
     );
   }
-  await page.goto(`${site}/journeys/${id}/people`);
+  await page.goto(`${site}/journeys/${id}`);
+  await page.getByRole("button", { name: "View people", exact: true }).click();
   await page.addStyleTag({ content: "html { font-size: 200% }" });
   try {
     await expect(page.getByText("Loading members")).toBeVisible();
@@ -599,12 +625,15 @@ test("withholds an open invitation while rechecking and recognises cancellation"
     await expect(recipient.getByRole("heading", { name: title })).toBeVisible();
     await expect(recipient.getByText("Dates unavailable")).toBeVisible();
     await recipient.unroute(reviewEndpoint);
-    await page.goto(`${site}/journeys/${journeyId}/people`);
+    await page.goto(`${site}/journeys/${journeyId}`);
+    await page
+      .getByRole("button", { name: "View people", exact: true })
+      .click();
     await page
       .getByRole("button", { name: `Resend invitation to ${member.email}` })
       .click();
     await page
-      .getByRole("dialog")
+      .getByRole("dialog", { name: "Resend invitation", exact: true })
       .getByRole("button", { name: "Resend invitation" })
       .click();
     await expect(
@@ -614,7 +643,7 @@ test("withholds an open invitation while rechecking and recognises cancellation"
       .getByRole("button", { name: `Cancel invitation to ${member.email}` })
       .click();
     await page
-      .getByRole("dialog")
+      .getByRole("dialog", { name: "Cancel invitation", exact: true })
       .getByRole("button", { name: "Cancel invitation" })
       .click();
     await expect(

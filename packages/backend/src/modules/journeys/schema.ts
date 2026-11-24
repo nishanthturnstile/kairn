@@ -79,9 +79,8 @@ export const journeyCreationReceipts = kairn
         .references(() => accounts.id, { onDelete: "cascade" }),
       key: uuid("key").notNull(),
       journeyId: uuid("journey_id")
-        .notNull()
         .unique()
-        .references(() => journeys.id, { onDelete: "cascade" }),
+        .references(() => journeys.id, { onDelete: "set null" }),
       payloadDigest: text("payload_digest").notNull(),
     },
     (receipt) => [

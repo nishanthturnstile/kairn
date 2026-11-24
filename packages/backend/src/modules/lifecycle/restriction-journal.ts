@@ -53,6 +53,33 @@ const originalExportRevocationEvent = z.strictObject({
   grantId: z.uuid(),
   generation: z.literal(1),
 });
+const recordingDeletionEvent = z.strictObject({
+  version: z.literal(7),
+  id: z.uuid(),
+  operation: z.literal("source_deletion"),
+  accountId: z.uuid(),
+  sourceId: z.uuid(),
+  assetId: z.uuid(),
+  uploadId: z.uuid(),
+  deletedAtEpoch: z.int().min(1).max(253_402_300_799),
+  generation: z.literal(1),
+});
+const journeyDeletionEvent = z.strictObject({
+  version: z.literal(8),
+  id: z.uuid(),
+  operation: z.literal("journey_deletion"),
+  accountId: z.uuid(),
+  journeyId: z.uuid(),
+  creation: z
+    .tuple([
+      z.uuid(),
+      z.uuid(),
+      z.array(z.uuid()),
+      z.array(z.tuple([z.uuid(), z.uuid(), z.uuid()])),
+    ])
+    .nullable(),
+  generation: z.int().min(2).max(2_147_483_647),
+});
 export const restrictionEvent = z.union([
   identityEvent,
   membershipEvent,
@@ -60,6 +87,8 @@ export const restrictionEvent = z.union([
   capabilityRemovalEvent,
   sourceNarrowingEvent,
   originalExportRevocationEvent,
+  recordingDeletionEvent,
+  journeyDeletionEvent,
 ]);
 export type IdentityRestriction = z.infer<typeof identityEvent>;
 export type RestrictionEvent = z.infer<typeof restrictionEvent>;
@@ -105,6 +134,15 @@ function restrictionScope(event: RestrictionEvent) {
       return [event.journeyId, event.membershipGeneration, event.capability];
     case 6:
       return [event.journeyId, event.grantId];
+    case 7:
+      return [
+        event.sourceId,
+        event.assetId,
+        event.uploadId,
+        event.deletedAtEpoch,
+      ];
+    case 8:
+      return [event.journeyId, event.creation];
   }
 }
 

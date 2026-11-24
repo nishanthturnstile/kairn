@@ -151,7 +151,9 @@ test("keeps page state across navigation sizes and opens compact appearance sett
   await expect(parent).not.toHaveAttribute("aria-current", "page");
   await parent.press("Enter");
   await expect(page).toHaveURL(`${site}/journeys`);
-  await expect(main).toBeFocused();
+  await expect(
+    page.getByRole("heading", { name: "Journeys", exact: true }),
+  ).toBeFocused();
   await dashboard.click();
   await create.click();
   const title = page.getByLabel("Title", { exact: true });

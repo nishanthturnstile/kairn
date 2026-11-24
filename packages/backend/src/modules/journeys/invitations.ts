@@ -7,6 +7,8 @@ import { sealPayload, unsealPayload } from "../../sealed-payload.js";
 import type { createAuth, VerifiedSession } from "../identity/auth.js";
 import { user } from "../identity/auth-schema.js";
 import { identityEpoch } from "../identity/state.js";
+import { scopeRecordings } from "../recordings/access.js";
+import { readRecordingBatch } from "../recordings/batches.js";
 import {
   enqueueInvitationMail,
   sealInvitationMail,
@@ -21,13 +23,20 @@ const invitationContinuation = z.strictObject({
 });
 const email = z.email();
 const selectionContext = "kairn-journey-invitee-selection-v1";
-const invitee = z.object({
-  id: z.uuid(),
-  email,
-  journeyId: z.uuid(),
-  organiserId: z.uuid(),
-  expiresAt: z.number(),
-});
+const invitee = z
+  .object({
+    id: z.uuid(),
+    email,
+    organiserId: z.uuid(),
+    expiresAt: z.number(),
+  })
+  .and(
+    z.union([
+      z.object({ journeyId: z.uuid() }),
+      z.object({ batchId: z.uuid() }),
+    ]),
+  );
+type InviteeTarget = { journeyId: string } | { batchId: string };
 
 type Continuation = z.infer<typeof invitationContinuation>;
 type Command =
@@ -88,20 +97,12 @@ export function createJourneyInvitationService(
     .update(epoch)
     .digest();
 
-  function readSelection(
-    handle: string,
-    organiserId: string,
-    journeyId: string,
-  ) {
+  function readSelection(handle: string, organiserId: string) {
     try {
       const value = invitee.parse(
         unsealPayload(selectionKey, selectionContext, handle),
       );
-      if (
-        value.organiserId === organiserId &&
-        value.journeyId === journeyId.toLowerCase() &&
-        value.expiresAt > Date.now()
-      )
+      if (value.organiserId === organiserId && value.expiresAt > Date.now())
         return value;
     } catch {
       // Invalid selections use the same per-row failure as unavailable recipients.
@@ -132,45 +133,60 @@ export function createJourneyInvitationService(
     };
   }
 
+  function search(
+    session: VerifiedSession,
+    target: InviteeTarget,
+    query: string,
+  ) {
+    return auth.withCurrentSession(session, async (tx) => {
+      const normalized = query.toLowerCase();
+      const exact = normalized.includes("@");
+      if (exact && !email.safeParse(normalized).success)
+        return { status: 200, items: [] } as const;
+      const result = await selectResult<
+        | {
+            status: 200;
+            matches: {
+              id: string;
+              email: string;
+              displayName: string;
+              ambiguous: boolean;
+            }[];
+          }
+        | { status: 404 | 429 }
+      >(
+        tx,
+        "journeyId" in target
+          ? sql`kairn.find_journey_invitees(${target.journeyId}::uuid, ${normalized}, ${exact})`
+          : sql`kairn.find_recording_batch_invitees(${target.batchId}::uuid, ${normalized}, ${exact})`,
+      );
+      if (result.status !== 200) return result;
+      return {
+        status: 200,
+        items: result.matches.map(({ displayName, ambiguous, ...person }) => ({
+          displayName,
+          ambiguous,
+          selection: sealPayload(selectionKey, selectionContext, {
+            ...person,
+            organiserId: session.accountId,
+            ...target,
+            expiresAt: Date.now() + 15 * 60_000,
+          }),
+        })),
+      } as const;
+    });
+  }
+
   return {
     search(session: VerifiedSession, journeyId: string, query: string) {
-      return auth.withCurrentSession(session, async (tx) => {
-        const normalized = query.toLowerCase();
-        const exact = normalized.includes("@");
-        if (exact && !email.safeParse(normalized).success)
-          return { status: 200, items: [] } as const;
-        const result = await selectResult<
-          | {
-              status: 200;
-              matches: {
-                id: string;
-                email: string;
-                displayName: string;
-                ambiguous: boolean;
-              }[];
-            }
-          | { status: 404 | 429 }
-        >(
-          tx,
-          sql`kairn.find_journey_invitees(${journeyId}::uuid, ${normalized}, ${exact})`,
-        );
-        if (result.status !== 200) return result;
-        return {
-          status: 200,
-          items: result.matches.map(
-            ({ displayName, ambiguous, ...person }) => ({
-              displayName,
-              ambiguous,
-              selection: sealPayload(selectionKey, selectionContext, {
-                ...person,
-                organiserId: session.accountId,
-                journeyId: journeyId.toLowerCase(),
-                expiresAt: Date.now() + 15 * 60_000,
-              }),
-            }),
-          ),
-        } as const;
-      });
+      return search(session, { journeyId: journeyId.toLowerCase() }, query);
+    },
+    searchRecordingBatch(
+      session: VerifiedSession,
+      batchId: string,
+      query: string,
+    ) {
+      return search(session, { batchId: batchId.toLowerCase() }, query);
     },
     list(session: VerifiedSession, journeyId: string, cursor?: string) {
       return auth.withCurrentSession(session, async (tx) => {
@@ -235,25 +251,49 @@ export function createJourneyInvitationService(
             .where(eq(user.id, session.accountId));
           const entries =
             recipients ?? emails?.map((address) => ({ email: address }));
+          const batches = new Map<
+            string,
+            Promise<Awaited<ReturnType<typeof readRecordingBatch>>>
+          >();
+          async function matchesJourney(
+            person: NonNullable<ReturnType<typeof readSelection>>,
+          ) {
+            if ("journeyId" in person)
+              return person.journeyId === journeyId.toLowerCase();
+            let batch = batches.get(person.batchId);
+            if (!batch) {
+              batch = scopeRecordings(tx, session.accountId).then(() =>
+                readRecordingBatch(tx, person.batchId),
+              );
+              batches.set(person.batchId, batch);
+            }
+            const saved = await batch;
+            return (
+              saved?.savedAt != null &&
+              saved.ownerId === session.accountId &&
+              saved.journeyId === journeyId.toLowerCase()
+            );
+          }
           candidates = entries
-            ? entries.map((entry) => {
-                if ("email" in entry)
-                  return email.safeParse(entry.email).success
-                    ? candidate(mailKey, profile.name, entry.email)
+            ? await Promise.all(
+                entries.map(async (entry) => {
+                  if ("email" in entry)
+                    return email.safeParse(entry.email).success
+                      ? candidate(mailKey, profile.name, entry.email)
+                      : {};
+                  const person = readSelection(
+                    entry.selection,
+                    session.accountId,
+                  );
+                  return person && (await matchesJourney(person))
+                    ? {
+                        ...candidate(mailKey, profile.name, person.email),
+                        accountId: person.id,
+                        selectionExpiresAt: person.expiresAt,
+                      }
                     : {};
-                const person = readSelection(
-                  entry.selection,
-                  session.accountId,
-                  journeyId,
-                );
-                return person
-                  ? {
-                      ...candidate(mailKey, profile.name, person.email),
-                      accountId: person.id,
-                      selectionExpiresAt: person.expiresAt,
-                    }
-                  : {};
-              })
+                }),
+              )
             : [candidate(mailKey, profile.name)];
         }
         const result = await selectResult<Managed>(

@@ -194,6 +194,98 @@ describe.runIf(process.env.KAIRN_INTEGRATION === "1")(
       await Promise.all([runtime.pool.end(), owner.pool.end()]);
     });
 
+    it("checks fresh administrator and publisher access, deletes dependents, and preserves the creation receipt", async () => {
+      const organiser = await member();
+      const participant = await member();
+      const key = randomUUID();
+      const created = await create(organiser, key);
+      expect(created.status).toBe(201);
+      const { id } = await created.json();
+      const remove = (account: TestMember, requestOrigin = origin) =>
+        app.request(`${path}/${id}`, {
+          method: "DELETE",
+          headers: { Cookie: account.cookie, Origin: requestOrigin },
+        });
+      await owner.pool.query(
+        "insert into kairn.journey_memberships (journey_id, account_id) values ($1, $2)",
+        [id, participant.id],
+      );
+      await owner.pool.query(
+        "insert into kairn.journey_capabilities values ($1, $2, 'administrator')",
+        [id, participant.id],
+      );
+      const invitations = `${path}/${id}/invitations`;
+      const queued = await app.request(invitations, {
+        method: "POST",
+        headers: {
+          Cookie: organiser.cookie,
+          Origin: origin,
+          "Content-Type": "application/json",
+          "Idempotency-Key": randomUUID(),
+        },
+        body: JSON.stringify({
+          recipients: [{ email: `pending-${randomUUID()}@example.test` }],
+        }),
+      });
+      const pendingInvite = await queued.json();
+      expect(pendingInvite).toMatchObject({
+        items: [{ status: "queued", invitationId: expect.any(String) }],
+      });
+      expect((await remove(participant)).status).toBe(404);
+      expect((await remove(organiser, "https://other.example")).status).toBe(
+        403,
+      );
+      await owner.pool.query(
+        "update kairn_auth.session set created_at = now() - interval '11 minutes' where user_id = $1",
+        [organiser.id],
+      );
+      const stale = await remove(organiser);
+      expect(stale.status).toBe(409);
+      expect(await stale.json()).toMatchObject({
+        code: "fresh_session_required",
+      });
+      expect((await detail(organiser, id)).status).toBe(200);
+      await owner.pool.query(
+        "update kairn_auth.session set created_at = now() where user_id = $1",
+        [organiser.id],
+      );
+      const replies = await Promise.all([remove(organiser), remove(organiser)]);
+      expect(replies.map(({ status }) => status)).toEqual([202, 202]);
+      const [first, second] = await Promise.all(
+        replies.map((response) => response.json()),
+      );
+      expect(second).toEqual(first);
+      expect((await detail(participant, id)).status).toBe(404);
+      expect((await create(organiser, key)).status).toBe(404);
+      expect(
+        (
+          await app.request(invitations, {
+            headers: { Cookie: organiser.cookie },
+          })
+        ).status,
+      ).toBe(404);
+      const { rows } = await owner.pool.query(
+        `select
+           (select count(*)::int from kairn.journeys where id = $1) as journeys,
+           (select count(*)::int from kairn.journey_memberships where journey_id = $1) as members,
+           (select count(*)::int from kairn.journey_capabilities where journey_id = $1) as capabilities,
+           (select count(*)::int from kairn.journey_invitations where journey_id = $1) as invitations,
+           (select count(*)::int from kairn.journey_invitation_attempts where journey_id = $1) as invitation_attempts,
+           (select count(*)::int from kairn.journey_invitation_mail where id = $2) as invitation_mail,
+           (select count(*)::int from kairn.audit_events where target_id = $1 and action = 'journey_deletion') as audits`,
+        [id, pendingInvite.items[0].invitationId],
+      );
+      expect(rows[0]).toEqual({
+        journeys: 0,
+        members: 0,
+        capabilities: 0,
+        invitations: 0,
+        invitation_attempts: 0,
+        invitation_mail: 0,
+        audits: 1,
+      });
+    });
+
     it("creates one canonical record under concurrent retries and rechecks membership on replay", async () => {
       const key = randomUUID();
       const responses = await Promise.all([

@@ -14,6 +14,7 @@ export default function JourneysLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="import" options={{ title: "" }} />
       <Stack.Screen name="new" options={{ title: "" }} />
       <Stack.Screen name="[journeyId]" options={{ title: "" }} />
       <Stack.Screen name="[journeyId]/people" options={{ title: "" }} />

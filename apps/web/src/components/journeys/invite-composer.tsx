@@ -1,7 +1,5 @@
 import {
   invitationEmail,
-  type invitationRecipient,
-  journeyInvitationBatchResult,
   journeyInviteeMatches,
 } from "@kairn/contracts/journeys";
 import { invitationBatchNotice } from "@kairn/shared/journey-invitations";
@@ -17,6 +15,13 @@ import {
 } from "react";
 import { useMediaQuery } from "../../hooks/use-media-query";
 import { JourneyRequestError, journeyResult } from "../../lib/journey-api";
+import {
+  type InviteDraft,
+  invitationStatusLabels,
+  type PendingInviteBatch,
+  type Recipient,
+  sendJourneyInvitations,
+} from "../../lib/journey-invitations";
 import type { AccountScope } from "../../lib/session";
 import { useSessionAccess } from "../../lib/session-access";
 import { ProfileAvatar } from "../profile-avatar";
@@ -32,27 +37,27 @@ import {
   SheetTitle,
 } from "../ui/sheet";
 
-type Recipient = ReturnType<typeof invitationRecipient.parse>;
 type Match = ReturnType<typeof journeyInviteeMatches.parse>["items"][number];
-type Outcome = ReturnType<
-  typeof journeyInvitationBatchResult.parse
->["items"][number]["status"];
-type Draft = {
-  id: string;
-  label: string;
-  recipient: Recipient;
-  status?: Outcome;
+
+type DialogDraft = {
+  drafts: InviteDraft[];
+  change: (drafts: InviteDraft[]) => void;
+  invitedEmails?: ReadonlySet<string>;
 };
-const statusLabels: Record<Outcome, string> = {
-  queued: "Invitation queued",
-  already_pending: "Already invited",
-  already_member: "Already a journey member",
-  invalid_email:
-    "This recipient is unavailable. Remove this row and try again.",
-  duplicate: "Already included in this batch",
-  rate_limited: "Send limit reached. Try again later.",
-  cancelled: "Invitation cancelled",
-};
+
+type ComposerTarget =
+  | {
+      journeyId: string;
+      afterCreation?: boolean;
+      batchId?: never;
+      dialogDraft?: DialogDraft;
+    }
+  | {
+      journeyId?: never;
+      afterCreation?: never;
+      batchId: string;
+      dialogDraft: DialogDraft;
+    };
 
 export function InviteComposer({
   journeyId,
@@ -61,26 +66,27 @@ export function InviteComposer({
   suspended,
   open,
   afterCreation,
+  batchId,
+  dialogDraft,
   onUncertain,
   onClose,
   onBusy,
   onSent,
 }: {
-  journeyId: string;
   title: string;
   scope: AccountScope;
   suspended: boolean;
   open: boolean;
-  afterCreation?: boolean;
   onUncertain?: (uncertain: boolean) => void;
   onClose: () => void;
-  onBusy: (busy: boolean) => void;
-  onSent: () => void;
-}) {
+  onBusy?: (busy: boolean) => void;
+  onSent?: () => void;
+} & ComposerTarget) {
   const [mode, setMode] = useState<"search" | "email">("search");
   const [value, setValue] = useState("");
   const [matches, setMatches] = useState<Match[]>();
-  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [localDrafts, setDrafts] = useState<InviteDraft[]>([]);
+  const drafts = dialogDraft?.drafts ?? localDrafts;
   const [searching, setSearching] = useState(false);
   const [sending, setSending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
@@ -90,7 +96,7 @@ export function InviteComposer({
     typeof invitationBatchNotice
   > | null>(null);
   const request = useRef<AbortController>(null);
-  const pending = useRef<{ key: string; drafts: Draft[] }>(null);
+  const pending = useRef<PendingInviteBatch | null>(null);
   const sendingLock = useRef(false);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
@@ -123,7 +129,23 @@ export function InviteComposer({
     input.current?.focus();
   }
 
+  function updateDrafts(next: InviteDraft[]) {
+    if (dialogDraft) {
+      dialogDraft.change(next);
+    } else {
+      setDrafts(next);
+      setSendError("");
+    }
+  }
+
   function add(recipient: Recipient, label: string) {
+    if (
+      "email" in recipient &&
+      dialogDraft?.invitedEmails?.has(recipient.email)
+    ) {
+      setInputError("This person already has an invitation.");
+      return;
+    }
     if (drafts.length >= 10) {
       setInputError("You can invite up to 10 people in a batch.");
       return;
@@ -140,10 +162,7 @@ export function InviteComposer({
       setInputError("That recipient is already on the list.");
       return;
     }
-    setDrafts((previous) => [
-      ...previous,
-      { id: crypto.randomUUID(), recipient, label },
-    ]);
+    updateDrafts([...drafts, { id: crypto.randomUUID(), recipient, label }]);
     change("");
     input.current?.focus();
   }
@@ -153,8 +172,8 @@ export function InviteComposer({
       list.current?.querySelectorAll<HTMLButtonElement>("button:enabled") ?? [],
     );
     const index = buttons.indexOf(trigger);
+    updateDrafts(drafts.filter((row) => row.id !== id));
     (buttons[index + 1] ?? buttons[index - 1] ?? input.current)?.focus();
-    setDrafts((previous) => previous.filter((row) => row.id !== id));
   }
 
   async function choose(event: SubmitEvent<HTMLFormElement>) {
@@ -182,14 +201,24 @@ export function InviteComposer({
     setSearching(true);
     setInputError("");
     try {
-      const result = await scope.api.POST(
-        "/api/v1/journeys/{journeyId}/invitees/search",
-        {
-          params: { path: { journeyId } },
-          body: { query },
-          signal: controller.signal,
-        },
-      );
+      const result =
+        batchId !== undefined
+          ? await scope.api.POST(
+              "/api/v1/recording-batches/{id}/invitees/search",
+              {
+                params: { path: { id: batchId } },
+                body: { query },
+                signal: controller.signal,
+              },
+            )
+          : await scope.api.POST(
+              "/api/v1/journeys/{journeyId}/invitees/search",
+              {
+                params: { path: { journeyId } },
+                body: { query },
+                signal: controller.signal,
+              },
+            );
       controller.signal.throwIfAborted();
       setMatches(
         journeyInviteeMatches.parse(journeyResult(result, scope, refresh))
@@ -218,7 +247,7 @@ export function InviteComposer({
   );
 
   async function send() {
-    if (sendingLock.current || suspended) return;
+    if (sendingLock.current || suspended || !journeyId) return;
     const batch = pending.current ?? {
       key: crypto.randomUUID(),
       drafts: unsent,
@@ -228,40 +257,30 @@ export function InviteComposer({
     request.current?.abort();
     setSearching(false);
     setSending(true);
-    onBusy(true);
+    onBusy?.(true);
     setSendError("");
     try {
       pending.current = batch;
-      const response = await scope.api.POST(
-        "/api/v1/journeys/{journeyId}/invitations",
-        {
-          params: {
-            path: { journeyId },
-            header: { "idempotency-key": batch.key },
-          },
-          body: { recipients: batch.drafts.map(({ recipient }) => recipient) },
-        },
+      const items = await sendJourneyInvitations(
+        scope,
+        refresh,
+        journeyId,
+        batch,
       );
-      const { items } = journeyInvitationBatchResult.parse(
-        journeyResult(response, scope, refresh),
-      );
-      if (items.length !== batch.drafts.length)
-        throw new Error("Incomplete invitation result.");
       const results = new Map(
         batch.drafts.map((draft, index) => [draft.id, items[index].status]),
       );
-      setDrafts((previous) =>
-        previous.map((draft) =>
-          results.has(draft.id)
-            ? { ...draft, status: results.get(draft.id) }
-            : draft,
-        ),
+      const settled = drafts.map((draft) =>
+        results.has(draft.id)
+          ? { ...draft, status: results.get(draft.id) }
+          : draft,
       );
+      setDrafts(settled);
       setSummary(invitationBatchNotice(items));
       pending.current = null;
       setUncertain(false);
       onUncertain?.(false);
-      onSent();
+      onSent?.();
       if (
         items.some(
           (item) =>
@@ -289,7 +308,7 @@ export function InviteComposer({
     } finally {
       sendingLock.current = false;
       setSending(false);
-      onBusy(false);
+      onBusy?.(false);
     }
   }
 
@@ -488,14 +507,18 @@ export function InviteComposer({
       )}
     </div>
   );
+  const scrollableRecipients = Boolean(dialogDraft) && drafts.length > 3;
   const recipientList =
     drafts.length > 0 ? (
       <ul
         aria-label="Recipients"
         ref={list}
+        tabIndex={scrollableRecipients ? 0 : undefined}
         className={cn(
-          "grid",
+          "grid min-w-0",
           afterCreation ? "gap-2" : "divide-y divide-border",
+          scrollableRecipients &&
+            "max-h-[min(12rem,36dvh)] overflow-y-auto scroll-py-1 [scrollbar-color:var(--color-input)_transparent] [scrollbar-gutter:stable]",
         )}
       >
         {drafts.map(({ id, label, recipient, status }) => (
@@ -528,7 +551,7 @@ export function InviteComposer({
               <p className="font-semibold wrap-anywhere">{label}</p>
               {status && (
                 <p className="text-sm text-muted-foreground">
-                  {statusLabels[status]}
+                  {invitationStatusLabels[status]}
                 </p>
               )}
             </div>
@@ -538,7 +561,9 @@ export function InviteComposer({
                 size="icon-sm"
                 variant="ghost"
                 className={
-                  afterCreation ? "ms-auto min-h-touch min-w-touch" : undefined
+                  afterCreation
+                    ? "ms-auto min-h-touch min-w-touch"
+                    : "[@media(pointer:coarse)]:min-h-touch [@media(pointer:coarse)]:min-w-touch"
                 }
                 aria-label={`Remove ${label} from draft`}
                 disabled={frozen}
@@ -612,6 +637,26 @@ export function InviteComposer({
             : "Close"}
     </Button>
   );
+
+  if (dialogDraft)
+    return (
+      <fieldset
+        disabled={suspended}
+        className="@container/recipient-finder grid min-w-0 gap-4 py-2"
+      >
+        <legend className="sr-only">Journey invitations</legend>
+        {finder}
+        {recipientList && (
+          <div className="grid min-w-0 gap-1">
+            {journeyId && (
+              <h2 className="text-sm font-semibold">Not sent yet</h2>
+            )}
+            {recipientList}
+          </div>
+        )}
+        {feedback}
+      </fieldset>
+    );
 
   if (afterCreation)
     return (

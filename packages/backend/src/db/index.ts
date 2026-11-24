@@ -69,6 +69,7 @@ export async function checkJourneyReadiness(
         ('kairn.read_journey_invitations(uuid,uuid,text)'),
         ('kairn.manage_journey_invitees(uuid,uuid,text,uuid,text,text,jsonb)'),
         ('kairn.find_journey_invitees(uuid,text,boolean)'),
+        ('kairn.find_recording_batch_invitees(uuid,text,boolean)'),
         ('kairn.resolve_journey_invitation(text,text)'),
         ('kairn.review_journey_invitation(uuid,text)'),
         ('kairn.accept_journey_invitation(uuid,uuid,text,timestamptz)'),

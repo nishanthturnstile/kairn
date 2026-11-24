@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useWindowDimensions, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
+import { useRecordingImports } from "../../recording-api";
 import type { VerifiedMobileScope } from "../../session";
 import type { SignOutStatus } from "../account-access";
 import { AppearancePicker } from "../fold/appearance";
@@ -33,6 +34,7 @@ export function AccountSettings({
   signOutStatus?: SignOutStatus;
 }) {
   const router = useRouter();
+  const recordings = useRecordingImports(scope);
   const { width, fontScale } = useWindowDimensions();
   const wide = width >= 800 && fontScale <= 1.3;
   const stacked = width < 365 || fontScale > 1.4;
@@ -78,6 +80,12 @@ export function AccountSettings({
                     subdued
                   />
                 </View>
+                {recordings.data && (
+                  <Disclosure
+                    label="Your recordings"
+                    onPress={() => router.push("/your-recordings")}
+                  />
+                )}
                 <Disclosure
                   label="Design system"
                   onPress={() => router.push("/design-system")}

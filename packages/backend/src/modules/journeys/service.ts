@@ -48,7 +48,10 @@ function activeMembership(accountId: string) {
   );
 }
 
-function selectMemberJourneys(tx: DatabaseTransaction, accountId: string) {
+export function selectMemberJourneys(
+  tx: DatabaseTransaction,
+  accountId: string,
+) {
   return tx
     .select({
       id: journeys.id,
@@ -62,6 +65,7 @@ function selectMemberJourneys(tx: DatabaseTransaction, accountId: string) {
       intendedEndAt: journeys.intendedEndAt,
       endOffset: journeys.endOffset,
       accountId: journeyMemberships.accountId,
+      membershipGeneration: journeyMemberships.generation,
       revokedAt: journeyMemberships.revokedAt,
       capabilities: sql<Membership["capabilities"][number][]>`array(
         select ${journeyCapabilities.capability}::text
@@ -99,7 +103,10 @@ function invitableJourneyFilter(tx: DatabaseTransaction, accountId: string) {
   return and(isNull(journeys.archivedAt), exists(administrator));
 }
 
-async function scopeJourneys(tx: DatabaseTransaction, accountId: string) {
+export async function scopeJourneys(
+  tx: DatabaseTransaction,
+  accountId: string,
+) {
   await tx.execute(
     sql`select set_config('kairn.journey_account', ${accountId}, true)`,
   );
@@ -115,7 +122,7 @@ function projectedMinute(
     : null;
 }
 
-function projectedSchedule(
+export function projectedSchedule(
   row: Pick<
     JourneyRow,
     | "timeZone"
@@ -161,7 +168,7 @@ function privateJourney(row: JourneyRow, accountId: string) {
   };
 }
 
-async function findJourney(
+export async function findJourney(
   tx: DatabaseTransaction,
   accountId: string,
   id: string,
@@ -213,11 +220,20 @@ function historyWindow(section: HistorySection, asOf: Date) {
   }
 }
 
-async function createPrivateJourney(
+export async function createPrivateJourney(
   tx: DatabaseTransaction,
   accountId: string,
   key: string,
-  input: CreateInput,
+  input:
+    | CreateInput
+    | {
+        title: string;
+        intendedStart: null;
+        intendedEnd: null;
+        timeZone: null;
+        startOffset?: never;
+        endOffset?: never;
+      },
 ) {
   const fingerprint = createHash("sha256")
     .update(
@@ -241,24 +257,25 @@ async function createPrivateJourney(
     .from(receipts)
     .where(and(eq(receipts.accountId, accountId), eq(receipts.key, key)));
   if (receipt) {
-    if (!(await findJourney(tx, accountId, receipt.journeyId)))
+    if (
+      !receipt.journeyId ||
+      !(await findJourney(tx, accountId, receipt.journeyId))
+    )
       return { status: 404 } as const;
     if (receipt.payloadDigest !== fingerprint) return { status: 409 } as const;
     return { status: 200, id: receipt.journeyId } as const;
   }
 
   // Resolve only fresh attempts. A replay uses the committed schedule.
-  const resolved = resolveJourneySchedule(input);
-  if (resolved.issue) return { status: 400, issue: resolved.issue } as const;
-  const {
-    intendedStart: start,
-    intendedEnd: end,
-    timeZone,
-  } = resolved.schedule;
+  const resolved =
+    input.intendedStart === null ? undefined : resolveJourneySchedule(input);
+  if (resolved?.issue) return { status: 400, issue: resolved.issue } as const;
+  const start = resolved?.schedule.intendedStart;
+  const end = resolved?.schedule.intendedEnd;
   const { rows } = await tx.execute<{ id: string }>(sql`
     select kairn.create_private_journey(
-      ${key}::uuid, ${fingerprint}, ${input.title}, ${timeZone},
-      ${start.local}, ${start.instant}::timestamptz, ${start.offset},
+      ${key}::uuid, ${fingerprint}, ${input.title}, ${input.timeZone},
+      ${start?.local ?? null}, ${start?.instant ?? null}::timestamptz, ${start?.offset ?? null},
       ${end?.local ?? null}, ${end?.instant ?? null}::timestamptz, ${end?.offset ?? null}
     ) as id
   `);

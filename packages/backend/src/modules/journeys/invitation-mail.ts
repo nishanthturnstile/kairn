@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { fromDrizzle, type PgBoss } from "pg-boss";
 import { z } from "zod";
@@ -8,7 +9,12 @@ import { sealPayload, unsealPayload } from "../../sealed-payload.js";
 import { identityEpoch, identityIsCurrent } from "../identity/state.js";
 
 export const journeyInvitationMailQueue = "journeys.invitation_email";
-const payload = z.object({ id: z.uuid() });
+const payload = z.object({
+  id: z.uuid(),
+  deletionNotice: z
+    .object({ epoch: z.string(), ciphertext: z.string() })
+    .optional(),
+});
 const mailPayload = z.object({
   url: z.url({ protocol: /^https?$/ }),
   inviter: z.string(),
@@ -53,6 +59,36 @@ export async function enqueueInvitationMail(
   if (!job) throw new Error("Journey invitation email was not enqueued.");
 }
 
+export async function enqueueJourneyDeletionNotice(
+  tx: DatabaseTransaction,
+  boss: PgBoss,
+  { email, mailKey, epoch }: { email: string; mailKey: string; epoch: string },
+) {
+  const id = randomUUID();
+  const job = await boss.send(
+    journeyInvitationMailQueue,
+    {
+      id,
+      deletionNotice: {
+        epoch: identityEpoch(epoch),
+        ciphertext: sealPayload(
+          Buffer.from(mailKey, "hex"),
+          `journey-deletion-mail:${id}`,
+          email,
+        ),
+      },
+    },
+    {
+      id,
+      db: fromDrizzle(tx, sql),
+      retryLimit: 4,
+      retryDelay: 10,
+      retryBackoff: true,
+    },
+  );
+  if (!job) throw new Error("Journey deletion notice was not enqueued.");
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -94,13 +130,34 @@ export async function registerJourneyInvitationMail(
       includeMetadata: true,
     },
     async ([job]) => {
-      const { id } = payload.parse(job.data);
+      const { id, deletionNotice } = payload.parse(job.data);
       try {
         await db.transaction(async (tx) => {
           if (!(await identityIsCurrent(tx, epoch))) {
             throw new Error(
               "The invitation worker recovery epoch is not current.",
             );
+          }
+          if (deletionNotice) {
+            if (deletionNotice.epoch !== epoch) return;
+            const email = z
+              .email()
+              .parse(
+                unsealPayload(
+                  Buffer.from(config.key, "hex"),
+                  `journey-deletion-mail:${id}`,
+                  deletionNotice.ciphertext,
+                ),
+              );
+            await config.transport.send({
+              from: config.from,
+              to: email,
+              subject: "A journey was deleted on Kairn",
+              text: "An organiser deleted a journey you belonged to. It is no longer available in Journeys. Your original recordings are still available in your account.",
+              messageId: `<${id}@${config.from.split("@").at(-1)}>`,
+              idempotencyKey: `journey-deletion-mail/${id}`,
+            });
+            return;
           }
           const { rows } = await tx.execute<{
             message: {
@@ -132,7 +189,7 @@ export async function registerJourneyInvitationMail(
           );
         });
       } catch {
-        if (job.retryCount >= job.retryLimit) {
+        if (!deletionNotice && job.retryCount >= job.retryLimit) {
           await db.transaction(async (tx) => {
             if (await identityIsCurrent(tx, epoch)) {
               await tx.execute(

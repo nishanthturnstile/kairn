@@ -14,6 +14,8 @@ import {
   History,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { gpxJourneyCreation } from "@/lib/journey-creation";
+import { useRecordingImports } from "@/lib/recording-api";
 import {
   historyKey,
   JourneyRequestError,
@@ -27,7 +29,9 @@ import { Badge } from "../ui/badge";
 import { Button, ButtonLink } from "../ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../ui/empty";
 import { Skeleton } from "../ui/skeleton";
+import { CreateJourneyLink } from "./create-link";
 import { JourneyDate } from "./dates";
+import { ResumeRecordingImport } from "./resume-recording-import";
 import { JourneyLoading, JourneyRetry } from "./states";
 
 type Page = { items: PrivateJourney[]; nextCursor: string | null };
@@ -136,9 +140,7 @@ export function JourneyHistoryPage({ scope }: { scope: AccountScope }) {
             Plan what’s next and revisit where you’ve been.
           </p>
         </div>
-        {!loading && !empty && (
-          <CreateJourneyLink className="w-full @min-[28rem]/journeys:w-auto" />
-        )}
+        {!loading && !empty && <JourneyActions scope={scope} />}
       </header>
       {loading ? (
         <div className="grid gap-3">
@@ -198,7 +200,7 @@ function HistorySections({
               you’ve been.
             </EmptyDescription>
           </EmptyHeader>
-          <CreateJourneyLink />
+          <JourneyActions scope={scope} />
         </div>
         <div className="hidden @min-[39rem]/journeys:grid">
           <JourneyMap />
@@ -236,15 +238,35 @@ function HistorySections({
   );
 }
 
-function CreateJourneyLink({ className }: { className?: string }) {
+function JourneyActions({ scope }: { scope: AccountScope }) {
+  return gpxJourneyCreation ? (
+    <CreateJourneyLink />
+  ) : (
+    <LegacyJourneyActions scope={scope} />
+  );
+}
+
+function LegacyJourneyActions({ scope }: { scope: AccountScope }) {
+  const imports = useRecordingImports(scope);
   return (
-    <ButtonLink
-      size="lg"
-      className={className}
-      render={<Link to="/journeys/new" />}
-    >
-      Create journey
-    </ButtonLink>
+    <div className="flex min-w-0 flex-wrap gap-2">
+      {imports.data && (
+        <ButtonLink
+          size="lg"
+          render={<Link to="/journeys/import" search={{ fresh: true }} />}
+        >
+          Import GPX
+        </ButtonLink>
+      )}
+      <ButtonLink
+        size="lg"
+        variant={imports.data ? "outline" : "default"}
+        render={<Link to="/journeys/new" />}
+      >
+        {imports.data ? "Create journey manually" : "Create journey"}
+      </ButtonLink>
+      <ResumeRecordingImport scope={scope} imports={imports.data} />
+    </div>
   );
 }
 

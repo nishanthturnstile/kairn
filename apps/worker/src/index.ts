@@ -6,17 +6,20 @@ import {
   openDatabase,
   openJobQueue,
   openMailTransport,
+  openRecordingStore,
   openRestrictionJournal,
   parseWorkerEnvironment,
   registerIdentityMail,
   registerIdentityRestrictions,
   registerJourneyInvitationMail,
+  registerRecordingWorkers,
   registerWorkerChecks,
 } from "@kairn/backend";
 
 const environment = parseWorkerEnvironment(process.env);
 const { db, pool } = openDatabase(environment.DATABASE_URL);
 const boss = openJobQueue(environment.DATABASE_URL, true);
+const recordingStore = openRecordingStore(process.env);
 const transport = environment.SMTP_URL
   ? openMailTransport(
       environment.SMTP_URL,
@@ -33,6 +36,7 @@ const journal =
 
 const shutdown = Promise.withResolvers<void>();
 let stopInvitationRetention: (() => void) | undefined;
+let stopRecordingReclaim: (() => Promise<void>) | undefined;
 const requestShutdown = () => shutdown.resolve();
 process.once("SIGINT", requestShutdown);
 process.once("SIGTERM", requestShutdown);
@@ -41,6 +45,12 @@ try {
   await checkDatabaseReadiness(db);
   await boss.start();
   await registerWorkerChecks(boss, db);
+  if (recordingStore)
+    stopRecordingReclaim = await registerRecordingWorkers(
+      boss,
+      db,
+      recordingStore,
+    );
   if (transport && environment.AUTH_MAIL_KEY && environment.AUTH_FROM_EMAIL) {
     await registerIdentityMail(boss, db, {
       key: environment.AUTH_MAIL_KEY,
@@ -66,12 +76,14 @@ try {
   await shutdown.promise;
 } finally {
   stopInvitationRetention?.();
+  await stopRecordingReclaim?.();
   process.off("SIGINT", requestShutdown);
   process.off("SIGTERM", requestShutdown);
   try {
     await boss.stop({ graceful: true, timeout: 30_000 });
   } finally {
     transport?.close();
+    recordingStore?.close();
     await pool.end();
   }
 }

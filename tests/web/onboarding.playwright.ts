@@ -549,7 +549,7 @@ test("can skip inviting after creation and open the saved journey", async ({
 
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page).toHaveURL(journey);
-  await page.getByRole("link", { name: "View people", exact: true }).click();
+  await page.getByRole("button", { name: "View people", exact: true }).click();
   await expect(page.getByText("No pending invitations.")).toBeVisible();
 });
 
@@ -659,7 +659,7 @@ test("retries creation and invitation delivery for the same saved journey", asyn
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page).toHaveURL(destination);
   await mailLink(guest, "Join a journey on Kairn", "/journey-invitations#");
-  await page.getByRole("link", { name: "View people", exact: true }).click();
+  await page.getByRole("button", { name: "View people", exact: true }).click();
   await expect(page.getByText(guest, { exact: true })).toHaveCount(1);
   expect(
     await (

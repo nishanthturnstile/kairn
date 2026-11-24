@@ -382,6 +382,10 @@ test("loading and empty patterns preserve readable feedback with reduced motion"
   await expect(
     page.locator('[aria-labelledby="expression"] .journey-map-print'),
   ).toHaveAttribute("aria-hidden", "true");
+  await pattern.selectOption("Recorded route overview");
+  await expect(
+    page.getByRole("img", { name: "Recorded route overview" }),
+  ).toBeVisible();
   await pattern.selectOption("Loading journeys");
   const loading = page
     .getByRole("status")
@@ -891,7 +895,7 @@ test("catalog toolbar stays reachable and the index follows reading and explicit
   await page.mouse.move(pos.x + 30, pos.y + 60);
   await page.mouse.wheel(0, 10000);
   await expect(
-    index.getByRole("link", { name: "Rows & cards" }),
+    index.getByRole("link", { name: "Menus & overlays" }),
   ).toHaveAttribute("aria-current", "location");
   const find = page.getByRole("button", { name: "Find a component" });
   await expect(find).toBeInViewport();

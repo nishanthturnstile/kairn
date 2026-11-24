@@ -4,13 +4,8 @@ import type {
   OnboardingIntent,
 } from "@kairn/contracts";
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  CalendarDays,
-  LockKeyhole,
-  MapIcon,
-  Plus,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, LockKeyhole, MapIcon } from "lucide-react";
+import { CreateJourneyLink } from "@/components/journeys/create-link";
 import { JourneyDate } from "@/components/journeys/dates";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -21,22 +16,9 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { gpxJourneyCreation } from "@/lib/journey-creation";
 import { journeyIntentCopy } from "@/lib/journey-intent-copy";
 import "./dashboard.css";
-
-export function CreateJourneyLink({ intent }: { intent?: OnboardingIntent }) {
-  return (
-    <ButtonLink
-      size="lg"
-      render={<Link to="/journeys/new" search={{ intent }} />}
-    >
-      <Plus aria-hidden="true" data-icon="inline-start" />
-      <span>
-        {intent ? journeyIntentCopy[intent].action : "Create a journey"}
-      </span>
-    </ButtonLink>
-  );
-}
 
 export function DashboardOverview({
   summary,
@@ -80,7 +62,7 @@ function FirstJourney({ intent }: { intent?: OnboardingIntent }) {
               : "Add a journey and its dates to see your upcoming plans and past journeys here."}
           </EmptyDescription>
         </EmptyHeader>
-        <CreateJourneyLink intent={intent} />
+        <CreateJourneyLink intent={gpxJourneyCreation ? undefined : intent} />
         <p className="flex items-start gap-2 text-sm text-muted-foreground">
           <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           Every journey starts private.

@@ -111,7 +111,7 @@ export interface paths {
         get: operations["getJourney"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["deleteJourney"];
         options?: never;
         head?: never;
         patch?: never;
@@ -127,6 +127,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["searchJourneyInvitees"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-batches/{id}/invitees/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["searchRecordingBatchInvitees"];
         delete?: never;
         options?: never;
         head?: never;
@@ -389,6 +405,486 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recording-batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["beginRecordingUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingUpload"];
+        put?: never;
+        post?: never;
+        delete: operations["abortRecordingUpload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/{id}/parts/{partNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["putRecordingUploadPart"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeRecordingUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecordingImports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecordingImportSections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/overlay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingImportOverlay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/segments/{section}/samples": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecordingImportSamples"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retryRecordingImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-batches/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingBatchReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-batches/{id}/overlay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingBatchOverlay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-batches/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["commitRecordingBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-attachment-destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecordingDestinations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recording-attachment-destinations/{journeyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingDestination"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readImportReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateImportReview"];
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readRecordingCommit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["commitRecordingImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listJourneyRecordings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeJourneyRecording"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/{id}/placement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeRecordingPlacement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/{id}/placement/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readPlacementReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["acceptPlacementReview"];
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readJourneyRecordingOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/{id}/overlay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readJourneyRecordingOverlay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journeys/{journeyId}/recordings/{id}/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listJourneyRecordingSections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/recordings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listOwnerRecordings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/recordings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readOwnerRecording"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteOwnerRecording"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/recordings/{id}/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listOwnerRecordingSections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/recordings/{id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["downloadOwnerRecording"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/onboarding/companions": {
         parameters: {
             query?: never;
@@ -537,7 +1033,7 @@ export interface components {
             title: string;
             status: number;
             /** @enum {string} */
-            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "checkpoint_changed" | "invitation_accepted" | "last_administrator" | "membership_changed" | "capability_changed" | "source_grant_changed" | "original_export_changed" | "rate_limited" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
+            code: "invalid_request" | "unauthorized" | "origin_rejected" | "not_found" | "idempotency_conflict" | "account_changed" | "fresh_session_required" | "checkpoint_changed" | "invitation_accepted" | "last_administrator" | "membership_changed" | "recording_review_changed" | "capability_changed" | "source_grant_changed" | "original_export_changed" | "rate_limited" | "request_too_large" | "unsupported_media_type" | "service_unavailable" | "internal_error";
             /** Format: uuid */
             requestId: string;
             issues?: ({
@@ -659,6 +1155,12 @@ export interface components {
             };
             displayName: string;
             capabilities: ("administrator" | "coauthor" | "publisher")[];
+        };
+        JourneyDeletionResultV1: {
+            /** Format: uuid */
+            eventId: string;
+            /** @enum {string} */
+            confirmation: "confirmed" | "pending";
         };
         JourneyInviteeMatchesV1: {
             items: {
@@ -1626,6 +2128,129 @@ export interface operations {
             };
         };
     };
+    deleteJourney: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deletion confirmed by the recovery journal. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyDeletionResultV1"];
+                };
+            };
+            /** @description Journey deleted. Recovery confirmation is pending. */
+            202: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyDeletionResultV1"];
+                };
+            };
+            /** @description Invalid input. Issues identify fields and safe validation codes. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A fresh session is required or the verified account changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recovery is closed or the service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
     searchJourneyInvitees: {
         parameters: {
             query?: never;
@@ -1646,6 +2271,159 @@ export interface operations {
         };
         responses: {
             /** @description Opted-in members with short-lived invitation selections. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JourneyInviteeMatchesV1"];
+                };
+            };
+            /** @description The request is invalid. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The journey or invitation is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account changed, the operation key belongs to another request, or the invitation has been accepted. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The request exceeds 4096 bytes. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The organiser has reached the invitation operation limit. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description An unexpected server error occurred. */
+            500: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    searchRecordingBatchInvitees: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    query: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Opted-in members with short-lived selections for the staged batch. */
             200: {
                 headers: {
                     /** @description Server-generated request ID */
@@ -4132,6 +4910,4341 @@ export interface operations {
                 };
             };
             /** @description The service is temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's active recording batch. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        files: {
+                            position: number;
+                            /** Format: uuid */
+                            commandId: string;
+                            upload: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @enum {string} */
+                                state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                                fileName: string;
+                                byteLength: number;
+                                sha256: string;
+                                partSize: number;
+                                /** Format: date-time */
+                                expiresAt: string;
+                                parts: {
+                                    /** @enum {number} */
+                                    protocolVersion: 1;
+                                    /** Format: uuid */
+                                    uploadId: string;
+                                    partNumber: number;
+                                    byteLength: number;
+                                    sha256: string;
+                                }[];
+                                /** Format: uuid */
+                                importId: string | null;
+                            };
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    beginRecordingUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {number} */
+                    protocolVersion: 1;
+                    /** Format: uuid */
+                    commandId: string;
+                    /** Format: uuid */
+                    deviceId: string;
+                    /** @enum {string} */
+                    kind: "gpx";
+                    fileName: string;
+                    byteLength: number;
+                    sha256: string;
+                    batch?: {
+                        /** Format: uuid */
+                        id: string;
+                        position: number;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The verified owner's upload and acknowledged parts. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                        fileName: string;
+                        byteLength: number;
+                        sha256: string;
+                        partSize: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        parts: {
+                            /** @enum {number} */
+                            protocolVersion: 1;
+                            /** Format: uuid */
+                            uploadId: string;
+                            partNumber: number;
+                            byteLength: number;
+                            sha256: string;
+                        }[];
+                        /** Format: uuid */
+                        importId: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the upload limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Incorrect request content type. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The upload or transfer limit is reached. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    /** @description Seconds until retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's upload and acknowledged parts. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                        fileName: string;
+                        byteLength: number;
+                        sha256: string;
+                        partSize: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        parts: {
+                            /** @enum {number} */
+                            protocolVersion: 1;
+                            /** Format: uuid */
+                            uploadId: string;
+                            partNumber: number;
+                            byteLength: number;
+                            sha256: string;
+                        }[];
+                        /** Format: uuid */
+                        importId: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    abortRecordingUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's upload and acknowledged parts. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                        fileName: string;
+                        byteLength: number;
+                        sha256: string;
+                        partSize: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        parts: {
+                            /** @enum {number} */
+                            protocolVersion: 1;
+                            /** Format: uuid */
+                            uploadId: string;
+                            partNumber: number;
+                            byteLength: number;
+                            sha256: string;
+                        }[];
+                        /** Format: uuid */
+                        importId: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    putRecordingUploadPart: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-expected-account"?: string;
+                "x-part-sha256": string;
+                "content-length": string;
+            };
+            path: {
+                id: string;
+                partNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description The verified owner's upload and acknowledged parts. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                        fileName: string;
+                        byteLength: number;
+                        sha256: string;
+                        partSize: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        parts: {
+                            /** @enum {number} */
+                            protocolVersion: 1;
+                            /** Format: uuid */
+                            uploadId: string;
+                            partNumber: number;
+                            byteLength: number;
+                            sha256: string;
+                        }[];
+                        /** Format: uuid */
+                        importId: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the upload limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Incorrect request content type. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The upload or transfer limit is reached. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    /** @description Seconds until retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    completeRecordingUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's upload and acknowledged parts. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        state: "uploading" | "complete" | "aborted" | "expired" | "rejected";
+                        fileName: string;
+                        byteLength: number;
+                        sha256: string;
+                        partSize: number;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        parts: {
+                            /** @enum {number} */
+                            protocolVersion: 1;
+                            /** Format: uuid */
+                            uploadId: string;
+                            partNumber: number;
+                            byteLength: number;
+                            sha256: string;
+                        }[];
+                        /** Format: uuid */
+                        importId: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the upload limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Incorrect request content type. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The upload or transfer limit is reached. */
+            429: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    /** @description Seconds until retry. */
+                    "Retry-After"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listRecordingImports: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the owner's imports. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        imports: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            stage: "queued" | "ready" | "rejected" | "failed";
+                            consumed: boolean;
+                            fileName: string;
+                            byteLength: number;
+                            revision: number;
+                            diagnostics: {
+                                tracks: number;
+                                segments: number;
+                                trackPoints: number;
+                                invalidCoordinates: number;
+                                invalidTimestamps: number;
+                                invalidElevations: number;
+                                ignoredRoutes: number;
+                                ignoredWaypoints: number;
+                            } | null;
+                            /** @enum {string|null} */
+                            issue: "unsupported_gpx" | "unsupported_encoding" | "malformed_xml" | "xml_declaration_forbidden" | "byte_limit" | "depth_limit" | "track_limit" | "segment_limit" | "section_limit" | "token_limit" | "point_limit" | "no_recorded_path" | null;
+                            sectionCount: number;
+                            inspectionVersion: number;
+                        }[];
+                        /** Format: uuid */
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's import status. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        stage: "queued" | "ready" | "rejected" | "failed";
+                        consumed: boolean;
+                        fileName: string;
+                        byteLength: number;
+                        revision: number;
+                        diagnostics: {
+                            tracks: number;
+                            segments: number;
+                            trackPoints: number;
+                            invalidCoordinates: number;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            ignoredRoutes: number;
+                            ignoredWaypoints: number;
+                        } | null;
+                        /** @enum {string|null} */
+                        issue: "unsupported_gpx" | "unsupported_encoding" | "malformed_xml" | "xml_declaration_forbidden" | "byte_limit" | "depth_limit" | "track_limit" | "segment_limit" | "section_limit" | "token_limit" | "point_limit" | "no_recorded_path" | null;
+                        sectionCount: number;
+                        inspectionVersion: number;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listRecordingImportSections: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of measured runs, without sample coordinates. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sections: {
+                            trackIndex: number;
+                            segmentIndex: number;
+                            firstPointIndex: number;
+                            lastPointIndex: number;
+                            /** @enum {string} */
+                            breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                            measurements: {
+                                sampleCount: number;
+                                timedSampleCount: number;
+                                /** Format: date-time */
+                                firstInstant: string | null;
+                                /** Format: date-time */
+                                lastInstant: string | null;
+                                distanceMetres: number | null;
+                                elapsedSeconds: number | null;
+                                elevationMinMetres: number | null;
+                                elevationMaxMetres: number | null;
+                                elevationGainMetres?: number | null;
+                            };
+                            ordinal: number;
+                            trackName: string | null;
+                            included: boolean;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            splitRuns?: {
+                                trackIndex: number;
+                                segmentIndex: number;
+                                firstPointIndex: number;
+                                lastPointIndex: number;
+                                /** @enum {string} */
+                                breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                                measurements: {
+                                    sampleCount: number;
+                                    timedSampleCount: number;
+                                    /** Format: date-time */
+                                    firstInstant: string | null;
+                                    /** Format: date-time */
+                                    lastInstant: string | null;
+                                    distanceMetres: number | null;
+                                    elapsedSeconds: number | null;
+                                    elevationMinMetres: number | null;
+                                    elevationMaxMetres: number | null;
+                                    elevationGainMetres?: number | null;
+                                };
+                            }[];
+                            displayTimeZone?: string;
+                        }[];
+                        nextCursor: number | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingImportOverlay: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+                through?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded coordinates for the selected private sections. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        version: 1;
+                        bounds: [
+                            number,
+                            number,
+                            number,
+                            number
+                        ] | null;
+                        paths: {
+                            section: number;
+                            firstPointIndex: number;
+                            series?: number;
+                            coordinates: [
+                                number,
+                                number
+                            ][];
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listRecordingImportSamples: {
+        parameters: {
+            query?: {
+                page?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+                section: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded page of private sample observations. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        samples: {
+                            index: number;
+                            latitude: number;
+                            longitude: number;
+                            elevationMetres: number | null;
+                            timestamp: string | null;
+                            invalidTimestamp: boolean;
+                            invalidElevation: boolean;
+                            offset: string | null;
+                            /** Format: date-time */
+                            instant: string | null;
+                        }[];
+                        nextCursor: number | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    retryRecordingImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The verified owner's import status. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        stage: "queued" | "ready" | "rejected" | "failed";
+                        consumed: boolean;
+                        fileName: string;
+                        byteLength: number;
+                        revision: number;
+                        diagnostics: {
+                            tracks: number;
+                            segments: number;
+                            trackPoints: number;
+                            invalidCoordinates: number;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            ignoredRoutes: number;
+                            ignoredWaypoints: number;
+                        } | null;
+                        /** @enum {string|null} */
+                        issue: "unsupported_gpx" | "unsupported_encoding" | "malformed_xml" | "xml_declaration_forbidden" | "byte_limit" | "depth_limit" | "track_limit" | "segment_limit" | "section_limit" | "token_limit" | "point_limit" | "no_recorded_path" | null;
+                        sectionCount: number;
+                        inspectionVersion: number;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingBatchReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's reviewed recording batch. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        title: string;
+                        recordedWindow: {
+                            /** Format: date-time */
+                            start: string;
+                            /** Format: date-time */
+                            end: string;
+                        } | null;
+                        /** @enum {string} */
+                        timeZone: "UTC";
+                        measurements?: {
+                            distanceMetres: number | null;
+                            elapsedSeconds: number | null;
+                            elevationGainMetres?: number | null;
+                            elevationMinMetres?: number | null;
+                            elevationMaxMetres?: number | null;
+                        };
+                        duplicateReviewConflict?: boolean;
+                        files: {
+                            /** Format: uuid */
+                            id: string;
+                            revision: number;
+                            fileName: string;
+                            position: number;
+                            sectionCount: number;
+                        }[];
+                        complete: boolean;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingBatchOverlay: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded map overview of the owner's reviewed recordings. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        version: 1;
+                        bounds: [
+                            number,
+                            number,
+                            number,
+                            number
+                        ] | null;
+                        paths: {
+                            section: number;
+                            firstPointIndex: number;
+                            series?: number;
+                            coordinates: [
+                                number,
+                                number
+                            ][];
+                        }[];
+                        files: {
+                            /** Format: uuid */
+                            id: string;
+                            revision: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    commitRecordingBatch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    files: {
+                        /** Format: uuid */
+                        id: string;
+                        revision: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description The private journey created for this reviewed batch. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedJourneyV1"];
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listRecordingDestinations: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of eligible journey destinations. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        journeys: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            schedule: {
+                                timeZone: string;
+                                intendedStart: {
+                                    local: string;
+                                    /** Format: date-time */
+                                    instant: string;
+                                    offset: string;
+                                };
+                                intendedEnd: {
+                                    local: string;
+                                    /** Format: date-time */
+                                    instant: string;
+                                    offset: string;
+                                } | null;
+                            } | null;
+                            /** Format: uuid */
+                            membershipGeneration: string;
+                            canPlace: boolean;
+                            grantRevision: number | null;
+                        }[];
+                        /** Format: uuid */
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingDestination: {
+        parameters: {
+            query?: {
+                importId?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An eligible journey destination. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        schedule: {
+                            timeZone: string;
+                            intendedStart: {
+                                local: string;
+                                /** Format: date-time */
+                                instant: string;
+                                offset: string;
+                            };
+                            intendedEnd: {
+                                local: string;
+                                /** Format: date-time */
+                                instant: string;
+                                offset: string;
+                            } | null;
+                        } | null;
+                        /** Format: uuid */
+                        membershipGeneration: string;
+                        canPlace: boolean;
+                        grantRevision: number | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readImportReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest owner review. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        revision: number;
+                        selection: {
+                            excluded: number[];
+                            splits: {
+                                section: number;
+                                beforePoint: number;
+                            }[];
+                            clock?: {
+                                shiftMinutes: number;
+                                displayTimeZone: string;
+                            };
+                        };
+                        summary: {
+                            sectionCount: number;
+                            distanceMetres: number | null;
+                            elapsedSeconds: number | null;
+                            recordedWindow: {
+                                /** Format: date-time */
+                                start: string;
+                                /** Format: date-time */
+                                end: string;
+                            } | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    updateImportReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    revision: number;
+                    selection: {
+                        excluded: number[];
+                        splits: {
+                            section: number;
+                            beforePoint: number;
+                        }[];
+                        clock?: {
+                            shiftMinutes: number;
+                            displayTimeZone: string;
+                        };
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The saved immutable review revision. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        revision: number;
+                        selection: {
+                            excluded: number[];
+                            splits: {
+                                section: number;
+                                beforePoint: number;
+                            }[];
+                            clock?: {
+                                shiftMinutes: number;
+                                displayTimeZone: string;
+                            };
+                        };
+                        summary: {
+                            sectionCount: number;
+                            distanceMetres: number | null;
+                            elapsedSeconds: number | null;
+                            recordedWindow: {
+                                /** Format: date-time */
+                                start: string;
+                                /** Format: date-time */
+                                end: string;
+                            } | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readRecordingCommit: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The most recent save receipt under current access. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        outcome: "created" | "added" | "already_added";
+                        /** Format: uuid */
+                        associationId: string;
+                        /** Format: uuid */
+                        recordingId: string;
+                        /** Format: uuid */
+                        journeyId: string | null;
+                        /** @enum {string} */
+                        scope: "only_me" | "journey_review";
+                        placedInDraft: boolean;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    commitRecordingImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {number} */
+                    protocolVersion: 1;
+                    /** Format: uuid */
+                    commandId: string;
+                    /** Format: uuid */
+                    deviceId: string;
+                    reviewRevision: number;
+                    destination: {
+                        /** @enum {string} */
+                        kind: "new";
+                        journey: components["schemas"]["CreateJourneyV1"];
+                    } | {
+                        /** @enum {string} */
+                        kind: "existing";
+                        /** Format: uuid */
+                        journeyId: string;
+                        /** Format: uuid */
+                        membershipGeneration: string;
+                        grantRevision: number;
+                    };
+                    /** @enum {string} */
+                    scope: "only_me" | "journey_review";
+                    placeInDraft: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The committed result under current access. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        outcome: "created" | "added" | "already_added";
+                        /** Format: uuid */
+                        associationId: string;
+                        /** Format: uuid */
+                        recordingId: string;
+                        /** Format: uuid */
+                        journeyId: string | null;
+                        /** @enum {string} */
+                        scope: "only_me" | "journey_review";
+                        placedInDraft: boolean;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listJourneyRecordings: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recordings this viewer is authorized to review. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        recordings: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            sourceId: string | null;
+                            fileName: string;
+                            sectionCount: number;
+                            /** @enum {string} */
+                            scope: "only_me" | "journey_review";
+                            reviewVersion: string;
+                            placedInDraft: boolean;
+                            placementRevision: number | null;
+                            owned: boolean;
+                        }[];
+                        /** Format: uuid */
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    removeJourneyRecording: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedGrantRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The recording has been detached. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        confirmation: "confirmed" | "pending";
+                    };
+                };
+            };
+            /** @description The recording has been detached. Independent confirmation is pending. */
+            202: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        confirmation: "confirmed" | "pending";
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    removeRecordingPlacement: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedGrantRevision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The recording was removed from the shared draft. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        confirmation: "confirmed" | "pending";
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readPlacementReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current correction available to the shared draft. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: {
+                            token: string;
+                            sectionCount: number;
+                            clock: {
+                                shiftMinutes: number;
+                                displayTimeZone: string;
+                            } | null;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    acceptPlacementReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The shared draft accepted the correction. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: {
+                            token: string;
+                            sectionCount: number;
+                            clock: {
+                                shiftMinutes: number;
+                                displayTimeZone: string;
+                            } | null;
+                        } | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The review or eligible membership changed. */
+            412: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The body exceeds the request limit. */
+            413: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A JSON body is required. */
+            415: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readJourneyRecordingOverview: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A bounded overview of recorded paths authorized for this viewer. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        version: 1;
+                        bounds: [
+                            number,
+                            number,
+                            number,
+                            number
+                        ] | null;
+                        paths: {
+                            section: number;
+                            firstPointIndex: number;
+                            series?: number;
+                            coordinates: [
+                                number,
+                                number
+                            ][];
+                        }[];
+                        limited: boolean;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readJourneyRecordingOverlay: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+                through?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded coordinates authorized for this journey viewer. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {number} */
+                        version: 1;
+                        bounds: [
+                            number,
+                            number,
+                            number,
+                            number
+                        ] | null;
+                        paths: {
+                            section: number;
+                            firstPointIndex: number;
+                            series?: number;
+                            coordinates: [
+                                number,
+                                number
+                            ][];
+                        }[];
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listJourneyRecordingSections: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                journeyId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of authorized recording sections. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sections: {
+                            trackIndex: number;
+                            segmentIndex: number;
+                            firstPointIndex: number;
+                            lastPointIndex: number;
+                            /** @enum {string} */
+                            breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                            measurements: {
+                                sampleCount: number;
+                                timedSampleCount: number;
+                                /** Format: date-time */
+                                firstInstant: string | null;
+                                /** Format: date-time */
+                                lastInstant: string | null;
+                                distanceMetres: number | null;
+                                elapsedSeconds: number | null;
+                                elevationMinMetres: number | null;
+                                elevationMaxMetres: number | null;
+                                elevationGainMetres?: number | null;
+                            };
+                            ordinal: number;
+                            trackName: string | null;
+                            included: boolean;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            splitRuns?: {
+                                trackIndex: number;
+                                segmentIndex: number;
+                                firstPointIndex: number;
+                                lastPointIndex: number;
+                                /** @enum {string} */
+                                breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                                measurements: {
+                                    sampleCount: number;
+                                    timedSampleCount: number;
+                                    /** Format: date-time */
+                                    firstInstant: string | null;
+                                    /** Format: date-time */
+                                    lastInstant: string | null;
+                                    distanceMetres: number | null;
+                                    elapsedSeconds: number | null;
+                                    elevationMinMetres: number | null;
+                                    elevationMaxMetres: number | null;
+                                    elevationGainMetres?: number | null;
+                                };
+                            }[];
+                            displayTimeZone?: string;
+                        }[];
+                        nextCursor: number | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listOwnerRecordings: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An owner-scoped page of original recordings. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        recordings: {
+                            /** Format: uuid */
+                            id: string;
+                            fileName: string;
+                            byteLength: number;
+                            /** @enum {string} */
+                            stage: "queued" | "ready" | "rejected" | "failed";
+                            diagnostics: {
+                                tracks: number;
+                                segments: number;
+                                trackPoints: number;
+                                invalidCoordinates: number;
+                                invalidTimestamps: number;
+                                invalidElevations: number;
+                                ignoredRoutes: number;
+                                ignoredWaypoints: number;
+                            } | null;
+                            /** @enum {string|null} */
+                            issue: "unsupported_gpx" | "unsupported_encoding" | "malformed_xml" | "xml_declaration_forbidden" | "byte_limit" | "depth_limit" | "track_limit" | "segment_limit" | "section_limit" | "token_limit" | "point_limit" | "no_recorded_path" | null;
+                            sectionCount: number;
+                            deletionAvailable: boolean;
+                            /** Format: uuid */
+                            reviewImportId?: string;
+                        }[];
+                        /** Format: uuid */
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    readOwnerRecording: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's recording summary. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        fileName: string;
+                        byteLength: number;
+                        /** @enum {string} */
+                        stage: "queued" | "ready" | "rejected" | "failed";
+                        diagnostics: {
+                            tracks: number;
+                            segments: number;
+                            trackPoints: number;
+                            invalidCoordinates: number;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            ignoredRoutes: number;
+                            ignoredWaypoints: number;
+                        } | null;
+                        /** @enum {string|null} */
+                        issue: "unsupported_gpx" | "unsupported_encoding" | "malformed_xml" | "xml_declaration_forbidden" | "byte_limit" | "depth_limit" | "track_limit" | "segment_limit" | "section_limit" | "token_limit" | "point_limit" | "no_recorded_path" | null;
+                        sectionCount: number;
+                        deletionAvailable: boolean;
+                        /** Format: uuid */
+                        reviewImportId?: string;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    deleteOwnerRecording: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deletion was independently confirmed. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        confirmation: "confirmed" | "pending";
+                    };
+                };
+            };
+            /** @description The recording was denied. Independent confirmation is pending. */
+            202: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        confirmation: "confirmed" | "pending";
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The write origin is forbidden. */
+            403: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    listOwnerRecordingSections: {
+        parameters: {
+            query?: {
+                cursor?: number | null;
+            };
+            header?: {
+                "x-expected-account"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's measured recording sections. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sections: {
+                            trackIndex: number;
+                            segmentIndex: number;
+                            firstPointIndex: number;
+                            lastPointIndex: number;
+                            /** @enum {string} */
+                            breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                            measurements: {
+                                sampleCount: number;
+                                timedSampleCount: number;
+                                /** Format: date-time */
+                                firstInstant: string | null;
+                                /** Format: date-time */
+                                lastInstant: string | null;
+                                distanceMetres: number | null;
+                                elapsedSeconds: number | null;
+                                elevationMinMetres: number | null;
+                                elevationMaxMetres: number | null;
+                                elevationGainMetres?: number | null;
+                            };
+                            ordinal: number;
+                            trackName: string | null;
+                            included: boolean;
+                            invalidTimestamps: number;
+                            invalidElevations: number;
+                            splitRuns?: {
+                                trackIndex: number;
+                                segmentIndex: number;
+                                firstPointIndex: number;
+                                lastPointIndex: number;
+                                /** @enum {string} */
+                                breakBefore: "segment_boundary" | "invalid_coordinates" | "clock_reversal" | "long_pause" | "implausible_jump" | "user_split";
+                                measurements: {
+                                    sampleCount: number;
+                                    timedSampleCount: number;
+                                    /** Format: date-time */
+                                    firstInstant: string | null;
+                                    /** Format: date-time */
+                                    lastInstant: string | null;
+                                    distanceMetres: number | null;
+                                    elapsedSeconds: number | null;
+                                    elevationMinMetres: number | null;
+                                    elevationMaxMetres: number | null;
+                                    elevationGainMetres?: number | null;
+                                };
+                            }[];
+                            displayTimeZone?: string;
+                        }[];
+                        nextCursor: number | null;
+                    };
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
+            503: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+        };
+    };
+    downloadOwnerRecording: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-expected-account"?: string;
+                range?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Private original GPX bytes. */
+            200: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/gpx+xml": string;
+                };
+            };
+            /** @description Private original GPX bytes. */
+            206: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/gpx+xml": string;
+                };
+            };
+            /** @description Invalid parameters or part checksum. */
+            400: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description A current verified session is required. */
+            401: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The recording resource is unavailable. */
+            404: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The account, upload state or command changed. */
+            409: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description The requested byte range is unavailable. */
+            416: {
+                headers: {
+                    /** @description Server-generated request ID */
+                    "X-Request-Id": string;
+                    "Cache-Control": "private, no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ApiProblem"];
+                };
+            };
+            /** @description Recording services are temporarily unavailable. */
             503: {
                 headers: {
                     /** @description Server-generated request ID */

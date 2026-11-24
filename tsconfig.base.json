@@ -3,6 +3,7 @@
     "strict": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   }

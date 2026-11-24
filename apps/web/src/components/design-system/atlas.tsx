@@ -41,6 +41,7 @@ import {
 import { Foundations } from "./foundations";
 import {
   ActionSpecimen,
+  DropzoneSpecimen,
   ExpressionSpecimen,
   FeedbackSpecimen,
   FieldsSpecimen,
@@ -76,6 +77,12 @@ const sections = [
     terms:
       "input textarea native select forms text field label validation password visibility date time calendar clock picker schedule masked keyboard entry",
     name: "Text fields",
+    icon: FormInputIcon,
+  },
+  {
+    id: "file-dropzone",
+    terms: "file upload dropzone drag and drop file picker gpx",
+    name: "File dropzone",
     icon: FormInputIcon,
   },
   {
@@ -475,6 +482,7 @@ function Atlas() {
                 <ActionSpecimen />
                 <NavigationSpecimen />
                 <FieldsSpecimen />
+                <DropzoneSpecimen />
                 <SelectionSpecimen />
                 <FeedbackSpecimen />
                 <ExpressionSpecimen />

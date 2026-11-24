@@ -82,6 +82,72 @@ async function signOut(page: Page) {
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
 }
 
+test("confirms journey deletion and retries a lost reply on a narrow screen", async ({
+  page,
+}) => {
+  const email = await verifiedEmail(page);
+  await page.goto(`${site}/journeys`);
+  await signIn(page, email);
+  await expect(
+    page.getByRole("heading", { name: "No journeys yet" }),
+  ).toBeVisible();
+  const title = "Disposable journey for deletion";
+  const created = await page.request.post(`${site}/api/v1/journeys`, {
+    headers: { Origin: site, "Idempotency-Key": randomUUID() },
+    data: { title, intendedStart: "2027-11-07T09:00", timeZone: "UTC" },
+  });
+  expect(created.status()).toBe(201);
+  const { id } = await created.json();
+  await page.goto(`${site}/journeys/${id}`);
+  const trigger = page.locator("main header").getByRole("button", {
+    name: "Delete journey",
+    exact: true,
+  });
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+  await trigger.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Delete journey?" });
+  const cancel = dialog.getByRole("button", { name: "Cancel" });
+  await expect(cancel).toBeFocused();
+  await expect(dialog).toContainText("Original recordings will stay");
+  expect(
+    await dialog.evaluate((node) => node.scrollWidth - node.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  await cancel.press("Enter");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  expect(
+    (await page.request.get(`${site}/api/v1/journeys/${id}`)).status(),
+  ).toBe(200);
+  await page.route(
+    `**/api/v1/journeys/${id}`,
+    async (route) => {
+      if (route.request().method() !== "DELETE") return route.continue();
+      expect((await route.fetch()).ok()).toBe(true);
+      await route.abort("failed");
+    },
+    { times: 1 },
+  );
+  await trigger.press("Enter");
+  const confirm = dialog.getByRole("button", {
+    name: "Delete journey",
+    exact: true,
+  });
+  await confirm.click();
+  await expect(
+    dialog.getByText("Couldn’t confirm deletion.", { exact: false }),
+  ).toBeVisible();
+  await confirm.click();
+  await expect(page).toHaveURL(`${site}/journeys`);
+  await expect(
+    page.getByRole("heading", { name: "No journeys yet" }),
+  ).toBeVisible();
+  expect(
+    (await page.request.get(`${site}/api/v1/journeys/${id}`)).status(),
+  ).toBe(404);
+});
+
 test("creates and reopens one journey after the committed reply is lost", async ({
   page,
 }) => {
@@ -146,6 +212,10 @@ test("creates and reopens one journey after the committed reply is lost", async 
   ).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await page.getByRole("button", { name: "Use 09:00" }).click();
+  await expect(page.getByRole("dialog", { name: "Start time" })).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Choose start time" }),
+  ).toBeFocused();
   await expectSchedule(page, "Start date", "2027-11-07");
   await expectSchedule(page, "Start time", "09:00");
   await expect(
@@ -488,14 +558,18 @@ test("reflows journey details and protects private information during access che
         .violations,
     ).toEqual([]);
   }
-  const viewPeople = people.getByRole("link", { name: "View people" });
+  const viewPeople = people.getByRole("button", { name: "View people" });
   await viewPeople.press("Enter");
-  await expect(page).toHaveURL(`${detailUrl}/people`);
+  await expect(page).toHaveURL(detailUrl);
+  await expect(
+    page.getByRole("dialog", { name: "People", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "People", exact: true }),
   ).toBeFocused();
-  await page.goBack();
+  await page.keyboard.press("Escape");
   await expect(heading).toBeVisible();
+  await expect(viewPeople).toBeFocused();
 
   const checking = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();

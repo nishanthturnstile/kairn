@@ -133,7 +133,9 @@ async function readRecordedRestriction(tx: DatabaseTransaction, id: string) {
       kairn.read_source_withdrawal(${id}::uuid),
       kairn.read_editorial_capability_removal(${id}::uuid),
       kairn.read_source_narrowing(${id}::uuid),
-      kairn.read_original_export_revocation(${id}::uuid)
+      kairn.read_original_export_revocation(${id}::uuid),
+      kairn.read_recording_deletion(${id}::uuid),
+      kairn.read_journey_deletion(${id}::uuid)
     ) as record
   `);
   return z
@@ -197,6 +199,22 @@ export async function confirmRecordedRestriction(
   if (event.version === 6) {
     await tx.execute(sql`
       select kairn.confirm_original_export_revocation(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 7) {
+    await tx.execute(sql`
+      select kairn.confirm_recording_deletion(
+        ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
+      )
+    `);
+    return;
+  }
+  if (event.version === 8) {
+    await tx.execute(sql`
+      select kairn.confirm_journey_deletion(
         ${id}::uuid, ${digest}, ${receipt.sequence}::bigint, ${receipt.receipt}
       )
     `);
@@ -460,6 +478,46 @@ export async function replayIdentityRestrictions(
               journalReceipt: receipt.receipt,
             });
           }
+        }
+        continue;
+      }
+      if (event.version === 7) {
+        await tx.execute(sql`
+          select kairn.restore_recording_deletion(
+            ${event.sourceId}::uuid, ${event.assetId}::uuid, ${event.uploadId}::uuid, ${event.accountId}::uuid,
+            ${event.id}::uuid, ${event.deletedAtEpoch}::bigint, ${receipt.digest}, ${sequence}::bigint, ${receipt.receipt}
+          )
+        `);
+        continue;
+      }
+      if (event.version === 8) {
+        await tx.execute(
+          sql`select kairn.apply_journey_deletion(${event.journeyId}::uuid)`,
+        );
+        if (event.creation) {
+          await tx.execute(
+            sql`select kairn.restore_deleted_journey_commands(${JSON.stringify(event.creation)}::jsonb)`,
+          );
+        }
+        if (!receiptPersisted) {
+          await tx.insert(auditEvents).values({
+            id: event.id,
+            actorId: sql`(select id from kairn.accounts where id = ${event.accountId}::uuid)`,
+            action: event.operation,
+            targetKind: "journey",
+            targetId: event.journeyId,
+            journeyId: event.journeyId,
+          });
+          await tx.insert(restrictionEvents).values({
+            id: event.id,
+            auditEventId: event.id,
+            operation: event.operation,
+            policyGeneration: event.generation,
+            integrityDigest: receipt.digest,
+            journeyCreation: event.creation,
+            journalSequence: BigInt(receipt.sequence),
+            journalReceipt: receipt.receipt,
+          });
         }
         continue;
       }

@@ -14,6 +14,7 @@ import {
   JourneyScreen,
   useJourneyReentry,
 } from "../../../components/journeys/states";
+import { JourneyRecordingsNative } from "../../../components/recordings/journey-recordings";
 import { detailKey, historyKey, journeyResult } from "../../../journey-api";
 import { useMobileSession } from "../../../mobile-session";
 import type { VerifiedMobileScope } from "../../../session";
@@ -114,15 +115,22 @@ function JourneyDetail({
       <JourneyFlowHeading title={snapshot?.journey.title ?? "Journey"} />
       {focused &&
         (snapshot ? (
-          <JourneyDetailContent
-            {...snapshot}
-            onViewPeople={() =>
-              router.push({
-                pathname: "/journeys/[journeyId]/people",
-                params: { journeyId },
-              })
-            }
-          />
+          <>
+            <JourneyDetailContent
+              {...snapshot}
+              onViewPeople={() =>
+                router.push({
+                  pathname: "/journeys/[journeyId]/people",
+                  params: { journeyId },
+                })
+              }
+            />
+            <JourneyRecordingsNative
+              scope={scope}
+              journeyId={journeyId}
+              archived={snapshot.journey.state === "archived"}
+            />
+          </>
         ) : snapshot === null ? (
           <UnavailableNotice />
         ) : disconnected ? (

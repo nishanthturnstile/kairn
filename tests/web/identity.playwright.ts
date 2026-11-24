@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { wcagAATags } from "./accessibility";
-import { chooseAppearance } from "./appearance-fixture";
+import { chooseAppearance, settleAppearance } from "./appearance-fixture";
 import { mailLink, site } from "./identity-fixture";
 import { openAccount } from "./workspace-fixture";
 
@@ -258,6 +258,7 @@ test("browser account flows verify email, revoke another session, and reset the 
       await appearance
         .getByRole("button", { name: label, exact: true })
         .click();
+      await settleAppearance(page);
       expect(
         (await new AxeBuilder({ page }).withTags(wcagAATags).analyze())
           .violations,

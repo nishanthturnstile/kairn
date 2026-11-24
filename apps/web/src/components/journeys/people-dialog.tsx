@@ -3,8 +3,7 @@ import {
   editorialCapability,
   editorialCapabilityResult,
   journeyInvitationBatchResult,
-  journeyInvitationPage,
-  journeyPath,
+  type journeyInvitationPage,
   journeyPeoplePage,
   membershipRestrictionResult,
 } from "@kairn/contracts/journeys";
@@ -20,52 +19,47 @@ import {
   editorialRoles,
 } from "@kairn/shared/journey-editorial";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "cn";
+import { Clock3, Mail, MailPlus, Send, UsersRound } from "lucide-react";
 import {
-  ArrowLeft,
-  Clock3,
-  Mail,
-  MailPlus,
-  Send,
-  UsersRound,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { InviteComposer } from "../components/journeys/invite-composer";
-import { JourneyLoading, JourneyRetry } from "../components/journeys/states";
-import { PageHeading } from "../components/page-heading";
-import { ProfileAvatar } from "../components/profile-avatar";
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Button, ButtonLink } from "../components/ui/button";
-import { Card, CardContent, CardHeader } from "../components/ui/card";
-import { Empty, EmptyHeader, EmptyTitle } from "../components/ui/empty";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "../components/ui/sheet";
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   accessRecheckInterval,
   journeyInvitationsKey,
   refreshJourneyViews,
-  useJourneyAccess,
-} from "../lib/journey-access";
-import { JourneyRequestError, journeyResult } from "../lib/journey-api";
+} from "../../lib/journey-access";
+import { JourneyRequestError, journeyResult } from "../../lib/journey-api";
 import {
   clearDeparture,
   departureNoticeKey,
   readDeparture,
   saveDeparture,
   sendDeparture,
-} from "../lib/journey-departure";
-import type { AccountScope } from "../lib/session";
-import { useSessionAccess } from "../lib/session-access";
-
-export const Route = createFileRoute("/journeys_/$journeyId_/people")({
-  component: PeopleRoute,
-});
+} from "../../lib/journey-departure";
+import { useJourneyInvitations } from "../../lib/journey-invitations";
+import type { AccountScope } from "../../lib/session";
+import { useSessionAccess } from "../../lib/session-access";
+import { ProfileAvatar } from "../profile-avatar";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader } from "../ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Empty, EmptyHeader, EmptyTitle } from "../ui/empty";
+import { InviteComposer } from "./invite-composer";
+import { JourneyLoading, JourneyRetry } from "./states";
 
 const roleLabels = {
   administrator: "Administrator",
@@ -130,69 +124,75 @@ function actionDescription(action: Action, journeyTitle: string) {
   }
 }
 
-function PeopleRoute() {
-  const { journeyId } = Route.useParams();
-  const valid = journeyPath.safeParse({ journeyId }).success;
-  const { scope } = Route.useRouteContext();
-  const detail = useJourneyAccess(scope, journeyId, valid);
-  if (!valid) return <PeopleUnavailable />;
-  if (detail.isFetchedAfterMount && !detail.checking && detail.data === null) {
-    const pending = readDeparture(scope, journeyId);
-    return pending ? (
-      <DepartureRecovery scope={scope} pending={pending} />
-    ) : (
-      <PeopleUnavailable />
-    );
-  }
-  const journey = detail.isFetchedAfterMount ? detail.data?.journey : undefined;
+export function JourneyPeopleDialog({
+  journey,
+  scope,
+  suspension,
+  wideTrigger,
+  triggerRef,
+}: {
+  journey: PrivateJourney;
+  scope: AccountScope;
+  suspension?: ReactNode;
+  wideTrigger?: boolean;
+  triggerRef?: Ref<HTMLButtonElement>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openedAt, setOpenedAt] = useState<number>();
+  const [busy, setBusy] = useState(false);
+  const title = useRef<HTMLHeadingElement>(null);
   return (
-    <>
-      {detail.offline ? (
-        <Alert>
-          <AlertTitle>Reconnect to check journey access</AlertTitle>
-        </Alert>
-      ) : detail.isError ? (
-        <JourneyRetry
-          title="Couldn’t check journey access"
-          busy={detail.checking}
-          retry={() => void detail.refetch()}
-        />
-      ) : (
-        (!journey || detail.revalidating) && (
-          <JourneyLoading label="Checking journey access" />
-        )
-      )}
-      {journey && (
-        <People
-          key={`${scope.accountId}:${journey.id}`}
-          journey={journey}
-          scope={scope}
-          suspended={detail.revalidating || detail.isError}
-        />
-      )}
-    </>
-  );
-}
-
-function PeopleUnavailable() {
-  return (
-    <section className="grid max-w-3xl gap-4">
-      <PageHeading title="People" />
-      <Alert>
-        <AlertTitle>This journey is unavailable</AlertTitle>
-      </Alert>
-      <ButtonLink
-        render={<Link to="/journeys" />}
-        variant="outline"
-        className="justify-self-start"
+    <Dialog
+      open={open}
+      onOpenChange={(next, details) => {
+        if (!next && busy) details.cancel();
+        else {
+          if (next) setOpenedAt(Date.now());
+          setOpen(next);
+        }
+      }}
+    >
+      <DialogTrigger
+        render={
+          <Button
+            ref={triggerRef}
+            type="button"
+            variant="outline"
+            size={wideTrigger ? "lg" : "default"}
+            className={wideTrigger ? "w-full justify-between" : undefined}
+          />
+        }
       >
-        Go to Journeys
-      </ButtonLink>
-    </section>
+        <UsersRound aria-hidden="true" data-icon="inline-start" />
+        View people
+      </DialogTrigger>
+      <DialogContent
+        keepMounted
+        className="w-[min(60rem,calc(100%-16px))]"
+        initialFocus={title}
+      >
+        <DialogTitle ref={title} tabIndex={-1}>
+          People
+        </DialogTitle>
+        {open && !suspension && (
+          <DialogDescription>{journey.title}</DialogDescription>
+        )}
+        {open && suspension}
+        {openedAt !== undefined && (
+          <People
+            journey={journey}
+            scope={scope}
+            openedAt={openedAt}
+            suspended={!open || Boolean(suspension)}
+            onBusy={setBusy}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function DepartureRecovery({
+export function JourneyDepartureRecovery({
   scope,
   pending,
 }: {
@@ -200,7 +200,7 @@ function DepartureRecovery({
   pending: NonNullable<ReturnType<typeof readDeparture>>;
 }) {
   const { refresh } = useSessionAccess();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate();
   const [state, setState] = useState<"checking" | "error" | "unavailable">(
     "checking",
   );
@@ -250,7 +250,12 @@ function DepartureRecovery({
     expiresAt,
   ]);
 
-  if (state === "unavailable") return <PeopleUnavailable />;
+  if (state === "unavailable")
+    return (
+      <Alert>
+        <AlertTitle>This journey is unavailable</AlertTitle>
+      </Alert>
+    );
   if (state === "error")
     return (
       <JourneyRetry
@@ -265,12 +270,16 @@ function People({
   journey,
   scope,
   suspended,
+  onBusy,
+  openedAt,
 }: {
   journey: PrivateJourney;
   scope: AccountScope;
   suspended: boolean;
+  openedAt: number;
+  onBusy: (busy: boolean) => void;
 }) {
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate();
   const { refresh } = useSessionAccess();
   const [composing, setComposing] = useState(false);
   const [unconfirmedBatch, setUnconfirmedBatch] = useState(false);
@@ -299,10 +308,16 @@ function People({
     presented.current = true;
     if (document.activeElement === document.body) heading.current.focus();
   }, [suspended]);
+  useLayoutEffect(() => {
+    onBusy(busy || sending);
+    return () => onBusy(false);
+  }, [busy, sending, onBusy]);
   useEffect(() => () => request.current?.abort(), []);
 
   const members = useInfiniteQuery({
     queryKey: [scope.accountId, "journey-people", journeyId],
+    enabled: !suspended,
+    staleTime: 0,
     initialPageParam: undefined as string | undefined,
     refetchOnMount: "always",
     refetchOnWindowFocus: "always",
@@ -319,25 +334,11 @@ function People({
     },
     getNextPageParam: (page) => page?.nextCursor ?? undefined,
   });
-  const invitations = useInfiniteQuery({
-    queryKey: invitationKey,
-    initialPageParam: undefined as string | undefined,
-    enabled: canInvite,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    refetchOnReconnect: "always",
-    refetchInterval: accessRecheckInterval,
-    async queryFn({ pageParam: cursor, signal }) {
-      const result = await scope.api.GET(
-        "/api/v1/journeys/{journeyId}/invitations",
-        { params: { path: { journeyId }, query: { cursor } }, signal },
-      );
-      return result.response.status === 404
-        ? null
-        : journeyInvitationPage.parse(journeyResult(result, scope, refresh));
-    },
-    getNextPageParam: (page) => page?.nextCursor ?? undefined,
-  });
+  const invitations = useJourneyInvitations(
+    scope,
+    journeyId,
+    canInvite && !suspended,
+  );
 
   function choose(next: Action, trigger: HTMLElement) {
     if (busy || sending) return;
@@ -347,7 +348,15 @@ function People({
   }
 
   async function run(next: Action) {
-    if (request.current || suspended || (next.type === "editorial" && !admin))
+    const allowed =
+      "invitation" in next ? canInvite : next.type === "leave" || admin;
+    if (
+      request.current ||
+      suspended ||
+      !allowed ||
+      members.dataUpdatedAt < openedAt ||
+      members.data?.pages.some((page) => page === null)
+    )
       return;
     const controller = new AbortController();
     request.current = controller;
@@ -518,15 +527,22 @@ function People({
   }
 
   const roster =
-    members.isFetchedAfterMount && !members.isError
+    members.isFetchedAfterMount &&
+    members.dataUpdatedAt >= openedAt &&
+    !members.isError
       ? members.data?.pages.flatMap((page) => page?.items ?? [])
       : undefined;
   const pendingRows =
-    invitations.isFetchedAfterMount && !invitations.isError
+    invitations.isFetchedAfterMount &&
+    invitations.dataUpdatedAt >= openedAt &&
+    !invitations.isError
       ? invitations.data?.pages.flatMap((page) => page?.items ?? [])
       : undefined;
 
-  if (members.data?.pages.some((page) => page === null))
+  if (
+    members.dataUpdatedAt >= openedAt &&
+    members.data?.pages.some((page) => page === null)
+  )
     return (
       <Alert>
         <AlertTitle>This journey is unavailable</AlertTitle>
@@ -541,33 +557,8 @@ function People({
           : "@container/journey-people mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-4"
       }
     >
-      <div>
-        {sending || busy ? (
-          <Button variant="ghost" disabled>
-            Back to journey
-          </Button>
-        ) : (
-          <ButtonLink
-            render={<Link to="/journeys/$journeyId" params={{ journeyId }} />}
-            variant="ghost"
-          >
-            <ArrowLeft aria-hidden="true" data-icon="inline-start" />
-            Back to journey
-          </ButtonLink>
-        )}
-      </div>
-      <header className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-card bg-muted p-inset">
-        <div className="grid min-w-0 max-w-full gap-2 wrap-anywhere">
-          <h1
-            ref={heading}
-            tabIndex={-1}
-            className="text-4xl font-semibold outline-none"
-          >
-            People
-          </h1>
-          <p className="max-w-prose text-muted-foreground">{journey.title}</p>
-        </div>
-        {canInvite && !composing && (
+      {canInvite && roster && !composing && (
+        <div className="flex flex-wrap justify-end gap-2">
           <Button
             type="button"
             ref={inviteButton}
@@ -576,15 +567,15 @@ function People({
             <MailPlus aria-hidden="true" data-icon="inline-start" />
             {unconfirmedBatch ? "Review pending send" : "Invite people"}
           </Button>
-        )}
-      </header>
+        </div>
+      )}
       {canInvite && (
         <InviteComposer
           journeyId={journeyId}
           title={journey.title}
           scope={scope}
           open={composing}
-          suspended={suspended}
+          suspended={suspended || !roster}
           onUncertain={setUnconfirmedBatch}
           onClose={() => {
             setComposing(false);
@@ -598,7 +589,7 @@ function People({
           }
         />
       )}
-      {notice && (
+      {notice && roster && (!pending || admin) && (
         <Alert role="status" variant={pending ? "warning" : "default"}>
           <AlertDescription>{notice}</AlertDescription>
           {pending && (
@@ -614,6 +605,7 @@ function People({
         </Alert>
       )}
       {admin &&
+        roster &&
         roleAttempts.map((attempt) => (
           <Alert
             key={editorialRoleKey(attempt.action)}
@@ -653,7 +645,13 @@ function People({
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-primary">
               <UsersRound className="size-4" aria-hidden="true" />
             </span>
-            <h2 className="text-xl font-semibold">Members</h2>
+            <h2
+              ref={heading}
+              tabIndex={-1}
+              className="text-xl font-semibold outline-none"
+            >
+              Members
+            </h2>
           </CardHeader>
           <CardContent className="grid min-w-0 grid-cols-1 gap-3">
             {members.isError ? (
@@ -945,31 +943,30 @@ function People({
           )}
       </div>
       {action && (
-        <Sheet
+        <Dialog
           open={
             !suspended &&
+            Boolean(roster) &&
             (("invitation" in action && canInvite) ||
               ("person" in action && (action.type === "leave" || admin)))
           }
-          onOpenChange={(open) => {
-            if (!open && !busy) setAction(undefined);
+          onOpenChange={(open, details) => {
+            if (!open && busy) details.cancel();
+            else if (!open) setAction(undefined);
           }}
         >
-          <SheetContent
-            showCloseButton={false}
-            className="overflow-auto p-inset data-[side=right]:w-full"
+          <DialogContent
+            className="w-[min(32rem,calc(100%-16px))]"
             finalFocus={() =>
               focusReturn.current?.isConnected
                 ? focusReturn.current
                 : heading.current
             }
           >
-            <SheetHeader className="p-0">
-              <SheetTitle>{actionTitle(action)}</SheetTitle>
-              <SheetDescription>
-                {actionDescription(action, journey.title)}
-              </SheetDescription>
-            </SheetHeader>
+            <DialogTitle>{actionTitle(action)}</DialogTitle>
+            <DialogDescription>
+              {actionDescription(action, journey.title)}
+            </DialogDescription>
             {failure && (
               <Alert variant="destructive">
                 <AlertDescription>{failure}</AlertDescription>
@@ -997,8 +994,8 @@ function People({
                 Go back
               </Button>
             </div>
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
       )}
     </section>
   );

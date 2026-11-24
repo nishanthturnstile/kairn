@@ -25,6 +25,20 @@
       "types": "./src/schemas.ts",
       "development": "./src/schemas.ts",
       "import": "./dist/schemas.js"
+    },
+    "./recordings": {
+      "types": "./src/recordings.ts",
+      "react-native": "./src/recordings.ts",
+      "browser": "./src/recordings.ts",
+      "development": "./src/recordings.ts",
+      "import": "./dist/recordings.js"
+    },
+    "./recording-limits": {
+      "types": "./src/recording-limits.ts",
+      "react-native": "./src/recording-limits.ts",
+      "browser": "./src/recording-limits.ts",
+      "development": "./src/recording-limits.ts",
+      "import": "./dist/recording-limits.js"
     }
   },
   "scripts": {

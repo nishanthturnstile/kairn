@@ -231,6 +231,9 @@ export const membershipRestrictionResult = z
     confirmation: z.enum(["confirmed", "pending"]),
   })
   .meta({ id: "MembershipRestrictionResultV1" });
+export const journeyDeletionResult = membershipRestrictionResult
+  .extend({})
+  .meta({ id: "JourneyDeletionResultV1" });
 export const updateEditorialCapability = z
   .strictObject({
     membershipGeneration: z.uuid(),

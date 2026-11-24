@@ -28,6 +28,7 @@ import type {
 } from "./journeys.js";
 import { errorResponse, privateHeaders, requireJson } from "./openapi.js";
 import { problem } from "./problem.js";
+import { itemRequest } from "./recordings.js";
 
 const journeyInvitationsPath = "/api/v1/journeys/{journeyId}/invitations";
 const invitationPath = "/api/v1/journey-invitations";
@@ -135,6 +136,34 @@ export function registerJourneyInvitationRoutes(
       const result = await invitations.search(
         context.var.journeys.session,
         context.req.valid("param").journeyId,
+        context.req.valid("json").query,
+      );
+      if (result.status !== 200) return problem(context, result.status);
+      return context.json(journeyInviteeMatches.parse(result), 200);
+    },
+  );
+
+  api.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/v1/recording-batches/{id}/invitees/search",
+      operationId: "searchRecordingBatchInvitees",
+      middleware: jsonWrites,
+      request: { ...itemRequest, body: body(searchJourneyInvitees) },
+      responses: {
+        ...jsonErrors,
+        ...manageErrors,
+        200: response(
+          "Opted-in members with short-lived selections for the staged batch.",
+          journeyInviteeMatches,
+        ),
+      },
+    }),
+    async (context) => {
+      if (!invitations) return problem(context, 503);
+      const result = await invitations.searchRecordingBatch(
+        context.var.journeys.session,
+        context.req.valid("param").id,
         context.req.valid("json").query,
       );
       if (result.status !== 200) return problem(context, result.status);

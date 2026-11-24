@@ -23,6 +23,7 @@ export {
   initializeLocalIdentity,
   localRecoveryEpoch,
 } from "./modules/identity/state.js";
+export { createJourneyDeletionService } from "./modules/journeys/deletion.js";
 export { createJourneyEditorialService } from "./modules/journeys/editorial.js";
 export { registerJourneyInvitationMail } from "./modules/journeys/invitation-mail.js";
 export { createJourneyInvitationService } from "./modules/journeys/invitations.js";
@@ -120,3 +121,10 @@ export function parseServerEnvironment(input: NodeJS.ProcessEnv) {
 export function parseWorkerEnvironment(input: NodeJS.ProcessEnv) {
   return workerEnvironment.parse(input);
 }
+
+export { createRecordingAttachmentService } from "./modules/recordings/attachments.js";
+export { createRecordingImportService } from "./modules/recordings/imports.js";
+export { createOwnerRecordingService } from "./modules/recordings/owner.js";
+export { openRecordingStore } from "./modules/recordings/storage.js";
+export { createRecordingUploadService } from "./modules/recordings/uploads.js";
+export { registerRecordingWorkers } from "./modules/recordings/worker.js";

@@ -15,14 +15,17 @@ import {
 import { formatJourneyLocalMinute } from "@kairn/shared/journey-time";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, LockKeyhole, Plus, X } from "lucide-react";
 import {
-  type ComponentProps,
-  type SubmitEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+  ArrowLeft,
+  FilePenLine,
+  LockKeyhole,
+  Plus,
+  Upload,
+  X,
+} from "lucide-react";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
+import { gpxJourneyCreation } from "@/lib/journey-creation";
+import { useRecordingImports } from "@/lib/recording-api";
 import {
   historyKey,
   JourneyRequestError,
@@ -40,11 +43,12 @@ import { useSessionAccess } from "../../lib/session-access";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Button, ButtonLink } from "../ui/button";
 import { Card, CardContent, CardHeader } from "../ui/card";
-import { Field, FieldGroup, FieldLabel } from "../ui/field";
-import { Input } from "../ui/input";
-import { NativeSelect } from "../ui/native-select";
-import { ScheduleInput } from "../ui/schedule-input";
+import { FieldGroup } from "../ui/field";
+import { hasPendingBatchSave, useBatchSaveEntryKey } from "./batch-commit";
 import { JourneyFlow } from "./flow";
+import { ResumeRecordingImport } from "./resume-recording-import";
+import { JourneyInput, ScheduleFields } from "./schedule-fields";
+import { StageRecordings } from "./stage-recordings";
 import { JourneyLoading, JourneyRetry } from "./states";
 
 const zones = new Set(["UTC", ...(Intl.supportedValuesOf?.("timeZone") ?? [])]);
@@ -56,17 +60,59 @@ interface CreatePageProps {
   openJourney: (journeyId: string, invitePeople: boolean) => void;
 }
 
+type CreationMode = "gpx" | "details";
+
 export function CreateJourneyPage(props: CreatePageProps) {
-  const pending = useQuery({
-    queryKey: [props.accountId, "pending-journey"],
-    refetchOnMount: "always",
-    refetchOnWindowFocus: false,
-    queryFn: () => loadJourneyAttempt(props.accountId),
-  });
+  const pending = usePendingDetails(props.accountId);
+  const entryKey = useBatchSaveEntryKey();
+  const [batchSavePending, setBatchSavePending] = useState(
+    () => gpxJourneyCreation && hasPendingBatchSave(props.scope, entryKey),
+  );
+  const [mode, setMode] = useState<CreationMode>(() =>
+    !batchSavePending && props.intent === "plan" ? "details" : "gpx",
+  );
+  const [openedDetails, setOpenedDetails] = useState(mode === "details");
+  const [planningBusy, setPlanningBusy] = useState(false);
+  const [transferring, setTransferring] = useState(false);
+  const chooseButton = useRef<HTMLButtonElement>(null);
+  const gpxPanel = useRef<HTMLElement>(null);
+  const detailsPanel = useRef<HTMLElement>(null);
+  const focusMode = useRef<CreationMode | null>(null);
+  const imports = useRecordingImports(props.scope, gpxJourneyCreation);
+  const recoveringDetails = Boolean(pending.data && !batchSavePending);
+  const activeMode = recoveringDetails ? "details" : mode;
+  const canChooseMethod =
+    gpxJourneyCreation && pending.isFetchedAfterMount && pending.isSuccess;
+  const enteringDetails = activeMode === "gpx";
+  useEffect(() => {
+    if (!recoveringDetails) return;
+    setMode("details");
+    setOpenedDetails(true);
+  }, [recoveringDetails]);
+  useEffect(() => {
+    if (focusMode.current !== activeMode) return;
+    focusMode.current = null;
+    const target =
+      activeMode === "gpx"
+        ? (chooseButton.current ?? gpxPanel.current)
+        : detailsPanel.current;
+    target?.focus();
+  }, [activeMode]);
+
+  function switchTo(next: CreationMode) {
+    focusMode.current = next;
+    if (next === "details") setOpenedDetails(true);
+    setMode(next);
+  }
+
   return (
     <JourneyFlow
-      title="Create journey"
-      description="Give your journey a name and set its local schedule."
+      title={gpxJourneyCreation ? "Create a journey" : "Create journey"}
+      description={
+        gpxJourneyCreation
+          ? undefined
+          : "Give your journey a name and set its local schedule."
+      }
       back={
         <ButtonLink
           render={<Link to="/journeys" />}
@@ -78,20 +124,104 @@ export function CreateJourneyPage(props: CreatePageProps) {
           Back to Journeys
         </ButtonLink>
       }
+      action={
+        canChooseMethod && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              enteringDetails
+                ? batchSavePending || transferring
+                : recoveringDetails || planningBusy
+            }
+            onClick={() => switchTo(enteringDetails ? "details" : "gpx")}
+          >
+            {enteringDetails ? (
+              <FilePenLine aria-hidden="true" data-icon="inline-start" />
+            ) : (
+              <Upload aria-hidden="true" data-icon="inline-start" />
+            )}
+            {enteringDetails
+              ? "Enter details without GPX"
+              : "Back to GPX upload"}
+          </Button>
+        )
+      }
     >
-      {pending.isError ? (
-        <JourneyRetry
-          title="Couldn’t recover your saved attempt"
-          busy={pending.isFetching}
-          retry={() => void pending.refetch()}
-        />
-      ) : !pending.isFetchedAfterMount || pending.isPending ? (
-        <JourneyLoading label="Checking for an unfinished save" />
+      {canChooseMethod ? (
+        <>
+          <section
+            ref={gpxPanel}
+            aria-label="Create from GPX files"
+            tabIndex={-1}
+            hidden={activeMode !== "gpx"}
+          >
+            <div className="grid min-w-0 gap-3">
+              <StageRecordings
+                scope={props.scope}
+                chooseButton={chooseButton}
+                visible={activeMode === "gpx"}
+                onSavePendingChange={setBatchSavePending}
+                onTransferChange={setTransferring}
+              />
+              {!batchSavePending && (
+                <ResumeRecordingImport
+                  scope={props.scope}
+                  imports={imports.data}
+                />
+              )}
+            </div>
+          </section>
+          <section
+            ref={detailsPanel}
+            aria-label="Enter journey details"
+            tabIndex={-1}
+            hidden={activeMode !== "details"}
+          >
+            {(openedDetails || recoveringDetails) && (
+              <JourneyPlanning
+                {...props}
+                pending={pending}
+                onSavingChange={setPlanningBusy}
+              />
+            )}
+          </section>
+        </>
       ) : (
-        <JourneyForm {...props} initialAttempt={pending.data} />
+        <JourneyPlanning {...props} pending={pending} />
       )}
     </JourneyFlow>
   );
+}
+
+type PlanningProps = CreatePageProps & {
+  onSavingChange?: (saving: boolean) => void;
+};
+
+function usePendingDetails(accountId: string) {
+  return useQuery({
+    queryKey: [accountId, "pending-journey"],
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    queryFn: () => loadJourneyAttempt(accountId),
+  });
+}
+
+function JourneyPlanning({
+  pending,
+  ...props
+}: PlanningProps & { pending: ReturnType<typeof usePendingDetails> }) {
+  if (pending.isError)
+    return (
+      <JourneyRetry
+        title="Couldn’t recover your saved attempt"
+        busy={pending.isFetching}
+        retry={() => void pending.refetch()}
+      />
+    );
+  if (!pending.isFetchedAfterMount || pending.isPending)
+    return <JourneyLoading label="Checking for an unfinished save" />;
+  return <JourneyForm {...props} initialAttempt={pending.data} />;
 }
 
 function JourneyForm({
@@ -100,7 +230,8 @@ function JourneyForm({
   intent,
   openJourney,
   initialAttempt,
-}: CreatePageProps & { initialAttempt: JourneyAttempt | null }) {
+  onSavingChange,
+}: PlanningProps & { initialAttempt: JourneyAttempt | null }) {
   const { refresh } = useSessionAccess();
   const [draft, setDraft] = useState(() => journeyDraft(initialAttempt?.input));
   const [attempt, setAttempt] = useState(initialAttempt);
@@ -125,6 +256,9 @@ function JourneyForm({
       mounted.current = false;
     };
   }, []);
+  useEffect(() => {
+    onSavingChange?.(saving || attempt !== null);
+  }, [attempt, onSavingChange, saving]);
   useEffect(() => {
     if (saving || !pendingFocus.current || !errors[pendingFocus.current])
       return;
@@ -205,6 +339,7 @@ function JourneyForm({
     }
 
     submitting.current = true;
+    onSavingChange?.(true);
     setSavingAction({
       destination: invitePeople ? "invite" : "journey",
       retry: submitted !== null,
@@ -252,6 +387,7 @@ function JourneyForm({
         }
         if (!visible()) return;
         setAttempt(null);
+        scope.queryClient.setQueryData([accountId, "pending-journey"], null);
         const fields = journeyFormIssues(error.issues);
         setChoices((previous) => ({ ...previous, ...fields.choices }));
         showErrors(fields.errors);
@@ -271,7 +407,9 @@ function JourneyForm({
       }
     } finally {
       submitting.current = false;
-      if (visible()) setSavingAction(null);
+      if (visible()) {
+        setSavingAction(null);
+      }
     }
   }
 
@@ -301,7 +439,7 @@ function JourneyForm({
       onSubmit={(event) => void submit(event)}
       className="journey-flow-grid"
     >
-      <div className="@container/journey-form grid min-w-0 gap-4">
+      <div className="@container/journey-form grid min-w-0 gap-4 rounded-card control-border bg-card p-3 sm:p-5">
         {attempt && !saving && !feedback && (
           <Alert role="status">
             <AlertDescription>
@@ -311,7 +449,7 @@ function JourneyForm({
         )}
         <section
           aria-labelledby="journey-details-heading"
-          className="grid min-w-0 gap-3 rounded-card control-border bg-card p-3 sm:p-5"
+          className="grid min-w-0 gap-3"
         >
           <h2 id="journey-details-heading" className="text-xl font-bold">
             Journey details
@@ -332,7 +470,7 @@ function JourneyForm({
         </section>
         <section
           aria-label="Schedule"
-          className="grid min-w-0 gap-4 rounded-card control-border bg-card p-3 sm:p-5"
+          className="grid min-w-0 gap-4 border-t border-border pt-4"
         >
           <div className="grid gap-1">
             <h2 className="text-xl font-bold">Schedule</h2>
@@ -512,141 +650,5 @@ function previewMinute(date: string, time: string) {
     <time dateTime={local}>
       {display.date} · {display.time}
     </time>
-  );
-}
-
-function JourneyInput({
-  field,
-  label,
-  error,
-  onEdit,
-  ...props
-}: Omit<ComponentProps<typeof Input>, "type"> & {
-  type?: "text" | "date" | "time";
-  field: JourneyField;
-  label: string;
-  error?: string;
-  onEdit: (field: JourneyField, value: string) => void;
-}) {
-  const id = `journey-${field}`;
-  if (props.type === "date" || props.type === "time") {
-    return (
-      <ScheduleInput
-        kind={props.type}
-        id={id}
-        label={label}
-        value={String(props.value ?? "")}
-        disabled={props.disabled}
-        required={props.required}
-        error={error}
-        onValueChange={(next) => onEdit(field, next)}
-      />
-    );
-  }
-  return (
-    <Field className="min-w-0" data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
-        {...props}
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-        onChange={(event) => onEdit(field, event.currentTarget.value)}
-      />
-      {error && (
-        <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </Field>
-  );
-}
-
-function ScheduleFields({
-  part,
-  draft,
-  errors,
-  choices,
-  update,
-  disabled,
-}: {
-  part: "start" | "end";
-  draft: JourneyDraft;
-  errors: FieldErrors;
-  choices?: [string, string];
-  update: (field: JourneyField, value: string) => void;
-  disabled: boolean;
-}) {
-  const date = `${part}Date` as const;
-  const time = `${part}Time` as const;
-  const offset = `${part}Offset` as const;
-  const label = part === "start" ? "Start" : "End";
-  return (
-    <fieldset className="min-w-0">
-      <legend className="sr-only">
-        {part === "start" ? "Start" : "End (optional)"}
-      </legend>
-      <FieldGroup className="@min-[32rem]/journey-form:grid-cols-2">
-        <JourneyInput
-          field={date}
-          label={`${label} date`}
-          type="date"
-          value={draft[date]}
-          error={errors[date]}
-          onEdit={update}
-          disabled={disabled}
-          required={part === "start"}
-        />
-        <JourneyInput
-          field={time}
-          label={`${label} time`}
-          type="time"
-          value={draft[time]}
-          error={errors[time]}
-          onEdit={update}
-          disabled={disabled}
-          required={part === "start"}
-        />
-        {(choices || draft[offset]) && (
-          <Field
-            data-invalid={errors[offset] ? true : undefined}
-            className="@min-[32rem]/journey-form:col-span-2"
-          >
-            <FieldLabel htmlFor={`journey-${offset}`}>
-              {label} time occurrence
-            </FieldLabel>
-            <NativeSelect
-              id={`journey-${offset}`}
-              value={draft[offset]}
-              onChange={(event) => update(offset, event.currentTarget.value)}
-              disabled={disabled}
-              aria-invalid={errors[offset] ? true : undefined}
-              aria-describedby={
-                errors[offset] ? `journey-${offset}-error` : undefined
-              }
-            >
-              <option value="">Choose an occurrence</option>
-              {choices ? (
-                choices.map((choice, index) => (
-                  <option value={choice} key={choice}>
-                    {index === 0 ? "First" : "Second"} occurrence (UTC{choice})
-                  </option>
-                ))
-              ) : (
-                <option value={draft[offset]}>UTC{draft[offset]}</option>
-              )}
-            </NativeSelect>
-            {errors[offset] && (
-              <p
-                className="text-sm text-destructive"
-                id={`journey-${offset}-error`}
-              >
-                {errors[offset]}
-              </p>
-            )}
-          </Field>
-        )}
-      </FieldGroup>
-    </fieldset>
   );
 }

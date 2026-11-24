@@ -6,11 +6,13 @@ export function JourneyFlow({
   title,
   description,
   back,
+  action,
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   back?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -22,15 +24,20 @@ export function JourneyFlow({
     <div className="@container/journey-flow grid w-full min-w-0 gap-5 [--fold-control:2.75rem] sm:gap-section">
       <header className="grid min-w-0 gap-3">
         {back}
-        <div className="grid gap-1.5">
-          <h1
-            ref={heading}
-            tabIndex={-1}
-            className="w-fit text-4xl font-bold tracking-tight @min-[48rem]/journey-flow:text-5xl"
-          >
-            {title}
-          </h1>
-          <p className="max-w-prose text-muted-foreground">{description}</p>
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="grid min-w-0 gap-1.5">
+            <h1
+              ref={heading}
+              tabIndex={-1}
+              className="w-fit text-4xl font-bold tracking-tight @min-[48rem]/journey-flow:text-5xl"
+            >
+              {title}
+            </h1>
+            {description && (
+              <p className="max-w-prose text-muted-foreground">{description}</p>
+            )}
+          </div>
+          {action}
         </div>
       </header>
       {children}

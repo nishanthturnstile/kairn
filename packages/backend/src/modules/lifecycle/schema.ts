@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   primaryKey,
   text,
   timestamp,
@@ -22,6 +23,8 @@ export const restrictionOperation = kairn.enum("restriction_operation", [
   "source_grant_narrowing",
   "source_withdrawal",
   "original_export_revocation",
+  "source_deletion",
+  "journey_deletion",
 ]);
 
 export const auditTargetKind = kairn.enum("audit_target_kind", [
@@ -78,6 +81,7 @@ export const restrictionEvents = kairn
       affectedSessionId: uuid("affected_session_id"),
       affectedMembershipGeneration: uuid("affected_membership_generation"),
       affectedCapability: journeyCapability("affected_capability"),
+      journeyCreation: jsonb("journey_creation"),
       integrityDigest: text("integrity_digest").notNull(),
       journalSequence: bigint("journal_sequence", { mode: "bigint" }).unique(),
       journalReceipt: text("journal_receipt"),

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<g:gpx xmlns:g="http://www.topografix.com/GPX/1/1" xmlns:extra="urn:kairn:test" version="1.1" creator="Kairn fixture">
+  <g:wpt lat="1" lon="1"/>
+  <g:rte><g:rtept lat="1" lon="1"/><g:rtept lat="1" lon="2"/></g:rte>
+  <g:trk>
+    <g:name>Sentier d’été &amp; forêt</g:name>
+    <g:trkseg>
+      <g:trkpt lat="0" lon="0"><g:ele>2</g:ele><g:time>2026-06-12T08:00:00Z</g:time></g:trkpt>
+      <g:extensions><extra:point><g:trkpt lat="5" lon="5"/></extra:point></g:extensions>
+      <g:trkpt lat="0" lon="0.01"><g:time>2026-06-12T08:10:00Z</g:time><g:ele>-4</g:ele></g:trkpt>
+    </g:trkseg>
+    <g:trkseg/>
+    <g:trkseg>
+      <g:trkpt lat="0" lon="1"><g:time>2026-06-12T15:40:00+05:30</g:time></g:trkpt>
+      <g:trkpt lat="0" lon="1.01"><g:time>2026-06-12T15:50:00+05:30</g:time></g:trkpt>
+    </g:trkseg>
+  </g:trk>
+</g:gpx>

@@ -7,6 +7,7 @@ import {
   setAppearance,
   subscribeToAppearance,
 } from "@/lib/appearance";
+import { useRecordingImports } from "@/lib/recording-api";
 import type { AccountScope } from "@/lib/session";
 import { AppearanceChoices } from "../appearance-switcher";
 import { InviteDiscoverySetting } from "../invite-discovery-setting";
@@ -32,6 +33,7 @@ export function AccountSettings({
   resumeSetup: boolean;
   signOutError?: string | null;
 }) {
+  const recordings = useRecordingImports(scope);
   const appearance = useSyncExternalStore(
     subscribeToAppearance,
     getAppearance,
@@ -126,6 +128,15 @@ export function AccountSettings({
           </section>
         </div>
         <SignedInDevices accountId={accountId} scope={scope} />
+        {recordings.data && (
+          <ButtonLink
+            render={<Link to="/account/recordings" />}
+            variant="outline"
+            className="justify-self-start"
+          >
+            Your recordings
+          </ButtonLink>
+        )}
       </div>
     </div>
   );

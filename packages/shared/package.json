@@ -54,6 +54,13 @@
       "browser": "./src/index.ts",
       "development": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./recording-time": {
+      "types": "./src/recording-time.ts",
+      "react-native": "./src/recording-time.ts",
+      "browser": "./src/recording-time.ts",
+      "development": "./src/recording-time.ts",
+      "import": "./dist/recording-time.js"
     }
   },
   "scripts": {

@@ -67,7 +67,6 @@ const finishLabels = {
   "/journeys/new": "Continue to journey creation",
   "/journeys/$journeyId": "Continue to journey",
   "/journeys/$journeyId/invite": "Continue to invite people",
-  "/journeys/$journeyId/people": "Continue to People",
   "/saved": "Continue to Saved",
   "/discover": "Continue to Discover",
   "/journey-invitations": "Continue to invitation",

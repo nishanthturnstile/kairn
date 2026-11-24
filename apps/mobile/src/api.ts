@@ -80,7 +80,10 @@ export function createAuthenticatedMobileApiClient({
           redirect: "error",
           signal: controller.signal,
         });
-        const body = await response.text();
+        const body =
+          response.headers.get("Content-Type") === "application/gpx+xml"
+            ? await response.arrayBuffer()
+            : await response.text();
         ensureActive(controller.signal);
         return new Response(body || null, {
           status: response.status,

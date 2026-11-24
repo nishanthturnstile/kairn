@@ -416,6 +416,10 @@ For web drafts, use Dexie/IndexedDB to persist unsent text commands, base revisi
 
 Use versioned `/api/v1` contracts, Zod validation, OpenAPI generation, and `openapi-typescript`/`openapi-fetch` clients. Keep wire schemas separate from database rows. Parse external input at the boundary and use explicit variants for evidence, missing time, access, and processing state. Authentication retains its own `/api/auth` handler.
 
+Web, iOS, and Android use the same backend operations and response schemas through `@kairn/contracts`. This also applies when a feature ships on web first. The backend owns canonical validation, permissions, processing, calculations, and state changes. For journeys this includes GPX inspection and route measurements, invitation delivery, recording attachment and access, and deletion. Clients own presentation, input collection, and transport details such as session handling, file selection, and upload progress. Client-side validation may give immediate feedback while the backend enforces the same rules for every caller.
+
+For each web-first feature, put new shared operations under `/api/v1` and verify them independently of browser UI. Regenerate and check OpenAPI and the generated client when the wire contract changes. Preserve existing routes and request and response compatibility for installed builds. A same-origin web proxy can forward requests to the shared backend. The feature's business logic belongs behind the versioned contract where native clients can call it directly.
+
 | Operation | Contract behavior |
 |---|---|
 | Upload initiation/parts/finalization | Scoped session, quota reservation, acknowledged parts, checksum verification, one resulting asset. |
@@ -676,7 +680,7 @@ This register selects responsibilities and libraries. Pin exact direct/transitiv
 | Data | PostgreSQL, PostGIS, pgvector, native FTS; Drizzle and pg | One transactional authority, scoped lexical/exact-vector search and spatial operations. Index real query patterns; no separate search service. |
 | Jobs | pg-boss, bounded worker and isolated decoder processes | Keep conversion/AI off request/UI paths; transactional enqueue, retries, quotas and protected control-operation capacity. |
 | Objects | SeaweedFS S3-compatible service and AWS S3 client behind a narrow adapter | Private originals/derivatives and future portability. Rights gateway remains authoritative; compatibility is tested, not assumed. |
-| Media pipeline | Sharp, ExifTool, FFmpeg/ffprobe, qualified HEIF/HEVC codec build, fast-xml-parser and Garmin FIT decoder | Deterministic safe derivatives, preserved metadata and bounded memory/CPU; ordinary phone conversion is required. |
+| Media pipeline | Sharp, ExifTool, FFmpeg/ffprobe, qualified HEIF/HEVC codec build, Saxes for GPX, and a Garmin FIT decoder | Deterministic safe derivatives, preserved metadata and bounded memory/CPU. GPX uses namespace-aware streaming XML with a token limit. Ordinary phone conversion is required. |
 | Maps | Mapbox GL JS; community rnmapbox bridge/native SDKs | One map integration, explicit activation, retained selection/style context and map-free fallback. Qualify the actual native bridge/SDK combination. |
 | AI | Server-only Vercel AI SDK and hosted AI Gateway | One bounded provider interface; no client agent framework. Evaluate quality, task latency, cost, retention and provider policy. |
 | Email | Nodemailer with Mailpit locally and Resend SMTP in production | Existing transactional channel for invitations/actions, no extra notification service. Idempotency and expiry remain application responsibilities. |

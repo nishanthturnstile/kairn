@@ -12,6 +12,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { DestinationTopBar } from "../../components/destination";
 import { ContentLoading } from "../../components/fold/expression";
 import { Action, AppText, Panel } from "../../components/fold/primitives";
+import { CreateJourneyLink } from "../../components/journeys/create-link";
 import { JourneyRow } from "../../components/journeys/journey-row";
 import {
   JourneyRetry,
@@ -19,6 +20,7 @@ import {
   useJourneyReentry,
 } from "../../components/journeys/states";
 import { journeyResult } from "../../journey-api";
+import { gpxJourneyCreation } from "../../journey-creation";
 import { useMobileSession } from "../../mobile-session";
 import type { VerifiedMobileScope } from "../../session";
 import { useWorkspace } from "../../workspace";
@@ -64,11 +66,14 @@ function Dashboard({ scope }: { scope: VerifiedMobileScope }) {
       </View>
       {!summary ? (
         query.isError ? (
-          <JourneyRetry
-            text="Couldn’t load your Dashboard."
-            busy={query.isFetching}
-            retry={() => void query.refetch()}
-          />
+          <>
+            <JourneyRetry
+              text="Couldn’t load your Dashboard."
+              busy={query.isFetching}
+              retry={() => void query.refetch()}
+            />
+            {gpxJourneyCreation && <CreateJourneyLink />}
+          </>
         ) : (
           <ContentLoading label="Loading your Dashboard" announce />
         )
@@ -76,26 +81,6 @@ function Dashboard({ scope }: { scope: VerifiedMobileScope }) {
         <Overview summary={summary} intent={intent} />
       )}
     </JourneyScreen>
-  );
-}
-
-function CreateJourneyLink({ intent }: { intent?: OnboardingIntent }) {
-  return (
-    <Link
-      href={
-        intent
-          ? { pathname: "/journeys/new", params: { intent } }
-          : "/journeys/new"
-      }
-      withAnchor
-      asChild
-    >
-      <Action
-        label={intent ? journeyIntentCopy[intent].action : "Create a journey"}
-        variant="primary"
-        accessibilityRole="link"
-      />
-    </Link>
   );
 }
 

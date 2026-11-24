@@ -5,10 +5,8 @@ import {
   journeyScheduleStatus,
   journeyStatusLabels,
 } from "@kairn/shared/journey-time";
-import { Link } from "@tanstack/react-router";
 import {
   Archive,
-  ArrowRight,
   CalendarClock,
   CalendarDays,
   Compass,
@@ -16,9 +14,8 @@ import {
   History,
   LockKeyhole,
 } from "lucide-react";
-import type { RefCallback } from "react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import "./detail.css";
 
@@ -32,13 +29,20 @@ const statusIcons = {
 export function JourneyMetadata({
   journey,
   asOf,
+  showSchedule,
 }: {
   journey: PrivateJourney;
   asOf: number;
+  showSchedule?: boolean;
 }) {
   const { schedule } = journey;
   const status = schedule && journeyScheduleStatus(schedule, asOf);
   const StatusIcon = status && statusIcons[status];
+  const start =
+    schedule && formatJourneyLocalMinute(schedule.intendedStart.local);
+  const end =
+    schedule?.intendedEnd &&
+    formatJourneyLocalMinute(schedule.intendedEnd.local);
   return (
     <ul className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold">
       {status && StatusIcon && (
@@ -53,6 +57,35 @@ export function JourneyMetadata({
         <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
         Private
       </li>
+      {showSchedule && (
+        <li className="text-muted-foreground">
+          <span className="sr-only">Your role </span>
+          {journeyRoleLabel(journey.capabilities)}
+        </li>
+      )}
+      {showSchedule && schedule && start && (
+        <li className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
+          <CalendarDays
+            aria-hidden="true"
+            className="hidden size-4 shrink-0 sm:block"
+          />
+          <span className="sr-only">Schedule </span>
+          <span className="min-w-0 wrap-anywhere">
+            <time dateTime={schedule.intendedStart.instant}>
+              {start.date}, {start.time}
+            </time>
+            {end && schedule.intendedEnd && (
+              <>
+                {" to "}
+                <time dateTime={schedule.intendedEnd.instant}>
+                  {end.date}, {end.time}
+                </time>
+              </>
+            )}{" "}
+            {schedule.timeZone}
+          </span>
+        </li>
+      )}
       {journey.state === "archived" && (
         <li className="inline-flex items-center gap-1.5 text-muted-foreground">
           <Archive aria-hidden="true" className="size-4 shrink-0" />
@@ -65,10 +98,10 @@ export function JourneyMetadata({
 
 export function JourneyOverview({
   journey,
-  peopleRef,
+  peopleAction,
 }: {
   journey: PrivateJourney;
-  peopleRef: RefCallback<HTMLAnchorElement>;
+  peopleAction: ReactNode;
 }) {
   const { schedule } = journey;
   return (
@@ -129,21 +162,7 @@ export function JourneyOverview({
                 </dd>
               </div>
             </dl>
-            <ButtonLink
-              ref={peopleRef}
-              render={
-                <Link
-                  to="/journeys/$journeyId/people"
-                  params={{ journeyId: journey.id }}
-                />
-              }
-              variant="outline"
-              size="lg"
-              className="w-full justify-between"
-            >
-              View people
-              <ArrowRight aria-hidden="true" data-icon="inline-end" />
-            </ButtonLink>
+            {peopleAction}
           </CardContent>
         </Card>
       </section>

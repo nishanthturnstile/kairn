@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import {
-  CreateJourneyLink,
-  DashboardOverview,
-} from "@/components/dashboard/overview";
+import { DashboardOverview } from "@/components/dashboard/overview";
+import { CreateJourneyLink } from "@/components/journeys/create-link";
 import {
   JourneyGate,
   JourneyLoading,

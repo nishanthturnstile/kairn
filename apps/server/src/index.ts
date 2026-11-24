@@ -11,6 +11,7 @@ import {
   logger,
   openDatabase,
   openJobQueue,
+  openRecordingStore,
   openRestrictionJournal,
   parseServerEnvironment,
 } from "@kairn/backend";
@@ -60,7 +61,11 @@ const auth = createAuth(db, identityConfig);
 const identityAvailable =
   NODE_ENV !== "production" || Boolean(AUTH_RECOVERY_EPOCH && journal);
 const journeys = identityAvailable
-  ? createJourneyOperations(auth, identityConfig)
+  ? createJourneyOperations(auth, {
+      ...identityConfig,
+      recordingStore: openRecordingStore(process.env),
+      recordingDeletionEnabled: process.env.KAIRN_GPX_DELETE_ENABLED === "1",
+    })
   : undefined;
 const app = createApp({
   nativeAssociations,

@@ -6,6 +6,8 @@ export * from "../modules/identity/companion-setup-schema.js";
 export * from "../modules/identity/schema.js";
 export * from "../modules/journeys/schema.js";
 export * from "../modules/lifecycle/schema.js";
+export * from "../modules/recordings/schema.js";
+
 export * from "../modules/sources/schema.js";
 export { kairn, kairnAuth } from "./namespaces.js";
 

@@ -34,6 +34,17 @@ if [[ "${KAIRN_WEB_INVITATIONS:-0}" == 1 ]]; then
   suites=(tests/web/journey-people.playwright.ts)
 fi
 
+if [[ "${KAIRN_WEB_RECORDINGS:-0}" == 1 ]]; then
+  export KAIRN_S3_ENDPOINT="${KAIRN_TEST_S3_ENDPOINT:-http://127.0.0.1:58333}"
+  export KAIRN_S3_BUCKET="${KAIRN_S3_BUCKET:-kairn-private}"
+  export KAIRN_S3_ACCESS_KEY="${KAIRN_S3_ACCESS_KEY:-kairn-local}"
+  export KAIRN_S3_SECRET_KEY="${KAIRN_S3_SECRET_KEY:-local-storage-only}"
+  suites=(tests/web/recording-import.playwright.ts)
+  if [[ "${KAIRN_WEB_BATCHES:-0}" == 1 ]]; then
+    suites=(tests/web/recording-batch.playwright.ts)
+  fi
+fi
+
 node apps/server/dist/index.js >"$scratch/server.log" 2>&1 &
 pids+=("$!")
 node apps/worker/dist/index.js >"$scratch/worker.log" 2>&1 &
@@ -41,7 +52,7 @@ pids+=("$!")
 (
   cd apps/web
   export KAIRN_BROWSER_IDENTITY_UPSTREAM="http://127.0.0.1:$PORT"
-  exec ./node_modules/.bin/vp preview --host 127.0.0.1 --port "$web_port" --strictPort
+  exec ./node_modules/.bin/vp preview --host 127.0.0.1 --port "$web_port" --strictPort --outDir "${KAIRN_TEST_WEB_BUILD_DIR:-dist/client}"
 ) >"$scratch/web.log" 2>&1 &
 pids+=("$!")
 

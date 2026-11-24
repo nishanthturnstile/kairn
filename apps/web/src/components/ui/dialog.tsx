@@ -40,10 +40,11 @@ export function DialogDescription({
 export function DialogContent({
   className,
   children,
+  keepMounted,
   ...props
-}: ComponentProps<typeof Primitive.Popup>) {
+}: ComponentProps<typeof Primitive.Popup> & { keepMounted?: boolean }) {
   return (
-    <Primitive.Portal>
+    <Primitive.Portal keepMounted={keepMounted}>
       <Primitive.Backdrop className="fixed inset-0 z-50 bg-scrim" />
       <Primitive.Popup
         data-slot="dialog-content"
