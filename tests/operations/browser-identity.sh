@@ -53,7 +53,15 @@ pids+=("$!")
 (
   cd apps/web
   export KAIRN_BROWSER_IDENTITY_UPSTREAM="http://127.0.0.1:$PORT"
-  exec ./node_modules/.bin/vp preview --host 127.0.0.1 --port "$web_port" --strictPort --outDir "${KAIRN_TEST_WEB_BUILD_DIR:-dist/client}"
+  exec node --input-type=module -e '
+    import { preview } from "vite-plus";
+
+    const [port, outDir] = process.argv.slice(1);
+    await preview({
+      build: { outDir },
+      preview: { host: "127.0.0.1", port: Number(port), strictPort: true },
+    });
+  ' "$web_port" "${KAIRN_TEST_WEB_BUILD_DIR:-dist/client}"
 ) >"$scratch/web.log" 2>&1 &
 pids+=("$!")
 

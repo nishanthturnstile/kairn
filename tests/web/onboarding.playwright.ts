@@ -332,12 +332,21 @@ test("reflows both required steps and the past-journey handoff", async ({
   await page.emulateMedia({ reducedMotion: "reduce" });
   await signIn(page, eligible);
   await expect(page.getByText("Step 1 of 2")).toBeVisible();
-  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  const enlargedText = "html { font-size: 200% !important; }";
+  await page.addStyleTag({ content: enlargedText });
+  async function reloadAfterScans() {
+    // Firefox can crash when the next route shares a document with repeated axe scans.
+    await page.reload();
+    await page.addStyleTag({ content: enlargedText });
+  }
   async function assertAccessibleReflow() {
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBe(320);
-    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    const accessibility = await new AxeBuilder({ page })
+      .setLegacyMode()
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
   }
   const appearances = ["Light", "Dark", "Outdoor"] as const;
   for (const appearance of appearances) {
@@ -351,6 +360,7 @@ test("reflows both required steps and the past-journey handoff", async ({
     await chooseAppearance(page, appearance);
     await assertAccessibleReflow();
   }
+  await reloadAfterScans();
   const record = page.getByRole("radio", {
     name: "Record a past journey",
     exact: true,
@@ -365,6 +375,7 @@ test("reflows both required steps and the past-journey handoff", async ({
     page.getByRole("heading", { name: "Record a journey you’ve taken" }),
   ).toBeVisible();
   await assertAccessibleReflow();
+  await reloadAfterScans();
   await page
     .getByRole("link", { name: "Record a past journey", exact: true })
     .click();
