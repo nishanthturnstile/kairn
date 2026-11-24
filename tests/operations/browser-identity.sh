@@ -41,7 +41,8 @@ if [[ "${KAIRN_WEB_RECORDINGS:-0}" == 1 ]]; then
   export KAIRN_S3_SECRET_KEY="${KAIRN_S3_SECRET_KEY:-local-storage-only}"
   suites=(tests/web/recording-import.playwright.ts)
   if [[ "${KAIRN_WEB_BATCHES:-0}" == 1 ]]; then
-    suites=(tests/web/recording-batch.playwright.ts)
+    export KAIRN_GPX_CREATION_ORIGIN="$BETTER_AUTH_URL"
+    suites+=(tests/web/create-journey-gpx.playwright.ts tests/web/recording-batch.playwright.ts)
   fi
 fi
 

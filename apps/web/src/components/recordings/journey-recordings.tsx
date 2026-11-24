@@ -100,19 +100,21 @@ export function JourneyRecordings({
       ? recordingReceipt({ ...receipt, scope: receiptedItem.scope })
       : undefined);
 
-  function refreshRecordings() {
-    void scope.queryClient.invalidateQueries({ queryKey: listKey });
-    void scope.queryClient.invalidateQueries({
-      queryKey: journeyRouteKey(scope, journeyId),
-    });
+  async function refreshRecordings() {
+    await Promise.all([
+      scope.queryClient.invalidateQueries({ queryKey: listKey }),
+      scope.queryClient.invalidateQueries({
+        queryKey: journeyRouteKey(scope, journeyId),
+      }),
+    ]);
   }
 
-  function completed(result: RecordingCommit) {
+  async function completed(result: RecordingCommit) {
     if (result.journeyId !== journeyId || scope.signal.aborted) return;
     scope.queryClient.setQueryData(receiptKey, result);
     setReceipt(undefined);
     setNotice(recordingReceipt(result));
-    refreshRecordings();
+    await refreshRecordings();
   }
 
   function restoreDetailsFocus() {
@@ -254,7 +256,7 @@ export function JourneyRecordings({
                 archived={archived}
                 changed={(message) => {
                   setNotice(message);
-                  refreshRecordings();
+                  void refreshRecordings();
                 }}
               />
             </div>

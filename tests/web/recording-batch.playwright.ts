@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import {
+  journeyRecordingOverview,
+  ownerRecordingPage,
+} from "../../packages/contracts/src/recordings";
 import { mailLink, site } from "./identity-fixture";
 import { fillSchedule } from "./schedule-fixture";
 
@@ -50,6 +54,93 @@ function recordingsHeading(page: Page, count: number) {
     name: `Recordings · ${count} ${count === 1 ? "file" : "files"}`,
   });
 }
+
+test("creates, invites, adds a recording and deletes the same GPX journey", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.route("https://*.mapbox.com/**", (route) => route.abort());
+  await signInForBatch(page);
+  await chooseBatchFiles(page);
+  await page.getByRole("button", { name: "Upload for review" }).click();
+  await expect(
+    page.getByRole("button", { name: "Create journey", exact: true }),
+  ).toBeEnabled({ timeout: 20_000 });
+
+  const address = `journey-lifecycle-${randomUUID()}@example.test`;
+  await page.getByRole("button", { name: "Invite people" }).click();
+  const invite = page.getByRole("dialog", { name: "Invite people" });
+  await invite.getByRole("button", { name: "Invite by email" }).click();
+  await invite.getByLabel("Email address").fill(address);
+  await invite.getByRole("button", { name: "Add email" }).click();
+  await invite.getByRole("button", { name: "Send invitations" }).click();
+  await expect(invite).toBeHidden();
+  await expect(page).toHaveURL(`${site}/journeys/new`);
+  await mailLink(address, "Join a journey on Kairn", "/journey-invitations#");
+  await page.getByRole("button", { name: "Open journey", exact: true }).click();
+  await expect(page).toHaveURL(/\/journeys\/[0-9a-f-]{36}$/);
+  const journeyPath = new URL(page.url()).pathname;
+  const journeyApi = `${site}/api/v1${journeyPath}`;
+  await expect(
+    page.getByRole("heading", { name: "Sentier d’été & forêt", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "View people" }).click();
+  const people = page.getByRole("dialog", { name: "People", exact: true });
+  await expect(people.getByText(address, { exact: true })).toBeVisible();
+  await people.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Recordings$/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Add recording", exact: true })
+    .click();
+  const addition = page.getByRole("dialog", { name: "Add recording" });
+  const original = await readFile(
+    new URL("../fixtures/gpx/two-runs.gpx", import.meta.url),
+  );
+  await addition.getByLabel("Choose GPX file").setInputFiles({
+    name: "Detour.gpx",
+    mimeType: "application/gpx+xml",
+    buffer: Buffer.concat([original, Buffer.from("\n<!-- Detour -->\n")]),
+  });
+  await addition.getByRole("button", { name: "Upload for review" }).click();
+  await expect(
+    addition.getByRole("heading", { name: "Review recording" }),
+  ).toBeVisible({ timeout: 20_000 });
+  const refreshed = page.waitForResponse(
+    (response) =>
+      response.url() === `${journeyApi}/recordings/overview` && response.ok(),
+  );
+  await addition
+    .getByRole("button", { name: "Add recording", exact: true })
+    .click();
+  await expect(addition).toBeHidden();
+  await expect(page.getByText("Detour.gpx", { exact: true })).toBeVisible();
+  const overview = journeyRecordingOverview.parse(
+    await (await refreshed).json(),
+  );
+  expect(new Set(overview.paths.map(({ series }) => series)).size).toBe(3);
+
+  await page
+    .getByRole("button", { name: "Delete journey", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Delete journey?" })
+    .getByRole("button", { name: "Delete journey", exact: true })
+    .click();
+  await expect(page).toHaveURL(`${site}/journeys`);
+  await expect(
+    page.getByRole("heading", { name: "No journeys yet" }),
+  ).toBeVisible();
+  expect((await page.request.get(journeyApi)).status()).toBe(404);
+  const originals = await page.request.get(`${site}/api/v1/account/recordings`);
+  expect(originals.ok()).toBe(true);
+  expect(
+    ownerRecordingPage.parse(await originals.json()).recordings,
+  ).toHaveLength(3);
+});
 
 test("uploads a private batch, resumes an interrupted transfer and reopens the remaining file", async ({
   page,

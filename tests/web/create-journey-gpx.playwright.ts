@@ -22,6 +22,9 @@ test.beforeEach(async ({ page }) => {
       json: { state: "completed", intent: "plan", version: 1 },
     }),
   );
+  await page.route("**/api/v1/profile", (route) =>
+    route.fulfill({ json: { displayName: "Journey tester" } }),
+  );
   await page.route("**/api/v1/dashboard", (route) =>
     route.fulfill({
       json: {

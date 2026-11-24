@@ -31,7 +31,7 @@ export function AddRecordingDialog({
   initiallyOpen?: boolean;
   onInitialOpen?: () => void;
   suspension?: ReactNode;
-  onComplete: (receipt: RecordingCommit) => void;
+  onComplete: (receipt: RecordingCommit) => Promise<void>;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
@@ -70,10 +70,25 @@ export function AddRecordingDialog({
     }
   }, [open, suspended]);
 
+  function revealFocusedTrigger() {
+    requestAnimationFrame(() => {
+      const button = trigger.current;
+      if (button && document.activeElement === button) {
+        button.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    });
+  }
+
   if (!scope.accountId) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      onOpenChangeComplete={(next) => {
+        if (!next) revealFocusedTrigger();
+      }}
+    >
       <DialogTrigger
         disabled={suspended}
         render={
@@ -95,15 +110,7 @@ export function AddRecordingDialog({
       <DialogContent
         className="w-[min(40rem,calc(100%-16px))]"
         initialFocus={title}
-        finalFocus={() => {
-          const button = trigger.current;
-          if (!button || button.disabled) return undefined;
-          requestAnimationFrame(() => {
-            if (button.isConnected && document.activeElement === button)
-              button.scrollIntoView({ block: "nearest", inline: "nearest" });
-          });
-          return button;
-        }}
+        finalFocus={trigger}
       >
         <DialogTitle ref={title} tabIndex={-1}>
           Add recording
@@ -132,7 +139,8 @@ export function AddRecordingDialog({
                 fixedJourney={journeyId}
                 onComplete={(receipt) => {
                   setOpen(false);
-                  onComplete(receipt);
+                  // The refreshed map can grow above the trigger after closing.
+                  void onComplete(receipt).then(revealFocusedTrigger);
                 }}
               />
             </div>

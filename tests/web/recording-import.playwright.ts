@@ -423,12 +423,6 @@ test("adds a recording from journey detail and keeps the recorded path usable at
   if (hasRoute) {
     await expect(page.getByText("No recorded route available")).toBeVisible();
   }
-  const routeRefresh = hasRoute
-    ? page.waitForResponse(
-        (response) =>
-          response.url().endsWith("/recordings/overview") && response.ok(),
-      )
-    : undefined;
   let commandId = "";
   await page.route(
     "**/api/v1/imports/*/commit",
@@ -456,21 +450,39 @@ test("adds a recording from journey detail and keeps the recorded path usable at
     addition.getByText("Recording added to this journey."),
   ).toBeVisible();
   expect(await hasRecordingCommand(page, commandId)).toBe(false);
-  await addition
-    .getByRole("button", { name: "Done", exact: true })
-    .press("Enter");
-  await expect(addition).toBeHidden();
+  const reloadingRoute = Promise.withResolvers<void>();
+  const showRoute = Promise.withResolvers<void>();
+  if (hasRoute) {
+    await page.route(
+      "**/recordings/overview",
+      async (route) => {
+        reloadingRoute.resolve();
+        await showRoute.promise;
+        await route.continue();
+      },
+      { times: 1 },
+    );
+  }
+  try {
+    await addition
+      .getByRole("button", { name: "Done", exact: true })
+      .press("Enter");
+    if (hasRoute) await reloadingRoute.promise;
+    await expect(addition).toBeHidden();
+  } finally {
+    showRoute.resolve();
+  }
+  if (hasRoute) {
+    await expect(
+      page.getByRole("img", { name: "Recorded route overview" }),
+    ).toBeVisible();
+  }
   await expect(page).toHaveURL(journeyUrl);
   await expect(addRecording).toBeFocused();
   await expect(addRecording).toBeInViewport();
   await expect(
     page.getByText("Recording added. Recording visible only to you."),
   ).toBeVisible();
-  if (routeRefresh) {
-    const response = await routeRefresh;
-    const geometry = await response.json();
-    expect(geometry.paths.length).toBeGreaterThan(0);
-  }
   const detailsButton = page.getByRole("button", {
     name: "Details for two-runs.gpx",
   });
