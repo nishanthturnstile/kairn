@@ -49,8 +49,8 @@ jobs:
         run: KAIRN_WEB_INVITATIONS=1 KAIRN_TEST_WEB_PORT=58084 KAIRN_TEST_API_PORT=58085 pnpm test:web:identity --workers=1
       - name: Web GPX journey lifecycle and accessibility
         env:
-          KAIRN_WEB_RECORDINGS: '1'
-          KAIRN_WEB_BATCHES: '1'
+          KAIRN_WEB_RECORDINGS: "1"
+          KAIRN_WEB_BATCHES: "1"
           KAIRN_TEST_WEB_BUILD_DIR: dist/gpx-ci
         run: |
           VITE_GPX_JOURNEY_CREATE=1 pnpm --filter @kairn/web exec vp build --outDir dist/gpx-ci
@@ -72,7 +72,7 @@ jobs:
           persist-credentials: false
       - name: Native Linux release images
         env:
-          VITE_GPX_JOURNEY_CREATE: '1'
+          VITE_GPX_JOURNEY_CREATE: "1"
         run: bash infra/operations/build-images.sh linux/amd64 kairn-ci "${RUNNER_TEMP}/kairn-release.env"
       - name: Release smoke and coordinated restore
         run: bash tests/operations/release.sh "${RUNNER_TEMP}/kairn-release.env"
