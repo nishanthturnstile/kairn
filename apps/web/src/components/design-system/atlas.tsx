@@ -229,7 +229,7 @@ function FindComponent() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         if (
           document.querySelector(
-            '[data-slot="dialog-content"], [data-slot="sheet-content"], [data-mobile="true"][role="dialog"]',
+            '[data-open]:is([data-slot="dialog-content"], [data-slot="sheet-content"], [data-mobile="true"][role="dialog"])',
           )
         )
           return;
