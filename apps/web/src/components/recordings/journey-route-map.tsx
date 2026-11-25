@@ -6,17 +6,17 @@ import { journeyRouteKey } from "@/lib/recording-api";
 import type { AccountScope } from "@/lib/session";
 import { useSessionAccess } from "@/lib/session-access";
 import { JourneyLoading, JourneyRetry } from "../journeys/states";
-import { RecordingRoutePreview } from "./route-preview";
+import { RecordingRouteOverview, RecordingRoutePreview } from "./route-preview";
 
 export function JourneyRouteMap({
   journeyId,
   scope,
-  compact,
+  overviewOnly,
   onlyWithRecordings,
 }: {
   journeyId: string;
   scope: AccountScope;
-  compact?: boolean;
+  overviewOnly?: boolean;
   onlyWithRecordings?: boolean;
 }) {
   const { refresh } = useSessionAccess();
@@ -62,7 +62,11 @@ export function JourneyRouteMap({
         </div>
       ) : (
         <>
-          <RecordingRoutePreview overlay={geometry.data} large={!compact} />
+          {overviewOnly ? (
+            <RecordingRouteOverview overlay={geometry.data} />
+          ) : (
+            <RecordingRoutePreview overlay={geometry.data} large />
+          )}
           {geometry.data.limited && (
             <p className="text-sm text-muted-foreground">
               This map shows selected sections of a long recording or journey.

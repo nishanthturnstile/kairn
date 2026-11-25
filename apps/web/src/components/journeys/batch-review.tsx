@@ -13,7 +13,7 @@ import {
   useState,
 } from "react";
 import { JourneyRouteMap } from "@/components/recordings/journey-route-map";
-import { RecordingRoutePreview } from "@/components/recordings/route-preview";
+import { RecordingRouteOverview } from "@/components/recordings/route-preview";
 import {
   formatRecordingDuration,
   RecordingSections,
@@ -301,7 +301,7 @@ export function BatchReviewPanel({
                   aria-controls={mapRegion}
                   onClick={() => setMapOpen(!mapOpen)}
                 >
-                  {mapOpen ? "Hide map" : "Show map"}
+                  {mapOpen ? "Hide route" : "Show route"}
                 </Button>
               )}
             </div>
@@ -314,17 +314,16 @@ export function BatchReviewPanel({
                         <JourneyRouteMap
                           scope={scope}
                           journeyId={commit.savedJourneyId}
-                          compact
+                          overviewOnly
                         />
                       )
                     ) : (
-                      <BatchMap
+                      <BatchRoutePreview
                         scope={scope}
                         batchId={batchId}
                         files={data.files}
                         open={mapOpen}
                         selectedFile={selectedFile}
-                        select={select}
                         refreshReview={() => void retryReview()}
                         refreshing={syncing}
                       />
@@ -733,13 +732,12 @@ export function BatchFileSections({
   );
 }
 
-function BatchMap({
+function BatchRoutePreview({
   scope,
   batchId,
   files,
   open,
   selectedFile,
-  select,
   refreshReview,
   refreshing,
 }: {
@@ -748,7 +746,6 @@ function BatchMap({
   files: ReviewedFile[];
   open: boolean;
   selectedFile?: number;
-  select: (position: number) => void;
   refreshReview: () => void;
   refreshing: boolean;
 }) {
@@ -797,19 +794,13 @@ function BatchMap({
           There are no recorded lines to show.
         </p>
       ) : (
-        <RecordingRoutePreview
+        <RecordingRouteOverview
           overlay={overlay.data}
           selectedSeries={
             selectedFile !== undefined && positions.has(selectedFile)
               ? selectedFile
               : undefined
           }
-          select={(section) => {
-            const series = paths.find(
-              (path) => path.section === section,
-            )?.series;
-            if (series !== undefined) select(series);
-          }}
         />
       )}
       {overlay.data &&

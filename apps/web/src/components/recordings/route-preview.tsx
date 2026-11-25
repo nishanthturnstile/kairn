@@ -138,6 +138,9 @@ export function RecordingRouteOverview({
         );
         const left = (width - horizontalSpan * scale) / 2;
         const top = (height - verticalSpan * scale) / 2;
+        const outline = getComputedStyle(element)
+          .getPropertyValue("--fold-map-ink")
+          .trim();
 
         for (const path of paths) {
           context.beginPath();
@@ -147,9 +150,13 @@ export function RecordingRouteOverview({
             if (i === 0) context.moveTo(x, y);
             else context.lineTo(x, y);
           }
+          const lineWidth = isSelected(path) ? 5 : 3;
+          context.strokeStyle = outline;
+          context.lineWidth = lineWidth + 2;
+          context.stroke();
           context.strokeStyle =
             routeColors[(path.series ?? 0) % routeColors.length];
-          context.lineWidth = isSelected(path) ? 5 : 3;
+          context.lineWidth = lineWidth;
           context.stroke();
         }
       },
@@ -163,7 +170,7 @@ export function RecordingRouteOverview({
       ref={canvas}
       role="img"
       aria-label="Recorded route overview"
-      className={`block min-h-40 w-full rounded-control border bg-[var(--fold-map-ink)] ${large ? "h-(--journey-map-height)" : "aspect-[2/1]"}`}
+      className={`recording-route-overview block min-h-40 w-full rounded-control border ${large ? "h-(--journey-map-height)" : "aspect-[2/1]"}`}
     />
   );
 }

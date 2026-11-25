@@ -205,7 +205,11 @@ test("reviews two recordings and reopens one journey after a lost save response 
   page,
 }) => {
   test.setTimeout(65_000);
-  await page.route("https://*.mapbox.com/**", (route) => route.abort());
+  let mapboxRequests = 0;
+  await page.route("https://*.mapbox.com/**", (route) => {
+    mapboxRequests += 1;
+    return route.abort();
+  });
   await signInForBatch(page);
   const uploads = await chooseBatchFiles(page);
   let incomplete = true;
@@ -273,13 +277,14 @@ test("reviews two recordings and reopens one journey after a lost save response 
   await expect(
     routeStats.getByText("Elevation range", { exact: true }),
   ).toBeVisible();
-  await review.getByRole("button", { name: "Hide map" }).click();
+  await review.getByRole("button", { name: "Hide route" }).click();
   await expect(routeOverview).toBeHidden();
   await expect(routeStats).toBeVisible();
-  const showMap = review.getByRole("button", { name: "Show map" });
-  await expect(showMap).toHaveAttribute("data-variant", "outline");
-  await showMap.click();
+  const showRoute = review.getByRole("button", { name: "Show route" });
+  await expect(showRoute).toHaveAttribute("data-variant", "outline");
+  await showRoute.click();
   await expect(routeOverview).toBeVisible();
+  expect(mapboxRequests).toBe(0);
   const journeyReview = page.getByRole("region", { name: "Journey review" });
   const recordedTime = journeyReview.getByRole("region", {
     name: "Recorded time",
@@ -587,6 +592,11 @@ test("keeps recording and invitation lists usable on short and narrow screens", 
   page,
 }) => {
   test.setTimeout(95_000);
+  let mapboxRequests = 0;
+  await page.route("https://*.mapbox.com/**", (route) => {
+    mapboxRequests += 1;
+    return route.abort();
+  });
   await page.setViewportSize({ width: 1440, height: 600 });
   await signInForBatch(page);
   const recording = await readFile(
@@ -809,8 +819,11 @@ test("keeps recording and invitation lists usable on short and narrow screens", 
   const open = page.getByRole("button", { name: "Open journey", exact: true });
   await expect(invite).toBeFocused();
   await expect(
-    page.getByRole("region", { name: "Journey route" }),
+    page
+      .getByRole("region", { name: "Journey route" })
+      .getByRole("img", { name: "Recorded route overview" }),
   ).toBeVisible();
+  expect(mapboxRequests).toBe(0);
   await expect(
     page.getByRole("button", { name: "Retry invitations" }),
   ).toHaveCount(0);

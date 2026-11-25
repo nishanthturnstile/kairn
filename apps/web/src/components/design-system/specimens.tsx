@@ -768,6 +768,7 @@ export function ExpressionSpecimen() {
                 paths: [
                   {
                     section: 0,
+                    series: 0,
                     firstPointIndex: 0,
                     coordinates: [
                       [0, 0],
@@ -776,6 +777,18 @@ export function ExpressionSpecimen() {
                       [2.5, 1.2],
                       [3, 2],
                       [4, 1.8],
+                    ],
+                  },
+                  {
+                    section: 1,
+                    series: 1,
+                    firstPointIndex: 6,
+                    coordinates: [
+                      [0.5, 0.1],
+                      [1.5, 0.5],
+                      [2, 0.9],
+                      [2.7, 0.65],
+                      [3.6, 1.25],
                     ],
                   },
                 ],

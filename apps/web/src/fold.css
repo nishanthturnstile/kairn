@@ -133,6 +133,24 @@ body:has(.no-script-note) .fold-launch-initial {
   height: auto;
 }
 
+.recording-route-overview {
+  --route-grid: color-mix(in srgb, var(--fold-map-contour) 24%, transparent);
+  background-color: light-dark(var(--fold-map-paper), var(--fold-map-ink));
+  background-image:
+    linear-gradient(var(--route-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--route-grid) 1px, transparent 1px),
+    radial-gradient(
+      ellipse at top right,
+      color-mix(in srgb, var(--fold-map-land) 28%, transparent),
+      transparent 72%
+    );
+  background-position: center;
+  background-size:
+    24px 24px,
+    24px 24px,
+    100% 100%;
+}
+
 .fold-toast-viewport {
   position: fixed;
   z-index: 60;

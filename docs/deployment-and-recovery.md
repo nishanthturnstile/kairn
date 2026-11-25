@@ -16,12 +16,12 @@ To qualify GPX-first creation in a release image, set `VITE_GPX_JOURNEY_CREATE=1
 
 ## Environment setup
 
-Check out the reviewed deployment files on the host. Store the following files outside the checkout with access restricted to the deployment operator. Use absolute paths and plain `KEY=value` lines without shell quoting inside service environment files. Percent-encode reserved characters when embedding secrets in database or SMTP URLs.
+Check out the reviewed deployment files on the host. Store the following files outside the checkout with access restricted to the deployment operator. Use absolute paths and plain `KEY=value` lines without shell quoting inside service environment files. Percent-encode reserved characters when embedding secrets in database or SMTP URLs. For production, set `BETTER_AUTH_URL=https://kairn.co.in` in `server.env` so authentication and invitation links use the same HTTPS origin as Caddy. Give staging its own matching hostname and origin when its domain is chosen.
 
 ```dotenv
 # /etc/kairn/production/settings.env
 KAIRN_PROJECT=kairn-production
-KAIRN_SITE_ADDRESS=kairn.example.com
+KAIRN_SITE_ADDRESS=kairn.co.in
 KAIRN_DB_ENV=/etc/kairn/production/db.env
 KAIRN_STORAGE_ENV=/etc/kairn/production/storage.env
 KAIRN_SERVER_ENV=/etc/kairn/production/server.env
@@ -127,7 +127,7 @@ The command clears the old password, sessions and reset links and records the ap
 
 Schedule `bash infra/operations/deploy.sh status "$settings" "$release" <maximum-checkpoint-age-seconds>` through the host's monitor. It checks worker startup, WAL archive health, the newest paired checkpoint's age, and HTTPS readiness. Send failures to the operator. Configure host alerts for disk space and inodes on the Docker data and WAL mounts, memory and restarts, and offsite storage quota and backup failures. Configure provider usage alerts for backups, email and any enabled metered integration. Set thresholds after inspecting the allocated VPS and agreed recovery windows.
 
-Set the repository variable `KAIRN_PUBLIC_URL` to the production HTTPS origin to activate the [external availability workflow](../.github/workflows/uptime.yml). Enable and test failure notifications, or use the existing external uptime provider and verify delivery by making a staging probe fail. Track restore exercises regularly and record time, checkpoint age, restored object checks, journal verification and the operator who reopened access.
+Once production is serving traffic, set the repository variable `KAIRN_PUBLIC_URL=https://kairn.co.in` to activate the [external availability workflow](../.github/workflows/uptime.yml). Enable and test failure notifications, or use the existing external uptime provider and verify delivery by making a staging probe fail. Track restore exercises regularly and record time, checkpoint age, restored object checks, journal verification and the operator who reopened access.
 
 For a disposable synthetic drill, run the same build and smoke commands as CI with an architecture supported by the local Docker engine.
 
