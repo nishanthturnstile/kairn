@@ -1,0 +1,36 @@
+name: Development CI
+
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: development-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quick-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .node-version
+      - name: Frozen dependency install
+        run: |
+          corepack enable pnpm
+          pnpm install --frozen-lockfile
+      - run: pnpm tokens:check
+      - run: pnpm exec biome ci
+      - name: Web and backend type checks
+        run: pnpm exec vp run --filter '@kairn/web...' --filter '@kairn/server...' --filter '@kairn/worker...' typecheck
+      - run: pnpm api:check

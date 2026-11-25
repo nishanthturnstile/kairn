@@ -1,8 +1,10 @@
 # Implementation progress
 
-Updated 2026-11-24. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
+Updated 2026-11-25. Baseline [bootstrap PR #1](https://github.com/nishanthturnstile/kairn/pull/1) merged into `main` at `fef181b`.
 
 ## Next milestone
+
+**CI split · Development and release.** Pushes and pull requests into `development` run quick checks with a two-minute job timeout. A merged `development`-to-`main` pull request runs the full suite against the merged revision. Fourteen event scenarios passed local validation, and the quick-check commands passed in six seconds with dependencies installed. The next promotion exercises the post-merge trigger. [Development CI](../.github/workflows/development-ci.yml) · [Foundation CI](../.github/workflows/ci.yml) · [Release runbook](deployment-and-recovery.md#ci-and-release-artifacts)
 
 **Verified locally · Web GPX CI and release builds.** Foundation CI builds the GPX-first web bundle separately and runs the service-backed suite in Chromium and Firefox. Both browsers passed all 13 scenarios locally, including the enlarged-text accessibility scans. Linux ARM64 edge builds verified the default planning flow, the GPX opt-in, and public-token bundling with a synthetic value. The opt-in release passed the smoke test and coordinated restore drill. Next, choose the staging target, configure a scoped public token, and qualify live basemaps and recovery there. Whole-trip date and timezone corrections follow the rollout. [CI workflow](../.github/workflows/ci.yml) · [Release settings](deployment-and-recovery.md#ci-and-release-artifacts) · [GPX browser checks](../tests/web/recording-batch.playwright.ts)
 
@@ -170,7 +172,7 @@ The [invitation and membership plan](plans/journey-invitations-and-membership.md
 
 | Item | Evidence needed |
 | --- | --- |
-| GitHub controls | `main` has no active protection rules, and staging and production environments are absent. Configure required checks and protected environments. |
+| GitHub controls | `main` has no active protection rules, and staging and production environments are absent. Configure branch protections and protected environments. Verify post-merge CI before dispatching a release. |
 | Target VPS and providers | Confirm the VPS architecture, deploy the matching images to staging, verify SMTP and DNS, and test live alert delivery. |
 | Independent recovery | Provision off-VPS backup storage and the restriction journal, then demonstrate replay and closed-access recovery using those destinations. |
 | Dependency advisory | The [picomatch advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) was open at bootstrap sign-off. Track its resolution in [dependency qualification](bootstrap/dependency-qualification.md#bootstrap-review-follow-up). |
